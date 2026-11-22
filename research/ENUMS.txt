@@ -1,0 +1,493 @@
+==============================================================================
+ExportModule.proto | service.Export
+  enum ViewDataType  (5 values)
+      KeyFramePoint                              = 0
+      DeepTrack                                  = 1
+      ViewFinder                                 = 2
+      VirtualPtz                                 = 3
+      MovementTemplate                           = 4
+  enum SourceFileType  (3 values)
+      kPhoto                                     = 0
+      kVideo                                     = 1
+      kEmptyVideo                                = 2
+  enum InterpolationType  (3 values)
+      kOpticalFlowFrame                          = 0
+      kRepeatFrame                               = 1
+      kDefault                                   = 2
+  enum EncodeType  (4 values)
+      kH264                                      = 0
+      kH265                                      = 1
+      kProres422                                 = 2
+      kProres422LT                               = 3
+  enum ImageProcessingAccel  (2 values)
+      kAuto                                      = 0
+      kCPU                                       = 1
+  enum StabilizationType  (2 values)
+      kFlowState                                 = 0
+      kFPV                                       = 1
+  enum StarTailType  (3 values)
+      kLong                                      = 0
+      kMedium                                    = 1
+      kShort                                     = 2
+  enum DewarpTypeMode  (2 values)
+      kDistortionReserved                        = 0
+      kDistortionRemoved                         = 1
+  enum LongitudeDirection  (2 values)
+      kDirectionEast                             = 0
+      kDirectionWest                             = 1
+  enum LatitudeDirection  (2 values)
+      kDirectionSouth                            = 0
+      kDirectionNorth                            = 1
+==============================================================================
+ExportParams.proto | service.Export2
+  enum ExportType  (34 values)
+      PHOTO                                      = 0
+      DNG_TO_DNG                                 = 1
+      DNG_TO_JPG                                 = 2
+      DNG_WITH_JPG                               = 3
+      NO_EXTRA_INFO_DNG_EXPORT                   = 4
+      JPG_SEQUENCE                               = 5
+      DNG_SEQUENCE_DNG                           = 6
+      DNG_SEQUENCE_JPG                           = 7
+      DNG_SEQUENCE_DNG_WITH_JPG                  = 8
+      VIDEO                                      = 9
+      VIDEO_CLIP                                 = 10
+      DEMUX_TO_JPEG                              = 11
+      SEQUENCE                                   = 12
+      MUX_TO_VIDEO                               = 13
+      MUX_TO_PURESHOT_VIDEO                      = 14
+      MERGED_MIX                                 = 15
+      MERGED_ONLY                                = 16
+      DNG_MERGED_JPG                             = 17
+      DNG_MERGED_DNG                             = 18
+      DNG_MERGED_EXR                             = 19
+      JPG_MERGED                                 = 20
+      JPG_MERGED_GROUP                           = 21
+      DNG_MERGED_GROUP                           = 22
+      DNG_MERGED_GROUP_DNG                       = 23
+      SOURCE_CLIP                                = 24
+      PANO_PIC_ANIMATION                         = 25
+      PANO_PIC_ANIMATION_PRESET                  = 26
+      STAR_TRAIL_VIDEO                           = 27
+      STAR_TRAIL_PHOTO                           = 28
+      VIDEO_TO_JPEG_SEQUENCE                     = 29
+      PROJECT_COVER_PHOTO                        = 30
+      PANO_VIDEO                                 = 31
+      INVALID_EXPORT_TYPE                        = 32
+      PLACE_HOLDER_TYPE                          = 33
+  enum StarTrailType  (3 values)
+      LONG                                       = 0
+      MEDIUM                                     = 1
+      SHORT                                      = 2
+  enum DewarpTypeMode  (2 values)
+      kDistortionReserved                        = 0
+      kDistortionRemoved                         = 1
+  enum StabilizationType  (2 values)
+      kFlowState                                 = 0
+      kFPV                                       = 1
+  enum StitchType  (4 values)
+      STITCH_TEMPLATE                            = 0
+      STITCH_DYNAMIC                             = 1
+      STITCH_OPTICAL                             = 2
+      STITCH_AI                                  = 3
+==============================================================================
+NetWorkModule.proto | service.Network
+  enum FileType  (2 values)
+      kSplashImage                               = 0
+      kTranslationFile                           = 1
+  enum DownloadState  (9 values)
+      kSuccessful                                = 0
+      kDisconnected                              = 1
+      kUnknown                                   = 2
+      kError                                     = 3
+      kTimeout                                   = 4
+      kProgress                                  = 5
+      kStartDownload                             = 6
+      kCancelDownload                            = 7
+      kInsufficientStorage                       = 8
+  enum FileUnzipState  (3 values)
+      kFailToOpen                                = 0
+      kFailToUnzip                               = 1
+      kUnzipSuccessfully                         = 2
+==============================================================================
+PBExtraData.proto | 
+  enum PBGyroDataType  (4 values)
+      PBGyroDataType_nano                        = 0
+      PBGyroDataType_nano2                       = 1
+      PBGyroDataType_air                         = 2
+      PBGyroDataType_air2                        = 3
+==============================================================================
+ThumbnailModule.proto | service.Thumbnail
+  enum ThumbnailTaskType  (3 values)
+      kFootageCover                              = 0
+      kSingleTask                                = 1
+      kQuickSeekTask                             = 2
+  enum ThumbnailRenderType  (5 values)
+      kPlane                                     = 0
+      kPlaneSphere                               = 1
+      kSphere                                    = 2
+      kDewarp                                    = 3
+      kStereo                                    = 4
+==============================================================================
+appExportData.proto | insta360.message
+  enum DataSource  (2 values)
+      Android                                    = 0
+      IOS                                        = 1
+  enum StabType  (2 values)
+      Still                                      = 0
+      DirectionLock                              = 1
+  enum ProjectSegmentType  (2 values)
+      Edit                                       = 0
+      Snap                                       = 1
+  enum ViewDataType  (3 values)
+      KeyFramePoint                              = 0
+      DeepTrack                                  = 1
+      ViewFinder                                 = 2
+==============================================================================
+commands/editinfo_list.proto | insta360.messages
+  enum ResultIndex  (4 values)
+      RESULT_INDEX_UNSPECIFIED                   = 0
+      RESULT_INDEX_APEI                          = 1
+      RESULT_INDEX_CLIP                          = 2
+      RESULT_INDEX_PLANE                         = 3
+  enum StorageLocation  (3 values)
+      STORAGE_LOCATION_UNSPECIFIED               = 0
+      STORAGE_LOCATION_INTERNAL                  = 1
+      STORAGE_LOCATION_EXTERNAL                  = 2
+  enum FinishState  (4 values)
+      FINISH_STATE_UNSPECIFIED                   = 0
+      FINISH_STATE_DONE                          = 1
+      FINISH_STATE_EMPTY                         = 2
+      FINISH_STATE_FILEERROR                     = 3
+  enum CustomFilmBatchState  (5 values)
+      CUSTOM_FILM_BATCH_STATE_UNSPECIFIED        = 0
+      CUSTOM_FILM_BATCH_STATE_PENDING            = 1
+      CUSTOM_FILM_BATCH_STATE_PROCESSING         = 2
+      CUSTOM_FILM_BATCH_STATE_COMMITTED          = 3
+      CUSTOM_FILM_BATCH_STATE_FAILED             = 4
+  enum FilmGroupRule  (4 values)
+      FILM_GROUP_RULE_UNSPECIFIED                = 0
+      FILM_GROUP_RULE_INTRADAY                   = 1
+      FILM_GROUP_RULE_FULLDAY                    = 2
+      FILM_GROUP_RULE_CUSTOM_MULTIDAY            = 4
+==============================================================================
+envoy/config/core/v3/base.proto | envoy.config.core.v3
+  enum RoutingPriority  (2 values)
+      DEFAULT                                    = 0
+      HIGH                                       = 1
+  enum RequestMethod  (10 values)
+      METHOD_UNSPECIFIED                         = 0
+      GET                                        = 1
+      HEAD                                       = 2
+      POST                                       = 3
+      PUT                                        = 4
+      DELETE                                     = 5
+      CONNECT                                    = 6
+      OPTIONS                                    = 7
+      TRACE                                      = 8
+      PATCH                                      = 9
+  enum TrafficDirection  (3 values)
+      UNSPECIFIED                                = 0
+      INBOUND                                    = 1
+      OUTBOUND                                   = 2
+==============================================================================
+envoy/config/core/v3/config_source.proto | envoy.config.core.v3
+  enum ApiVersion  (3 values)
+      AUTO                                       = 0
+      V2                                         = 1
+      V3                                         = 2
+==============================================================================
+envoy/config/core/v3/health_check.proto | envoy.config.core.v3
+  enum HealthStatus  (6 values)
+      UNKNOWN                                    = 0
+      HEALTHY                                    = 1
+      UNHEALTHY                                  = 2
+      DRAINING                                   = 3
+      TIMEOUT                                    = 4
+      DEGRADED                                   = 5
+==============================================================================
+envoy/data/accesslog/v3/accesslog.proto | envoy.data.accesslog.v3
+  enum AccessLogType  (14 values)
+      NotSet                                     = 0
+      TcpUpstreamConnected                       = 1
+      TcpPeriodic                                = 2
+      TcpConnectionEnd                           = 3
+      DownstreamStart                            = 4
+      DownstreamPeriodic                         = 5
+      DownstreamEnd                              = 6
+      UpstreamPoolReady                          = 7
+      UpstreamPeriodic                           = 8
+      UpstreamEnd                                = 9
+      DownstreamTunnelSuccessfullyEstablished    = 10
+      UdpTunnelUpstreamConnected                 = 11
+      UdpPeriodic                                = 12
+      UdpSessionEnd                              = 13
+==============================================================================
+envoy/type/v3/http.proto | envoy.type.v3
+  enum CodecClientType  (3 values)
+      HTTP1                                      = 0
+      HTTP2                                      = 1
+      HTTP3                                      = 2
+==============================================================================
+extraMediaData.proto | bmg
+  enum VideoType  (5 values)
+      VIDEOTYPE_ORIGINAL                         = 0
+      VIDEOTYPE_AGENT                            = 1
+      VIDEOTYPE_STITCHED_PANO                    = 2
+      VIDEOTYPE_EACUBEMAP                        = 3
+      VIDEOTYPE_CLOUD_SINGLE_FISHEYE             = 4
+==============================================================================
+extra_info.proto | insta360.messages
+  enum ExtraType  (57 values)
+      EXTRA_TYPE_ALL                             = 0
+      EXTRA_TYPE_METADATA                        = 1
+      EXTRA_TYPE_THUMBNAIL                       = 2
+      EXTRA_TYPE_GYRO                            = 3
+      EXTRA_TYPE_EXPOSURE                        = 4
+      EXTRA_TYPE_EXT_THUMBNAIL                   = 5
+      EXTRA_TYPE_FRAME_PTS                       = 6
+      EXTRA_TYPE_GPS                             = 7
+      EXTRA_TYPE_STAR_NUM                        = 8
+      EXTRA_TYPE_AAA_DATA                        = 9
+      EXTRA_TYPE_HIGHLIGHT                       = 10
+      EXTRA_TYPE_AAA_SIM                         = 11
+      EXTRA_TYPE_EXPOTIME_VIN1                   = 12
+      EXTRA_TYPE_MAGNETIC                        = 13
+      EXTRA_TYPE_EULER                           = 14
+      EXTRA_TYPE_SECGYRO                         = 15
+      EXTRA_TYPE_SPEED                           = 16
+      EXTRA_TYPE_TBOX                            = 17
+      EXTRA_TYPE_EDITOR                          = 18
+      EXTRA_TYPE_HEARTRATE                       = 19
+      EXTRA_TYPE_FORWARD_DIRECTION               = 20
+      EXTRA_TYPE_UPVIEW                          = 21
+      EXTRA_TYPE_SHELL_RECOGNITION_DATA          = 22
+      EXTRA_TYPE_POS                             = 23
+      EXTRA_TYPE_TIMELAPSE_QUAT                  = 24
+      EXTRA_TYPE_QUATERNION                      = 25
+      EXTRA_TYPE_APEI                            = 26
+      EXTRA_TYPE_BEISP_DYNAMICDATA               = 27
+      EXTRA_TYPE_BEISP_STATICDATA                = 28
+      EXTRA_TYPE_AEFLICKER                       = 29
+      EXTRA_TYPE_VEHICAL_INFO                    = 30
+      EXTRA_TYPE_TRAJECTORYSEGMENT               = 31
+      EXTRA_TYPE_PLANEVIEW                       = 32
+      EXTRA_TYPE_AUTOEDIT_META                   = 33
+      EXTRA_TYPE_ADVANCEFUNC_META                = 34
+      EXTRA_TYPE_DGMAG_DATA                      = 35
+      EXTRA_TYPE_TM_DATA                         = 36
+      EXTRA_TYPE_UAV_QUAT_VEL                    = 37
+      EXTRA_TYPE_TEMP_COMPENSATION               = 38
+      EXTRA_TYPE_3A_DESCRIPTION                  = 39
+      EXTRA_TYPE_TRACK_INFO                      = 40
+      EXTRA_TYPE_EISSUBTITLE                     = 41
+      EXTRA_TYPE_RECIPE                          = 42
+      EXTRA_TYPE_UAV_TRACK_STAT                  = 48
+      EXTRA_TYPE_UAV_STATUS                      = 49
+      EXTRA_TYPE_TRACK_BOX                       = 50
+      EXTRA_TYPE_ONLINE_QUATERNION               = 51
+      EXTRA_TYPE_SUB_STREAM_EXPOSURE             = 52
+      EXTRA_TYPE_SENSOR_MODULE_TEMPER            = 53
+      EXTRA_TYPE_SUB_STREAM_EXPOTIME_VIN1        = 54
+      EXTRA_TYPE_PANO_EDITOR_RESULT              = 55
+      EXTRA_TYPE_PLANEVIEW_V2                    = 56
+      EXTRA_TYPE_PANO_STILL_ROT                  = 57
+      EXTRA_TYPE_TM01_DATA                       = 58
+      EXTRA_TYPE_FLIGHT_INFO                     = 59
+      EXTRA_TYPE_THUMBNAIL_SMALL                 = 60
+      EXTRA_TYPE_TRIM_EXPOSURE_OFFSET            = 61
+==============================================================================
+google/protobuf/descriptor.proto | google.protobuf
+  enum Edition  (9 values)
+      EDITION_UNKNOWN                            = 0
+      EDITION_PROTO2                             = 998
+      EDITION_PROTO3                             = 999
+      EDITION_2023                               = 1000
+      EDITION_1_TEST_ONLY                        = 1
+      EDITION_2_TEST_ONLY                        = 2
+      EDITION_99997_TEST_ONLY                    = 99997
+      EDITION_99998_TEST_ONLY                    = 99998
+      EDITION_99999_TEST_ONLY                    = 99999
+==============================================================================
+google/protobuf/struct.proto | google.protobuf
+  enum NullValue  (1 values)
+      NULL_VALUE                                 = 0
+==============================================================================
+google/protobuf/type.proto | google.protobuf
+  enum Syntax  (2 values)
+      SYNTAX_PROTO2                              = 0
+      SYNTAX_PROTO3                              = 1
+==============================================================================
+ins_cloud_export_dashboard.proto | insta360.cloud.message
+  enum ItemIndex  (21 values)
+      kWorkout                                   = 0
+      kDistance                                  = 10
+      kSteps                                     = 11
+      kEnergyConsumption                         = 20
+      kPowerInWatts                              = 21
+      kRoute                                     = 30
+      kHeartRate                                 = 40
+      kPace                                      = 50
+      kSpeed                                     = 51
+      kAcceleration                              = 52
+      kGear                                      = 53
+      kAccelerator                               = 54
+      kBrake                                     = 55
+      kElevation                                 = 60
+      kSlope                                     = 61
+      kDirection                                 = 62
+      kCadence                                   = 70
+      kDateTime                                  = 80
+      kBendingAngle                              = 90
+      kGravity                                   = 91
+      kModelCode                                 = 100
+  enum DashBoardDataSource  (15 values)
+      kNaitve                                    = 0
+      kGarmin                                    = 1
+      kTbox                                      = 2
+      kAppleHealth                               = 3
+      kIGPSport                                  = 4
+      kGaoChi                                    = 5
+      kInsGPS                                    = 6
+      kGpsTrack                                  = 7
+      kWahoo                                     = 8
+      kHuawei                                    = 9
+      kStrava                                    = 10
+      kMagene                                    = 11
+      kCfMoto                                    = 12
+      kSuunto                                    = 13
+      kPiscisea                                  = 14
+==============================================================================
+ins_cloud_export_data.proto | insta360.cloud.message
+  enum CutsceneType  (5 values)
+      CUTSCENE_NONE                              = 0
+      CUTSCENE_LOTTIE                            = 1
+      CUTSCENE_PANO                              = 2
+      CUTSCENE_MEISHE                            = 3
+      CUTSCENE_OTHERS                            = 4
+  enum ExporterTimeScaleType  (5 values)
+      kDefaultValue                              = 0
+      kInterpolateFinalFrame                     = 1
+      kInterpolateFinalFrameAI                   = 2
+      kInterpolateSourceFrame                    = 3
+      kRepeatSingleSourceFrame                   = 4
+  enum ClipAudioMode  (4 values)
+      kNone                                      = 0
+      kDirectionFocus                            = 1
+      kSpatialAudio360                           = 3
+      kInsDirectionFocus                         = 7
+  enum RenderModelType  (17 values)
+      AUTO                                       = 0
+      SPHERE_AUTO                                = 1
+      SPHERE_STITCH                              = 2
+      SPHERE_EQUIRECTANGULAR                     = 3
+      SPHERE_FISHEYE_DEWARP                      = 4
+      CUBE_TILE_PROJECTION                       = 5
+      SPHERE_CUBEMAP                             = 6
+      PLANE_CUBEMAP2EQUI                         = 7
+      PLANE_AUTO                                 = 10
+      PLANE_STITCH                               = 11
+      PLANE_EQUIRECTANGULAR                      = 12
+      PLANE_FISHEYE_DEWARP                       = 13
+      PLANE_STITCH_MERCATOR                      = 14
+      PLANE_MERCATOR                             = 15
+      PLANE                                      = 20
+      PLANE_REMAP_UV                             = 21
+      MONO_SINGLE_FISHEYE                        = 34
+  enum ProjectionType  (2 values)
+      OMNI                                       = 0
+      PANINI                                     = 1
+==============================================================================
+ins_cloud_export_filter.proto | insta360.cloud.message
+  enum CropContainMode  (2 values)
+      CONTAIN                                    = 0
+      COVER                                      = 1
+  enum CropOutAspectMode  (3 values)
+      UNKNOWN                                    = 0
+      EqualScreen                                = 1
+      EqualCrop                                  = 2
+==============================================================================
+ins_export_information.proto | insta360.cloud.message
+  enum VideoType  (2 values)
+      NORMALMP4                                  = 0
+      FRAGMENTMP4                                = 1
+  enum CodecId  (4 values)
+      NONECODEC                                  = 0
+      H264                                       = 27
+      H265                                       = 173
+      PRORES                                     = 147
+  enum ChannelLayout  (4 values)
+      NONE                                       = 0
+      MONO                                       = 1
+      STEREO                                     = 2
+      SURROUND4POINT0                            = 3
+  enum ExMatColorType  (2 values)
+      RGBA                                       = 0
+      YUV_I420                                   = 1
+==============================================================================
+ins_player_edit_data.proto | insta360.cloud.message
+  enum DataSource  (4 values)
+      Unknow                                     = 0
+      Android                                    = 1
+      IOS                                        = 2
+      PC                                         = 3
+  enum StabType  (2 values)
+      Still                                      = 0
+      DirectionLock                              = 1
+  enum ProjectSegmentType  (2 values)
+      Edit                                       = 0
+      Snap                                       = 1
+  enum ViewDataType  (3 values)
+      KeyFramePoint                              = 0
+      DeepTrack                                  = 1
+      ViewFinder                                 = 2
+==============================================================================
+offset_state.proto | insta360.messages
+  enum OffsetState  (15 values)
+      Common                                     = 0
+      SphereProtect                              = 1
+      DivingWater                                = 2
+      DivingWater23                              = 3
+      Protect_A                                  = 4
+      Protect_S                                  = 5
+      Protect_Auto                               = 6
+      Filter_ND16                                = 7
+      Filter_ND32                                = 8
+      Filter_ND64                                = 9
+      DivingWaterPro                             = 10
+      DivingAirPro                               = 11
+      Filter_ND128                               = 12
+      Filter_Joystick                            = 13
+      G01Protect                                 = 14
+  enum OffsetDetectedType  (9 values)
+      Unkown                                     = 0
+      Auto_A                                     = 1
+      Auto_S                                     = 2
+      Auto_off                                   = 3
+      Auto_AS                                    = 4
+      Auto_ND16                                  = 5
+      Auto_ND32                                  = 6
+      Auto_ND64                                  = 7
+      Auto_ND128                                 = 8
+==============================================================================
+udpa/annotations/status.proto | udpa.annotations
+  enum PackageVersionStatus  (4 values)
+      UNKNOWN                                    = 0
+      FROZEN                                     = 1
+      ACTIVE                                     = 2
+      NEXT_MAJOR_VERSION_CANDIDATE               = 3
+==============================================================================
+validate/validate.proto | validate
+  enum KnownRegex  (3 values)
+      UNKNOWN                                    = 0
+      HTTP_HEADER_NAME                           = 1
+      HTTP_HEADER_VALUE                          = 2
+==============================================================================
+xds/annotations/v3/status.proto | xds.annotations.v3
+  enum PackageVersionStatus  (4 values)
+      UNKNOWN                                    = 0
+      FROZEN                                     = 1
+      ACTIVE                                     = 2
+      NEXT_MAJOR_VERSION_CANDIDATE               = 3
+
+total enums dumped: 64
