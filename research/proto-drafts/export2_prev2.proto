@@ -1,0 +1,480 @@
+// Reconstructed from FileDescriptorProto blobs embedded in studio_worker.dll
+//   ExportModule2.proto          @ file offset 0x6c44e40 (len 693)
+//   ExportParams.proto           @ file offset 0x6c5d920 (len 5250)
+//   ins_cloud_export_data.proto  @ file offset 0x7209620 (len 7607)
+// Package: service.Export2   Service: Export2   Port: 4096 (studio-exporter-service.exe)
+//
+// Message-name collisions across the three source descriptors were resolved by
+// prefixing the cloud (mainParams) types with "Cloud". Field numbers and types are
+// exactly as recovered from the wire descriptors.
+syntax = "proto3";
+
+package service.Export2;
+
+// ---------------------------------------------------------------- enums
+enum ExportType {
+  PHOTO = 0;
+  DNG_TO_DNG = 1;
+  DNG_TO_JPG = 2;
+  DNG_WITH_JPG = 3;
+  NO_EXTRA_INFO_DNG_EXPORT = 4;
+  JPG_SEQUENCE = 5;
+  DNG_SEQUENCE_DNG = 6;
+  DNG_SEQUENCE_JPG = 7;
+  DNG_SEQUENCE_DNG_WITH_JPG = 8;
+  VIDEO = 9;
+  VIDEO_CLIP = 10;
+  DEMUX_TO_JPEG = 11;
+  SEQUENCE = 12;
+  MUX_TO_VIDEO = 13;
+  MUX_TO_PURESHOT_VIDEO = 14;
+  MERGED_MIX = 15;
+  MERGED_ONLY = 16;
+  DNG_MERGED_JPG = 17;
+  DNG_MERGED_DNG = 18;
+  DNG_MERGED_EXR = 19;
+  JPG_MERGED = 20;
+  JPG_MERGED_GROUP = 21;
+  DNG_MERGED_GROUP = 22;
+  DNG_MERGED_GROUP_DNG = 23;
+  SOURCE_CLIP = 24;
+  PANO_PIC_ANIMATION = 25;
+  PANO_PIC_ANIMATION_PRESET = 26;
+  STAR_TRAIL_VIDEO = 27;
+  STAR_TRAIL_PHOTO = 28;
+  VIDEO_TO_JPEG_SEQUENCE = 29;
+  PROJECT_COVER_PHOTO = 30;
+  PANO_VIDEO = 31;
+  INVALID_EXPORT_TYPE = 32;
+  PLACE_HOLDER_TYPE = 33;
+}
+
+enum StarTrailType {
+  LONG = 0;
+  SHORT = 1;
+}
+
+enum DewarpTypeMode {
+  kDistortionReserved = 0;
+  kDistortionRemoved = 1;
+}
+
+enum StabilizationType {
+  kFlowState = 0;
+  kFPV = 1;
+}
+
+enum StitchType {
+  STITCH_TEMPLATE = 0;
+  STITCH_DYNAMIC = 1;
+  STITCH_OPTICAL = 2;
+  STITCH_AI = 3;
+}
+
+enum CloudRenderModelType {
+  AUTO = 0;
+  SPHERE_AUTO = 1;
+  SPHERE_STITCH = 2;
+  SPHERE_EQUIRECTANGULAR = 3;
+  SPHERE_FISHEYE_DEWARP = 4;
+  CUBE_TILE_PROJECTION = 5;
+  SPHERE_CUBEMAP = 6;
+  PLANE_CUBEMAP2EQUI = 7;
+  PLANE_AUTO = 10;
+  PLANE_STITCH = 11;
+  PLANE_EQUIRECTANGULAR = 12;
+  PLANE_FISHEYE_DEWARP = 13;
+  PLANE_STITCH_MERCATOR = 14;
+  PLANE_MERCATOR = 15;
+  PLANE = 20;
+  PLANE_REMAP_UV = 21;
+  MONO_SINGLE_FISHEYE = 34;
+}
+
+enum CloudClipAudioMode {
+  AUDIO_NONE = 0;
+  kDirectionFocus = 1;
+  kSpatialAudio360 = 3;
+  kInsDirectionFocus = 7;
+}
+
+enum CloudDataSource {
+  DATA_SOURCE_UNKNOWN = 0;
+  DATA_SOURCE_LOCAL = 1;
+  DATA_SOURCE_CLOUD = 2;
+}
+
+enum CloudCutsceneType {
+  CUTSCENE_NONE = 0;
+  CUTSCENE_LOTTIE = 1;
+  CUTSCENE_PANO = 2;
+  CUTSCENE_MEISHE = 3;
+  CUTSCENE_OTHERS = 4;
+}
+
+enum CloudExporterTimeScaleType {
+  kDefaultValue = 0;
+  kInterpolateFinalFrame = 1;
+  kInterpolateFinalFrameAI = 2;
+  kInterpolateSourceFrame = 3;
+  kRepeatSingleSourceFrame = 4;
+}
+
+// ---------------------------------------------------------------- cloud (mainParams)
+message CloudExporterTimeScale {
+  double factor = 1;
+  CloudExporterTimeScaleType type = 2;
+}
+
+message CloudCutsceneInfo {
+  double startTimeMs = 1;
+  double endTimeMs = 2;
+  CloudCutsceneType type = 3;
+  string path = 4;
+}
+
+message CloudCaptureBeautyInfo {
+  double skinCareStrength = 1;
+  double faceShapeStrength = 2;
+  double makeupStrength = 3;
+}
+
+message CloudSourceFileClipsInfo {
+  int32 clipindex = 1;
+  double startTimeMs = 2;
+  double endTimeMs = 3;
+  double endCutDurationMs = 4;
+  bool videoSilent = 5;
+  double useFrameCount = 6;
+  double audioVolume = 7;
+  CloudClipAudioMode clipAudioMode = 8;
+  CloudExporterTimeScale exporterTimeScales = 9;
+  bool enableAudioDenoise = 10;
+  double audioDenoiseBgmWeight = 11;
+  double audioDenoiseVoiceWeight = 12;
+  CloudCutsceneInfo cutsceneInfo = 13;
+  double videoDurationMs = 14;
+  int32 audioTrackCount = 15;
+  double firstAudioMixWeight = 16;
+  int32 firstAudioTrackDelay = 17;
+  bool isAmbisonicOn = 18;
+  int32 audioAmbisonicNum = 19;
+  bool enableAiDenoiseWind = 20;
+  bool enableVoiceEnhance = 21;
+  bool enableAEFilter = 22;
+  bool enablePostSharpenFilter = 23;
+  double originAudioAfadeInMs = 24;
+  double originAudioAfadeOutMs = 25;
+  bool enableCaptureBeautyMode = 26;
+  CloudCaptureBeautyInfo captureBeautyInfo = 27;
+}
+
+message CloudSourceImageClipsInfo {
+  int32 clipindex = 1;
+  double startTimeMs = 2;
+  double endTimeMs = 3;
+  double audioVolume = 4;
+}
+
+message CloudSourceAudioEffectClipInfo {
+  string resouceid = 1;
+  int32 clipindex = 2;
+  double startTimeMs = 3;
+  double endTimeMs = 4;
+  double audioVolume = 5;
+}
+
+message CloudSourceBGMClipsInfo {
+  string resouceid = 1;
+  double startTimeMs = 2;
+  double endTimeMs = 3;
+  double audioVolume = 4;
+}
+
+message CloudHorizontalCorrectorInfo {
+  int32 srcWidth = 1;
+  int32 srcHeight = 2;
+  double roll = 3;
+  double pitch = 4;
+  double yaw = 5;
+}
+
+message CloudClipRenderInfo {
+  int32 clipindex = 1;
+  int32 stabType = 2;
+  CloudRenderModelType renderModelType = 3;
+  double autoFovRange = 4;
+  bool useMianOrientationWhileStabOff = 5;
+  string offset = 6;
+  bool useGravityCalib = 7;
+  int32 povMode = 8;
+  int32 userRotationDegree = 9;
+  CloudHorizontalCorrectorInfo horizontalCorrectorInfo = 10;
+  int32 contentMode = 11;
+  int32 cameraFacing = 12;
+  int32 stabProjectType = 13;
+  double stabBoundaryRedundancyRate = 14;
+  double relativeHorizonThreshold = 15;
+}
+
+message CloudViewData {
+  double fov = 1;
+  double yaw = 2;
+  double pitch = 3;
+  double roll = 4;
+  double distance = 5;
+}
+
+message CloudAspectRatio {
+  int32 width = 1;
+  int32 height = 2;
+}
+
+message CloudClipDefaultViewData {
+  int32 clipindex = 1;
+  CloudViewData defaultViewData = 2;
+  CloudAspectRatio defaultAspect = 3;
+}
+
+message CloudMultiViewInfo {
+  message RectInfo {
+    double x = 1;
+    double y = 2;
+    double width = 3;
+    double height = 4;
+  }
+  message SubViewInfo {
+    double x = 1;
+    double y = 2;
+    double width = 3;
+    double height = 4;
+  }
+  RectInfo mainView = 1;
+  RectInfo subView = 2;
+  double startTimeMs = 3;
+  double endTimeMs = 4;
+  CloudViewData subViewData = 5;
+  int32 smoothWinLen = 6;
+  SubViewInfo subViewInfo = 7;
+  int32 mode = 8;
+  double radiusRatio = 9;
+  double featherRatio = 10;
+}
+
+message CloudMultiViewData {
+  int32 clipIndex = 1;
+  CloudMultiViewInfo multiViewInfo = 2;
+}
+
+message CloudBigBoomInfo {
+  int32 clipIndex = 1;
+  double startTimeMs = 2;
+  double endTimeMs = 3;
+}
+
+message CloudShareExtraInfo {
+  string viewData = 1;
+}
+
+message CloudBaseSegment {
+  CloudClipDefaultViewData clipDefaultViewData = 1;
+  string projectSegment = 2;
+  CloudClipRenderInfo clipRenderInfo = 3;
+  string filterInfoList = 4;
+  CloudMultiViewData multiViewData = 5;
+  CloudBigBoomInfo bigboominfo = 6;
+  bool forceSrcAnimationClips = 7;
+  string clipProjectiveInfo = 8;
+  CloudShareExtraInfo shareExtraInfo = 9;
+  string clipProjectiveInfoV2 = 10;
+}
+
+message CloudSourceBGMConfig {
+  CloudSourceBGMClipsInfo bgmclipsinfo = 1;
+}
+
+message CloudTemplateInfo {
+  string templateId = 1;
+}
+
+message CloudExportData {
+  int32 version = 1;
+  CloudDataSource source = 2;
+  string projectName = 3;
+  // field 4 = ExportInformation (ins_export_information.proto) - not needed for
+  // local .insv export; omitted so the tree stays self-contained.
+  string exportinfo = 4;
+  CloudSourceFileClipsInfo fileclipinfo = 5;
+  CloudSourceImageClipsInfo imageclipinfo = 6;
+  CloudSourceAudioEffectClipInfo audioclipinfo = 7;
+  CloudSourceBGMConfig bgmclipsconfig = 8;
+  CloudBaseSegment baseSegment = 9;
+  string specialEffectList = 10;
+  CloudTemplateInfo templateInfo = 11;
+  string clientVersion = 12;
+}
+
+// ---------------------------------------------------------------- local params
+message LocalVideoExportParam {
+  bool enableDeflick = 1;
+  bool enableAp = 2;
+  string timeCode = 3;
+  bool isCloudFootage = 4;
+  string cloudMediaInfoJson = 5;
+  string cloudPreviewUrl = 6;
+  int32 clipIndex = 7;
+  string loopVideoJson = 8;
+  double srcTotalDurationMs = 9;
+  StitchType stitch_type = 10;
+  bool enable_image_fusion = 11;
+  bool enable_gpx_export = 12;
+  string logo_info = 13;
+  int32 dewarp_type = 14;
+  int32 stab_level = 15;
+  StabilizationType stab_type = 16;
+  bool enable_direction = 17;
+  bool enable_pano_fpv = 18;
+  bool enable_immersion = 19;
+  bool enable_camera_move = 20;
+  bool enable_stab = 21;
+  string dashboard_extra = 22;
+  bool enable_cold_shoe = 23;
+  bool enable_cooling_shell = 24;
+  string cloud_still_quat_path = 25;
+  string cloud_immersion_quat_path = 26;
+  double screenshot_target_ms = 27;
+  int32 photo_group_type = 28;
+  bool enable_bottom_stitch = 29;
+  int32 accessory_status = 30;
+  double custom_blend_angle = 31;
+}
+
+message SourceGroup {
+  repeated string sourceFile = 1;
+  string fileName = 2;
+  bool is_dng_group = 3;
+  string group_name = 4;
+}
+
+message Quaternion {
+  double w = 1;
+  double x = 2;
+  double y = 3;
+  double z = 4;
+}
+
+message StitchingSetting {
+  int32 stabilization_level = 1;
+  int32 shelltype = 2;
+  string optimizedoffset = 3;
+  bool enableimagefusion = 4;
+  bool enable_ai_stitching = 5;
+  bool enable_optical_flowstitching = 6;
+  bool enable_coldshoe = 7;
+  bool enable_cooling_shell = 8;
+  double custom_blend_angle = 9;
+  string de_version = 10;
+  bool enable_logo = 11;
+  bool enable_grain = 12;
+  int32 stab_data_type = 13;
+  int32 projection_layout = 14;
+  string logo_info = 15;
+  StabilizationType stabilizationType = 16;
+  bool enable_bottom_stitch = 17;
+  bool enable_ai_stitching_3_0 = 18;
+}
+
+message LocalImageExportParam {
+  StarTrailType starTrailType = 1;
+  SourceGroup sourceGroup = 2;
+  int32 view_mode = 3;
+  int32 interval_merge_stab = 4;
+  StitchingSetting stitching = 5;
+  double start_in_second = 6;
+  int64 video_clip_id = 7;
+  repeated Quaternion quaternions = 8;
+  bool ai_raw = 9;
+  bool pano_animation_transitions = 10;
+}
+
+message LocalVideoFxZOrder {
+  int32 positionZ = 1;
+}
+
+message LocalExtraParams {
+  ExportType exportType = 1;
+  LocalVideoExportParam videoExportParam = 2;
+  LocalImageExportParam imageExportParam = 3;
+  LocalVideoFxZOrder videoFxZOrder = 4;
+}
+
+message ExtraDataReqItem {
+  string extraType = 1;
+  string valueType = 2;
+  string value = 3;
+  string fileName = 4;
+  string businessSource = 5;
+  string source = 6;
+  string transitionType = 7;
+  string localFilePath = 8;
+}
+
+message MaterialItem {
+  int32 index = 1;
+  string type = 2;
+  string value = 3;
+}
+
+message ExportHeader {
+  string taskId = 1;
+  string exportName = 2;
+  string savePath = 3;
+  string protoMd5 = 4;
+  string protoName = 5;
+  int64 videoDuration = 6;
+  string framerate = 7;
+  string bitrate = 8;
+  int32 width = 9;
+  int32 height = 10;
+  repeated ExtraDataReqItem extraDataReqList = 11;
+  repeated MaterialItem materialList = 12;
+}
+
+message ExportParams {
+  ExportHeader exportHeader = 1;
+  CloudExportData mainParams = 2;
+  LocalExtraParams localExtraParams = 3;
+}
+
+// ---------------------------------------------------------------- replies
+message HeartBeat {
+  int64 count = 1;
+  bool exit_app = 2;
+}
+
+message ExportReplyInfo {
+  repeated float defringe_rate_et = 1;
+  double export_perf_et = 2;
+  int32 clip_index = 3;
+  string thumbnail = 4;
+}
+
+message ExportReply {
+  string uuid = 1;
+  double export_progress = 2;
+  int32 state_code = 3;
+  int32 err_code = 4;
+  string err_info = 5;
+  string log_path = 6;
+  ExportReplyInfo reply_info = 7;
+}
+
+message CancelInfo {
+  string uuid = 1;
+}
+
+service Export2 {
+  rpc StartExporting(ExportParams) returns (ExportReply);
+  rpc ExporterCancel(CancelInfo) returns (CancelInfo);
+  rpc SendHeartBeatPackage(HeartBeat) returns (HeartBeat);
+}

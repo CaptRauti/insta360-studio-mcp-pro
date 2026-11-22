@@ -1,0 +1,672 @@
+#!/usr/bin/env node
+// Insta360 Studio MCP server — drives the app's real gRPC services instead of
+// screenshot clicking.
+//
+// Architecture note: Insta360 Studio ships two helper services
+// (studio-exporter-service.exe, studio-thumbnail-service.exe) that speak gRPC
+// on dynamically assigned localhost ports. The proto descriptors are embedded
+// in Insta360 Studio.exe and were recovered from there (see proto/export2.proto).
+// Projects are plain JSON (.insproj), so everything an agent needs — retime,
+// repoint, re-aim, export, thumbnail — is reachable without the Qt canvas.
+
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+import { existsSync } from "node:fs";
+import { readdir } from "node:fs/promises";
+import path from "node:path";
+
+import {
+  EXPORT_TYPE,
+  STABILIZATION_TYPE,
+  STITCH_TYPE,
+  buildExportHeader,
+  buildExportParams,
+  buildLocalExtraParams,
+  buildLocalImageExportParam,
+  buildLocalVideoExportParam,
+  buildSourceGroup,
+  buildStitchingSetting,
+  cancelExport,
+  decodeExportReply,
+  heartbeat,
+  requireExporterPort,
+  startExporting,
+} from "./exporter.mjs";
+import { discoverExporter, discoverThumbnail, portOpen } from "./grpc-client.mjs";
+import {
+  findProjects,
+  getClipTransform,
+  projectSources,
+  readProject,
+  repointClip,
+  setClipTransform,
+  summarizeProject,
+  trimClip,
+  writeProject,
+} from "./project.mjs";
+import {
+  removeThumbnail,
+  requestThumbnail,
+  requireThumbnailPort,
+  thumbnailHeartbeat,
+} from "./thumbnail.mjs";
+import {
+  DEFAULT_OUT_DIR,
+  analyzeShot,
+  capture as uiCapture,
+  click as uiClick,
+  moveWindow as uiMoveWindow,
+  runExport,
+  sendKeys as uiSendKeys,
+  uiState,
+  waitForExport,
+  windowInfo as uiWindowInfo,
+} from "./ui.mjs";
+
+const STUDIO_DIR = process.env.INSTA360_STUDIO_DIR ?? "C:\\Program Files\\Insta360 Studio";
+const STUDIO_PROJECT_ROOT =
+  process.env.INSTA360_PROJECT_ROOT ?? "D:\\Dokumente\\Insta360\\Studio";
+
+const server = new McpServer({
+  name: "insta360-studio-mcp-pro",
+  version: "1.0.0",
+});
+
+/** Wrap a handler so thrown errors become MCP tool errors, not crashes. */
+function tool(name, config, handler) {
+  server.registerTool(name, config, async (args) => {
+    try {
+      const result = await handler(args ?? {});
+      return {
+        content: [{ type: "text", text: typeof result === "string" ? result : JSON.stringify(result, null, 2) }],
+      };
+    } catch (err) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `${err.name ?? "Error"}: ${err.message}` }],
+      };
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Diagnostics
+// ---------------------------------------------------------------------------
+
+tool(
+  "studio_status",
+  {
+    description:
+      "Report whether Insta360 Studio and its gRPC helper services are running, on which ports, and whether the install path exists.",
+    inputSchema: {},
+  },
+  async () => {
+    const exporter = discoverExporter();
+    const thumbnail = discoverThumbnail();
+    const exporterOpen = exporter ? await portOpen(exporter.port) : false;
+    const thumbnailOpen = thumbnail ? await portOpen(thumbnail.port) : false;
+    return {
+      studioDir: STUDIO_DIR,
+      studioDirExists: existsSync(STUDIO_DIR),
+      studioExeExists: existsSync(path.join(STUDIO_DIR, "Insta360 Studio.exe")),
+      exporter: exporter ? { ...exporter, reachable: exporterOpen } : null,
+      thumbnail: thumbnail ? { ...thumbnail, reachable: thumbnailOpen } : null,
+      projectRoot: STUDIO_PROJECT_ROOT,
+      projectRootExists: existsSync(STUDIO_PROJECT_ROOT),
+      ready: Boolean(exporterOpen),
+    };
+  },
+);
+
+tool(
+  "studio_api_services",
+  {
+    description:
+      "List the gRPC services and methods this server knows about, with the port each one runs on.",
+    inputSchema: {},
+  },
+  async () => ({
+    services: [
+      {
+        name: "service.Export2.Export2",
+        image: "studio-exporter-service.exe",
+        port: "dynamic (discovered)",
+        methods: ["StartExporting", "ExporterCancel", "SendHeartBeatPackage"],
+        purpose: "Video/photo export, stitching, stabilization, reframing",
+      },
+      {
+        name: "service.Thumbnail.ThumbnailService",
+        image: "studio-thumbnail-service.exe",
+        port: "dynamic (discovered)",
+        methods: ["SendRequest", "SendHeartBeatPackage", "Remove"],
+        purpose: "Thumbnail rendering and scene detection",
+      },
+    ],
+    note: "Studio's gRPC server does not implement reflection; the field map in proto/export2.proto was recovered from FileDescriptorProto blobs embedded in Insta360 Studio.exe.",
+  }),
+);
+
+// ---------------------------------------------------------------------------
+// Projects (.insproj)
+// ---------------------------------------------------------------------------
+
+tool(
+  "studio_list_projects",
+  {
+    description: "Find .insproj project files under the Studio project root (or a given directory).",
+    inputSchema: {
+      root: z.string().optional().describe("Directory to search. Defaults to INSTA360_PROJECT_ROOT."),
+    },
+  },
+  async ({ root }) => {
+    const dir = root ?? STUDIO_PROJECT_ROOT;
+    const files = await findProjects(dir);
+    return { root: dir, count: files.length, projects: files };
+  },
+);
+
+tool(
+  "studio_project_read",
+  {
+    description:
+      "Read a .insproj project and return its summary: fps, frame count, tracks, clips and their source files.",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      includeClips: z.boolean().optional().describe("Include the full clip list (default true)"),
+    },
+  },
+  async ({ path: projectPath, includeClips = true }) => {
+    const data = await readProject(projectPath);
+    const summary = summarizeProject(data);
+    if (!includeClips) delete summary.clips;
+    return summary;
+  },
+);
+
+tool(
+  "studio_project_sources",
+  {
+    description: "List every source file referenced by a project.",
+    inputSchema: { path: z.string().describe("Absolute path to the .insproj file") },
+  },
+  async ({ path: projectPath }) => {
+    const data = await readProject(projectPath);
+    const sources = projectSources(data);
+    return {
+      count: sources.length,
+      sources: sources.map((s) => ({ path: s, exists: existsSync(s) })),
+      missing: sources.filter((s) => !existsSync(s)),
+    };
+  },
+);
+
+tool(
+  "studio_clip_transform",
+  {
+    description:
+      "Read the camera view (euler pitch/roll/yaw, fov, dewarp mode) of one clip in a project.",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      track: z.number().int().optional().describe("Track index (default 0)"),
+      clip: z.number().int().optional().describe("Clip index within the track (default 0)"),
+    },
+  },
+  async ({ path: projectPath, track = 0, clip = 0 }) => {
+    const data = await readProject(projectPath);
+    return { path: projectPath, track, clip, ...getClipTransform(data, { track, clip }) };
+  },
+);
+
+tool(
+  "studio_clip_set_transform",
+  {
+    description:
+      "Change the camera view of a clip. Values are merged into the clip's camera_transform. Writes a .bak backup first.",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      track: z.number().int().optional(),
+      clip: z.number().int().optional(),
+      pitch: z.number().optional().describe("Pitch in radians"),
+      roll: z.number().optional().describe("Roll in radians"),
+      yaw: z.number().optional().describe("Yaw in radians"),
+      fov: z.number().optional().describe("Field of view in radians"),
+      dewarpType: z.number().optional().describe("Dewarp mode value (0 wide, 2 linear, 16 tiny planet, ...)"),
+      backup: z.boolean().optional().describe("Write a .bak copy before saving (default true)"),
+    },
+  },
+  async ({ path: projectPath, track = 0, clip = 0, pitch, roll, yaw, fov, dewarpType, backup = true }) => {
+    const data = await readProject(projectPath);
+    const cameraTransform = {};
+    if (Number.isFinite(pitch)) cameraTransform.eulers = { ...(cameraTransform.eulers ?? {}), pitch: { type: 0, value: pitch } };
+    if (Number.isFinite(roll)) cameraTransform.eulers = { ...(cameraTransform.eulers ?? {}), roll: { type: 0, value: roll } };
+    if (Number.isFinite(yaw)) cameraTransform.eulers = { ...(cameraTransform.eulers ?? {}), yaw: { type: 0, value: yaw } };
+    if (Number.isFinite(fov)) cameraTransform.fov = { type: 0, value: fov };
+    const patch = {};
+    if (Object.keys(cameraTransform).length) patch.cameraTransform = cameraTransform;
+    if (Number.isFinite(dewarpType)) patch.dewarpSetting = { current_dewarp_type: { name: "custom", value: dewarpType } };
+    const updated = setClipTransform(data, { track, clip }, patch);
+    const written = await writeProject(projectPath, data, { backup });
+    return { ...written, clip: { track, clip, cameraTransform: updated.camera_transform, dewarpSetting: updated.dewarp_setting } };
+  },
+);
+
+tool(
+  "studio_clip_repoint",
+  {
+    description: "Point a clip at a different source file without touching the GUI.",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      track: z.number().int().optional(),
+      clip: z.number().int().optional(),
+      newUrl: z.string().describe("New absolute source path"),
+      renameTo: z.string().optional().describe("Also update the clip display name"),
+      backup: z.boolean().optional(),
+    },
+  },
+  async ({ path: projectPath, track = 0, clip = 0, newUrl, renameTo, backup = true }) => {
+    const data = await readProject(projectPath);
+    const change = repointClip(data, { track, clip }, newUrl, { renameTo });
+    const written = await writeProject(projectPath, data, { backup });
+    return { ...written, ...change, newUrlExists: existsSync(newUrl) };
+  },
+);
+
+tool(
+  "studio_clip_trim",
+  {
+    description: "Set the in/out trim of a clip in frames.",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      track: z.number().int().optional(),
+      clip: z.number().int().optional(),
+      leftTrim: z.number().int().optional().describe("Frames trimmed from the start"),
+      rightTrim: z.number().int().optional().describe("Frames trimmed from the end"),
+      backup: z.boolean().optional(),
+    },
+  },
+  async ({ path: projectPath, track = 0, clip = 0, leftTrim, rightTrim, backup = true }) => {
+    const data = await readProject(projectPath);
+    const trim = trimClip(data, { track, clip }, { leftTrim, rightTrim });
+    const written = await writeProject(projectPath, data, { backup });
+    return { ...written, ...trim };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Export
+// ---------------------------------------------------------------------------
+
+tool(
+  "studio_export",
+  {
+    description:
+      "Start an export through Studio's Exporter2 gRPC service. Builds the verified ExportParams tree " +
+      "(exportHeader + localExtraParams{exportType, videoExportParam[], imageExportParam{sourceGroup}}) " +
+      "and returns the decoded ExportReply (state, errCode, message, logPath). Studio must be running.",
+    inputSchema: {
+      sources: z.array(z.string()).describe("Absolute source file paths to export"),
+      savePath: z.string().describe("Destination directory"),
+      exportName: z.string().optional().describe("Name for the export job"),
+      taskId: z.string().optional().describe("Task id (generated when omitted)"),
+      exportType: z
+        .number()
+        .int()
+        .optional()
+        .describe("ExportType enum: 1=PHOTO, 2=VIDEO, 3=DNG_TO_DNG, 4=PANO_ANIMATION, 5=STAR_TRAIL, 6=TIMELAPSE, 7=BULLET_TIME, 9=VIDEO2, 10=VIDEO_CLIP, 31=PANO_VIDEO"),
+      stitchType: z.number().int().optional().describe("StitchType: 0=TEMPLATE, 1=DYNAMIC, 2=OPTICAL, 3=AI"),
+      stabType: z.number().int().optional().describe("StabilizationType: 0=NONE, 1=FLOWSTATE, 2=FPV"),
+      stabLevel: z.number().int().optional().describe("Stabilization strength 0-100"),
+      enableStab: z.boolean().optional().describe("Enable stabilization"),
+      enableImageFusion: z.boolean().optional().describe("Enable image fusion"),
+      enableBottomStitch: z.boolean().optional().describe("Optimize the bottom stitch"),
+      enableGpxExport: z.boolean().optional().describe("Write a GPX sidecar"),
+      enableDeflicker: z.boolean().optional().describe("Deflicker (timelapse footage)"),
+      framerate: z.string().optional().describe("Target framerate, e.g. '30' or '29.97'"),
+      bitrate: z.string().optional().describe("Target bitrate, e.g. '100M'"),
+      width: z.number().int().optional().describe("Target width in pixels"),
+      height: z.number().int().optional().describe("Target height in pixels"),
+      timeoutMs: z.number().int().optional().describe("Call timeout in milliseconds (default 240000)"),
+    },
+  },
+  async ({
+    sources,
+    savePath,
+    exportName = "export",
+    taskId,
+    exportType = EXPORT_TYPE.VIDEO,
+    stitchType = 0,
+    stabType = 0,
+    stabLevel,
+    enableStab = false,
+    enableImageFusion = false,
+    enableBottomStitch = false,
+    enableGpxExport = false,
+    enableDeflicker = false,
+    framerate,
+    bitrate,
+    width,
+    height,
+    timeoutMs = 240000,
+  }) => {
+    const port = requireExporterPort();
+    const missing = sources.filter((s) => !existsSync(s));
+    if (missing.length) {
+      return { started: false, error: "Source files not found", missing };
+    }
+    const uuid = taskId ?? `mcp-${Date.now()}`;
+
+    const sourceGroup = buildSourceGroup({ sourceFiles: sources, groupIdentifier: exportName });
+    const stitching = buildStitchingSetting({
+      enableImageFusion,
+      enableDynamicStitching: stitchType === STITCH_TYPE.DYNAMIC,
+      enableOpticalFlowStitching: stitchType === STITCH_TYPE.OPTICAL,
+      enableAiStitching: stitchType === STITCH_TYPE.AI,
+    });
+    const videoExportParam = buildLocalVideoExportParam({
+      stitchType,
+      stabType,
+      stabLevel,
+      enableStab,
+      enableImageFusion,
+      enableGpxExport,
+      enableDeflicker,
+      enableBottomStitchingOptimize: enableBottomStitch,
+    });
+    const imageExportParam = buildLocalImageExportParam({ sourceGroup, stitching });
+    const localExtraParams = buildLocalExtraParams({
+      exportType,
+      videoExportParams: [videoExportParam],
+      imageExportParam,
+    });
+    const exportHeader = buildExportHeader({
+      taskId: uuid,
+      exportName,
+      savePath,
+      framerate,
+      bitrate,
+      width,
+      height,
+    });
+    const params = buildExportParams({ exportHeader, localExtraParams });
+
+    const reply = await startExporting({ port, params, timeoutMs });
+    return { port, uuid, sources, savePath, exportType, requestBytes: params.length, ...reply };
+  },
+);
+
+tool(
+  "studio_export_cancel",
+  {
+    description: "Cancel a running export by task id.",
+    inputSchema: {
+      taskId: z.string().describe("Task id returned by studio_export"),
+      timeoutMs: z.number().int().optional(),
+    },
+  },
+  async ({ taskId, timeoutMs = 30000 }) => {
+    const port = requireExporterPort();
+    const reply = await cancelExport({ port, uuid: taskId, timeoutMs });
+    return { port, taskId, ...reply };
+  },
+);
+
+tool(
+  "studio_export_heartbeat",
+  {
+    description: "Send a keep-alive heartbeat to the exporter service.",
+    inputSchema: {
+      count: z.number().int().optional().describe("Heartbeat counter (default 1)"),
+      exitApp: z.boolean().optional().describe("Ask the exporter to shut down (default false)"),
+    },
+  },
+  async ({ count = 1, exitApp = false }) => {
+    const port = requireExporterPort();
+    const reply = await heartbeat({ port, count, exitApp });
+    return {
+      port,
+      count,
+      exitApp,
+      reply: Object.fromEntries(
+        Object.entries(reply).map(([k, v]) => [k, Buffer.isBuffer(v) ? v.toString("utf8") : v]),
+      ),
+    };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Thumbnails / scene detection
+// ---------------------------------------------------------------------------
+
+tool(
+  "studio_thumbnail_request",
+  {
+    description: "Ask Studio's thumbnail service to render a thumbnail or run scene detection for a source file.",
+    inputSchema: {
+      sourceFile: z.string().describe("Absolute path to the source file"),
+      taskType: z.number().int().optional().describe("ThumbnailTaskType enum value (default 0)"),
+      timeoutMs: z.number().int().optional(),
+    },
+  },
+  async ({ sourceFile, taskType = 0, timeoutMs = 120000 }) => {
+    const port = requireThumbnailPort();
+    if (!existsSync(sourceFile)) return { requested: false, error: "Source file not found", sourceFile };
+    const reply = await requestThumbnail({ port, sourceFile, taskType, timeoutMs });
+    return { port, sourceFile, ...reply };
+  },
+);
+
+tool(
+  "studio_thumbnail_remove",
+  {
+    description: "Drop a cached thumbnail from the thumbnail service.",
+    inputSchema: {},
+  },
+  async () => {
+    const port = requireThumbnailPort();
+    return { port, ...(await removeThumbnail({ port })) };
+  },
+);
+
+tool(
+  "studio_thumbnail_heartbeat",
+  {
+    description: "Send a keep-alive heartbeat to the thumbnail service.",
+    inputSchema: {},
+  },
+  async () => {
+    const port = requireThumbnailPort();
+    return { port, ...(await thumbnailHeartbeat({ port })) };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Studio install inspection
+// ---------------------------------------------------------------------------
+
+tool(
+  "studio_install_info",
+  {
+    description:
+      "Report the Studio install directory contents: main executable, helper services and version metadata.",
+    inputSchema: {},
+  },
+  async () => {
+    if (!existsSync(STUDIO_DIR)) return { studioDir: STUDIO_DIR, exists: false };
+    const entries = await readdir(STUDIO_DIR, { withFileTypes: true });
+    const files = entries.filter((e) => e.isFile()).map((e) => e.name);
+    return {
+      studioDir: STUDIO_DIR,
+      exists: true,
+      executables: files.filter((f) => f.toLowerCase().endsWith(".exe")),
+      helperServices: files.filter((f) => /service/i.test(f)),
+      fileCount: files.length,
+      directories: entries.filter((e) => e.isDirectory()).map((e) => e.name),
+    };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// GUI automation
+//
+// Studio's Qt canvas exposes no UI Automation tree and its gRPC exporter accepts
+// jobs without ever writing a file. The only path that reliably produces output
+// is the real export dialog, so these tools drive it: screenshot the window with
+// PrintWindow (works while occluded), find the accent-coloured primary button by
+// pixel colour, click it, and wait for the file to stop growing.
+// ---------------------------------------------------------------------------
+
+tool(
+  "studio_ui_state",
+  {
+    description:
+      "Screenshot the Studio window and report what it shows: window rect, whether the export dialog is open, " +
+      "where the accent-coloured primary buttons are, and whether the player looks empty. " +
+      "This is the reliable way to answer 'is a video actually loaded?'.",
+    inputSchema: {
+      title: z.string().optional().describe("Window title (default 'Insta360 Studio')"),
+      mode: z.enum(["print", "screen"]).optional().describe("print = PrintWindow (occlusion-proof), screen = visible area"),
+    },
+  },
+  async ({ title, mode = "print" }) => {
+    const state = uiState({ title: title ?? "Insta360 Studio", mode });
+    return {
+      ...state,
+      hint: state.player.likelyEmpty
+        ? "Player looks empty — open or import a clip before exporting."
+        : "Player has content — an export should work.",
+    };
+  },
+);
+
+tool(
+  "studio_ui_capture",
+  {
+    description: "Save a screenshot of the Studio window and return its path.",
+    inputSchema: {
+      title: z.string().optional(),
+      mode: z.enum(["print", "screen"]).optional(),
+      out: z.string().optional().describe("Destination .png path"),
+    },
+  },
+  async ({ title, mode = "print", out }) => uiCapture({ title: title ?? "Insta360 Studio", mode, out }),
+);
+
+tool(
+  "studio_ui_click",
+  {
+    description:
+      "Click at window-relative coordinates in the Studio window. Coordinates are relative to the window's " +
+      "top-left corner, matching what studio_ui_state's button boxes report.",
+    inputSchema: {
+      x: z.number().int().describe("X relative to the window's left edge"),
+      y: z.number().int().describe("Y relative to the window's top edge"),
+      double: z.boolean().optional().describe("Double-click instead of a single click"),
+      title: z.string().optional(),
+    },
+  },
+  async ({ x, y, double = false, title }) => uiClick({ title: title ?? "Insta360 Studio", x, y, double }),
+);
+
+tool(
+  "studio_ui_send_keys",
+  {
+    description: "Send a key chord to the Studio window (SendKeys syntax, e.g. '^{s}' for Ctrl+S).",
+    inputSchema: {
+      keys: z.string().describe("SendKeys chord"),
+      title: z.string().optional(),
+    },
+  },
+  async ({ keys, title }) => uiSendKeys({ title: title ?? "Insta360 Studio", keys }),
+);
+
+tool(
+  "studio_ui_move",
+  {
+    description: "Move and resize the Studio window to a fixed rectangle so click coordinates stay stable.",
+    inputSchema: {
+      x: z.number().int().optional(),
+      y: z.number().int().optional(),
+      width: z.number().int().optional(),
+      height: z.number().int().optional(),
+      title: z.string().optional(),
+    },
+  },
+  async ({ x = 100, y = 40, width = 1384, height = 900, title }) =>
+    uiMoveWindow({ title: title ?? "Insta360 Studio", x, y, width, height }),
+);
+
+tool(
+  "studio_ui_export",
+  {
+    description:
+      "Run a real GUI export end-to-end: click the toolbar's export button, click the dialog's primary button, " +
+      "then wait until the new file in the output folder stops growing. This is the path that actually produces " +
+      "video files — the gRPC exporter (studio_export) accepts jobs but writes nothing. " +
+      "A clip must be loaded and the export dialog must be reachable.",
+    inputSchema: {
+      outDir: z.string().optional().describe("Folder to watch for the new file (default: Desktop)"),
+      stage: z
+        .enum(["dialog", "full"])
+        .optional()
+        .describe("dialog = only open the export dialog; full = also start and wait for the file"),
+      timeoutMs: z.number().int().optional().describe("How long to wait for the finished file (default 900000)"),
+      pollMs: z.number().int().optional().describe("Polling interval (default 2000)"),
+      title: z.string().optional(),
+    },
+  },
+  async ({ outDir = DEFAULT_OUT_DIR, stage = "full", timeoutMs = 900000, pollMs = 2000, title }) =>
+    runExport({ title: title ?? "Insta360 Studio", outDir, stage, timeoutMs, pollMs }),
+);
+
+tool(
+  "studio_ui_wait_export",
+  {
+    description: "Wait until a file in the output folder reaches a stable size, then return its path and size.",
+    inputSchema: {
+      file: z.string().optional().describe("Explicit file to watch; omit to watch the newest video in outDir"),
+      outDir: z.string().optional(),
+      timeoutMs: z.number().int().optional(),
+      pollMs: z.number().int().optional(),
+    },
+  },
+  async ({ file, outDir = DEFAULT_OUT_DIR, timeoutMs = 900000, pollMs = 2000 }) =>
+    waitForExport({ file, outDir, timeoutMs, pollMs }),
+);
+
+tool(
+  "studio_ui_open_media",
+  {
+    description:
+      "Open a media file (.insv/.mp4) or project (.insproj) in Insta360 Studio by launching the app with that path. " +
+      "Use this when studio_ui_state reports an empty player.",
+    inputSchema: {
+      file: z.string().describe("Absolute path to the media or project file"),
+    },
+  },
+  async ({ file }) => {
+    if (!existsSync(file)) return { launched: false, error: "file not found", file };
+    const exe = path.join(STUDIO_DIR, "Insta360 Studio.exe");
+    if (!existsSync(exe)) return { launched: false, error: "Studio executable not found", exe };
+    const { spawn } = await import("node:child_process");
+    const child = spawn(exe, [file], { detached: true, stdio: "ignore" });
+    child.unref();
+    return { launched: true, exe, file, pid: child.pid };
+  },
+);
+
+tool(
+  "studio_ui_analyze_shot",
+  {
+    description: "Analyse an existing screenshot file: accent button boxes and player emptiness.",
+    inputSchema: { file: z.string().describe("Path to a .png screenshot") },
+  },
+  async ({ file }) => analyzeShot(file),
+);
+
+// ---------------------------------------------------------------------------
+// Start
+// ---------------------------------------------------------------------------
+
+const transport = new StdioServerTransport();
+await server.connect(transport);

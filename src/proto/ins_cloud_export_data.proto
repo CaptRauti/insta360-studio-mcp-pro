@@ -1,0 +1,13 @@
+// ins_cloud_export_data.proto — NOT shipped as its own descriptor in the DLL.
+// Shape reconstructed from the plain-text schema strings in the binary.
+// Field numbers are best-effort; the service only reads it on the
+// "project exporter" path (mainParams != null).
+syntax = "proto3";
+
+package insta360.cloud.message;
+
+message CloudExportData {
+  string projectName = 1;
+  string projectPath = 2;
+  repeated string materialList = 3;
+}

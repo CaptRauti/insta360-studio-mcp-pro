@@ -1,0 +1,472 @@
+// Reconstructed from the FileDescriptorProto embedded in studio_worker.dll
+// ("ExportModule.proto", package service.Export). Field numbers are verbatim
+// from the binary descriptor — do not renumber without re-extracting.
+syntax = "proto3";
+
+package service.Export;
+
+enum ViewDataType {
+  KeyFramePoint = 0;
+  DeepTrack = 1;
+  ViewFinder = 2;
+  VirtualPtz = 3;
+  MovementTemplate = 4;
+}
+
+enum SourceFileType {
+  kPhoto = 0;
+  kVideo = 1;
+  kEmptyVideo = 2;
+}
+
+enum InterpolationType {
+  kOpticalFlowFrame = 0;
+  kRepeatFrame = 1;
+  kDefault = 2;
+}
+
+enum EncodeType {
+  kH264 = 0;
+  kH265 = 1;
+  kProres422 = 2;
+  kProres422LT = 3;
+}
+
+enum ImageProcessingAccel {
+  kAuto = 0;
+  kCPU = 1;
+}
+
+enum StabilizationType {
+  kFlowState = 0;
+  kFPV = 1;
+}
+
+enum StarTailType {
+  kLong = 0;
+  kMedium = 1;
+  kShort = 2;
+}
+
+enum DewarpTypeMode {
+  kDistortionReserved = 0;
+  kDistortionRemoved = 1;
+}
+
+enum LongitudeDirection {
+  kDirectionEast = 0;
+  kDirectionWest = 1;
+}
+
+enum LatitudeDirection {
+  kDirectionSouth = 0;
+  kDirectionNorth = 1;
+}
+
+// --- core request -----------------------------------------------------------
+
+message HeartBeat {
+  int32 count = 1;
+  bool exit_app = 2;
+}
+
+message LoopVideoInfo {
+  // fields not recovered — treated as opaque
+}
+
+message SourceGroup {
+  repeated string sourceFile = 1;
+  repeated string fileName = 2;
+  bool is_dng_group = 3;
+  int32 source_group_type = 4;
+  string group_identifier = 5;
+  string group_name = 6;
+  int32 group_start_index = 7;
+  LoopVideoInfo loop_video_info = 8;
+  repeated string associated_files = 9;
+  string pano_fpv_data_path = 10;
+  string still_quat_file_path = 11;
+  string immersion_quat_file_path = 12;
+}
+
+message AppDataInfo {
+  // opaque
+}
+
+message BezierControlPoint {
+  // opaque
+}
+
+message TransitionSegment {
+  // opaque
+}
+
+message CameraMovementSegment {
+  // opaque
+}
+
+message ViewSegment {
+  // opaque
+}
+
+message PlayRateSegment {
+  // opaque
+}
+
+message TimelineSetting {
+  double duration_ms = 6;
+  double trim_start = 1;
+  double trim_end = 2;
+  double media_trim_start = 8;
+  double media_trim_end = 7;
+  double audio_fade_in = 9;
+  double audio_fade_out = 10;
+  AppDataInfo app_data_info = 11;
+  repeated ViewSegment view_segments = 3;
+  repeated PlayRateSegment play_rate_segments = 4;
+  repeated TransitionSegment transition_segment = 5;
+  repeated CameraMovementSegment camera_movement_segment = 12;
+}
+
+message LogoInfo {
+  // opaque
+}
+
+message FlatLogoInfo {
+  // opaque
+}
+
+message BulletTimeViewParam {
+  // opaque
+}
+
+message AspectRatio {
+  // opaque
+}
+
+message StitchingSetting {
+  bool enableStab = 1;
+  bool enableDirectionalLock = 2;
+  bool enableDynamicStitching = 3;
+  bool enableOpticalFlowStitching = 4;
+  bool enableImageFusion = 5;
+  bool enableColorPlus = 6;
+  bool enableUnderWaterCorrection = 7;
+  bool enableLocalToneMap = 8;
+  bool enableMotionBlur = 9;
+  bool enableAudioDirectFocus = 10;
+  bool enableDroneFlag = 11;
+  bool enable_top_mounted_gyro = 12;
+  bool enableColdShoe = 13;
+  bool enableLogo = 14;
+  bool enableRemoveGrain = 15;
+  float custom_blend_angle = 16;
+  string optimizedOffset = 17;
+  int32 colorPlusStrength = 18;
+  int32 ltmStrength = 19;
+  int32 underWaterBalance = 20;
+  int32 underWaterStrength = 21;
+  int32 motion_blur_strength = 22;
+  int32 motion_blur_threshold = 23;
+  StabilizationType stabilizationType = 24;
+  int32 shellType = 25;
+  int32 fovType = 26;
+  int32 queryFovType = 27;
+  int32 audioDenoiseType = 28;
+  int32 user_rotate_degree = 29;
+  LogoInfo logo_info = 30;
+  BulletTimeViewParam bulletTimeViewParam = 31;
+  int64 projection_layout = 32;
+  AspectRatio aspect_ratio = 33;
+  DewarpTypeMode dewarp_type = 34;
+  int32 stabIlization_level = 35;
+  int32 star_tail_type = 36;
+  bool enable_ai_stitching = 37;
+  bool enable_cooling_shell = 38;
+  bool enable_horizontal_correct = 39;
+  float horizontal_correct_angle = 40;
+  bool enable_lut = 41;
+  bool support_lut = 42;
+  bool enable_time_logo = 43;
+  int32 time_logo_format = 44;
+  int32 time_logo_transparency = 45;
+  bool enable_deghost = 46;
+  bool enable_pano_fpv = 47;
+  bool pano_fpv_horizontal_on = 48;
+  int32 underWaterFilterIndex = 49;
+  bool enable_immersive_stab = 50;
+  string de_version = 51;
+  int32 stab_input_data_type = 52;
+  int32 view_direction = 53;
+  bool enable_head_track = 54;
+  bool enable_camera_movement = 55;
+  int32 propeller_guard_status = 56;
+  bool enable_beauty_mode = 57;
+  bool has_head_track_keyframe = 58;
+  bool enableFlatLogo = 59;
+  FlatLogoInfo flat_logo_info = 60;
+  string extern_filter_resource_path = 61;
+  float extern_filter_opacity = 62;
+  bool enable_main_window = 63;
+  int32 view_category_filter = 64;
+}
+
+message DashBoardSetting {
+  // opaque
+}
+
+message AudioSettings {
+  enum ClipAudioMode {
+    kNone = 0;
+    kDirectionFocus = 1;
+    kSpatialAudio360 = 3;
+  }
+  // remaining fields opaque
+}
+
+message SrcTimeMsISOPair {
+  // opaque
+}
+
+message ViewData {
+  enum KeyFrameType {
+    kKeyFrame = 0;
+    kDeepTrackStart = 1;
+    kDeepTrackEnd = 2;
+    kViewFinderStart = 3;
+    kViewFinderEnd = 4;
+    kNone = 5;
+  }
+  // remaining fields opaque
+}
+
+message Quaternion {
+  // opaque
+}
+
+message UserSettings {
+  bool is_free_capture = 1;
+  bool remove_grain_enabled = 3;
+  bool remove_grain_block_enabled = 4;
+  bool enable_dashboard = 5;
+  float noise_level = 6;
+  repeated SrcTimeMsISOPair src_time_ms_iso_pairs = 7;
+  bool is_silent = 8;
+  bool ai_raw_enable = 9;
+  ViewData custom_transform_param = 10;
+  float audio_volume = 11;
+  InterpolationType interpolation_type = 12;
+  bool dolby_vision_enabled = 13;
+  bool enable_audio_mixing = 14;
+  double audio_mixing_weight = 15;
+  int32 audio_tracks_delay = 16;
+  int32 audio_trasks_default_delay = 17;
+  ViewData extra_transform = 18;
+  bool show_dashboard_real_distance = 19;
+}
+
+message ImageExportParam {
+  enum IntervalMergeStabType {
+    kStationary = 0;
+    kMotion = 1;
+  }
+  int32 view_mode = 1;
+  IntervalMergeStabType interval_merge_stab_type = 2;
+  double duration = 3;
+  double start_in_second = 4;
+  int64 video_clip_id = 5;
+  repeated Quaternion quaternions = 6;
+}
+
+message DetectedObject {
+  // opaque
+}
+
+message GpsInfo {
+  // opaque
+}
+
+message CutSceneSetting {
+  // opaque
+}
+
+message ColorAdjustSetting {
+  // opaque
+}
+
+message TimeWaterMark {
+  // opaque
+}
+
+message AdditionInfo {
+  // opaque
+}
+
+message ClipInfo {
+  SourceGroup sourceGroup = 1;
+  TimelineSetting timelineSetting = 2;
+  StitchingSetting stitchingSetting = 3;
+  DashBoardSetting dashBoardSetting = 4;
+  AudioSettings AudioSettings = 5;
+  UserSettings user_settings = 6;
+  ImageExportParam image_export_param = 7;
+  SourceFileType file_type = 8;
+  DetectedObject bigboom_object = 9;
+  GpsInfo gps_info = 10;
+  CutSceneSetting cut_scene_setting = 11;
+  bool is_cloud_footage = 12;
+  string file_tail_url = 13;
+  string video_info_json = 14;
+  string cloud_preview_url = 15;
+  string source_file_name = 16;
+  AdditionInfo addition_info = 17;
+  string clip_model_url = 18;
+  bool is_pano_source = 19;
+  ColorAdjustSetting color_adjust_setting = 20;
+  TimeWaterMark time_water_mark = 21;
+  bool is_rough_trimmed = 22;
+  string time_code = 23;
+  string dashboard_id = 24;
+  repeated int64 loop_video_segment_durations_ms = 25;
+  string media_info_json = 26;
+}
+
+message BgmClip {
+  // opaque
+}
+
+message TextClip {
+  // opaque
+}
+
+message StickerClip {
+  // opaque
+}
+
+message ExportClipInfo {
+  repeated ClipInfo clipInfos = 1;
+  repeated BgmClip bgm_clip = 2;
+  repeated TextClip text_clips = 3;
+  repeated StickerClip sticker_clips = 4;
+}
+
+message Resolution {
+  // opaque
+}
+
+message FrameRate {
+  // opaque
+}
+
+message HardWareInfo {
+  // opaque
+}
+
+message ExportParam {
+  string path = 1;
+  string dest_dir = 2;
+  int32 export_type = 3;
+  Resolution res = 4;
+  FrameRate frame_rate = 5;
+  EncodeType encode_type = 6;
+  int64 encode_bitrate = 7;
+  string meta_data_make = 8;
+  string meta_data_model = 9;
+  string meta_data_comment = 10;
+  bool is_spherical = 11;
+  bool request_from_multiple_clip = 12;
+  bool enable_video_denoise = 13;
+  bool has_audio = 14;
+  bool support_audio = 15;
+  ImageProcessingAccel image_processing_accel = 16;
+  HardWareInfo hardware_info = 17;
+  string proxy_type = 18;
+  string project_id = 19;
+  bool enable_dolby_vision = 20;
+  bool is_export_pano = 21;
+  bool is_cloud_media = 22;
+  int32 star_trail_length_type = 23;
+  bool enable_deflicker = 24;
+  string upload_platform_id = 25;
+  int64 clip_count = 26;
+  bool enable_apmp = 27;
+  bool report_apmp_visable = 28;
+  bool is_screenshot_export = 29;
+  double screenshot_target_time_ms = 30;
+  int32 color_setting = 31;
+  bool enable_ai_stitching_3_0 = 32;
+}
+
+message AdditionalUiParam {
+  // opaque
+}
+
+message ExportRequest {
+  string uuid = 1;
+  ExportClipInfo exportInfo = 2;
+  ExportParam exportParam = 3;
+  string jsonSetting = 4;
+  AdditionalUiParam uiParam = 5;
+  bool mark_trim = 6;
+  string group_uuid = 7;
+  int32 base_view_count = 8;
+}
+
+message ExportReplyInfo {
+  repeated float defringe_rate_list = 1;
+  string export_perf_et = 2;
+  int32 clip_index = 3;
+  string thumbnail_path = 4;
+}
+
+message ExportReply {
+  string uuid = 1;
+  float export_progress = 2;
+  int32 state_code = 3;
+  int32 err_code = 4;
+  string err_info = 5;
+  string log_path = 6;
+  ExportReplyInfo reply_info = 7;
+}
+
+message CancelInfo {
+  string uuid = 1;
+}
+
+message DownloadRequest {
+  // opaque
+}
+
+message DownloadReply {
+  // opaque
+}
+
+message TaskList {
+  // opaque
+}
+
+message OperStatus {
+  // opaque
+}
+
+message EulerAngle {
+  // opaque
+}
+
+message MovementTemplateData {
+  // opaque
+}
+
+message GpsData {
+  // opaque
+}
+
+message ObjectState {
+  // opaque
+}
+
+service Export {
+  rpc StartExporting(ExportRequest) returns (ExportReply);
+  rpc ExporterCancel(CancelInfo) returns (CancelInfo);
+  rpc SendHeartBeatPackage(HeartBeat) returns (HeartBeat);
+}

@@ -1,0 +1,42 @@
+{
+  "name": "insta360-studio-mcp-pro",
+  "version": "1.0.0",
+  "description": "MCP server for Insta360 Studio: .insproj JSON editing, gRPC thumbnail/export services, and deterministic GUI export on Windows",
+  "type": "module",
+  "bin": {
+    "insta360-studio-mcp-pro": "src/server.mjs"
+  },
+  "main": "src/server.mjs",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "check": "node --check src/server.mjs && node --check src/ui.mjs && node --check src/png.mjs && node --check src/exporter.mjs && node --check src/project.mjs",
+    "test": "node --test tests/wire.test.mjs",
+    "probe": "node tests/probe.mjs",
+    "probe:ui": "node tests/ui-probe.mjs",
+    "probe:export": "node tests/ui-export-probe.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "insta360",
+    "insta360-studio",
+    "360-camera",
+    "video",
+    "grpc",
+    "windows"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "os": [
+    "win32"
+  ],
+  "dependencies": {
+    "@grpc/grpc-js": "^1.12.5",
+    "@grpc/proto-loader": "^0.7.13",
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "protobufjs": "^7.4.0",
+    "zod": "^3.23.8"
+  }
+}

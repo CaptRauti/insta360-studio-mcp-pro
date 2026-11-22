@@ -1,0 +1,244 @@
+// service.Export2 — recovered verbatim from the FileDescriptorProto blobs embedded
+// in studio_worker.dll:
+//   ExportModule2.proto @113528384 (len 685)
+//   ExportParams.proto   @113629472 (len 4272)
+// Method path used at runtime: /service.Export2.Export2/StartExporting
+syntax = "proto3";
+
+package service.Export2;
+
+import "ins_cloud_export_data.proto";
+import "ins_export_information.proto";
+import "google/protobuf/wrappers.proto";
+
+// ---------------------------------------------------------------- service ---
+
+service Export2 {
+  rpc StartExporting(ExportParams) returns (ExportReply);
+  rpc ExporterCancel(CancelInfo) returns (CancelInfo);
+  rpc SendHeartBeatPackage(HeartBeat) returns (HeartBeat);
+}
+
+// ------------------------------------------------------------ module msgs ---
+
+message HeartBeat {
+  int64 count = 1;
+  bool exit_app = 2;
+}
+
+message ExportReplyInfo {
+  repeated float defringe_rate_list = 1;
+  string export_perf_et = 2;
+  int32 clip_index = 3;
+  string thumbnail_path = 4;
+}
+
+message ExportReply {
+  string uuid = 1;
+  float export_progress = 2;
+  int32 state_code = 3;
+  int32 err_code = 4;
+  string err_info = 5;
+  string log_path = 6;
+  ExportReplyInfo reply_info = 7;
+}
+
+message CancelInfo {
+  string uuid = 1;
+}
+
+// ------------------------------------------------------- ExportParams.proto ---
+
+message ExportParams {
+  ExportHeader exportHeader = 1;
+  .insta360.cloud.message.CloudExportData mainParams = 2;
+  LocalExtraParams localExtraParams = 3;
+}
+
+message ExportHeader {
+  string taskId = 1;
+  string exportName = 2;
+  string savePath = 3;
+  string protoMd5 = 4;
+  string protoName = 5;
+  int64 videoDuration = 6;
+  string framerate = 7;
+  string bitrate = 8;
+  int32 width = 9;
+  int32 height = 10;
+  repeated ExtraDataReqItem extraDataReqList = 11;
+  repeated MaterialItem materialList = 12;
+}
+
+message ExtraDataReqItem {
+  string extraType = 1;
+  string valueType = 2;
+  string value = 3;
+  string fileName = 4;
+  string businessSource = 5;
+  string source = 6;
+  string transitionType = 7;
+  string localFilePath = 8;
+}
+
+message MaterialItem {
+  int32 index = 1;
+  string type = 2;
+  string value = 3;
+}
+
+message LocalExtraParams {
+  ExportType exportType = 1;
+  repeated LocalVideoExportParam videoExportParam = 2;
+  LocalImageExportParam imageExportParam = 3;
+  repeated LocalVideoFxZOrder videoFxZOrder = 4;
+}
+
+message LocalVideoFxZOrder {
+  int32 positionZ = 1;
+}
+
+message LocalVideoExportParam {
+  bool enableDeflicker = 1;
+  bool enableApmp = 2;
+  string timeCode = 3;
+  bool isCloudFootage = 4;
+  string cloudMediaInfoJson = 5;
+  string cloudPreviewUrl = 6;
+  int32 clipIndex = 7;
+  repeated string loopVideoJsonContent = 8;
+  double srcTotalDurationMs = 9;
+  StitchType stitch_type = 10;
+  bool enable_image_fusion = 11;
+  bool enable_gpx_export = 12;
+  .insta360.cloud.message.ExportInfoLogoInfo logo_info = 13;
+  .google.protobuf.Int32Value dewarp_type = 14;
+  .google.protobuf.Int32Value stab_level = 15;
+  StabilizationType stab_type = 16;
+  bool enable_direction_lock = 17;
+  bool enable_pano_fpv = 18;
+  bool enable_immersion = 19;
+  bool enable_head_track = 20;
+  bool enable_camera_move = 21;
+  bool enable_stab = 22;
+  DashboardExtra dashboard_extra = 23;
+  bool enable_flat_logo = 24;
+  FlatLogoInfo flat_logo_info = 25;
+  int32 real_userrotationdegree = 26;
+  int32 propeller_guard_status = 27;
+  bool enable_cold_shoe = 28;
+  bool enable_cooling_shell = 29;
+  string cloud_still_quat_path = 30;
+  string cloud_immersion_quat_path = 31;
+  double screenshot_target_time_ms = 32;
+  int32 photo_group_type = 33;
+  bool enable_bottom_stitching_optimize = 34;
+  int32 accessory_type = 35;
+  float custom_blend_angle = 36;
+}
+
+message SourceGroup {
+  repeated string sourceFile = 1;
+  int32 source_group_type = 2;
+  string group_identifier = 3;
+  int32 group_start_index = 4;
+  repeated string dest_file_name = 5;
+}
+
+message LogoInfo {
+  string logo_path = 1;
+  float logo_size = 2;
+  int32 logo_location = 3;
+  int32 logo_corner_radius = 4;
+  int32 logo_feather = 5;
+  int32 logo_rotate = 6;
+}
+
+message FlatLogoInfo {
+  string flat_logo_path = 1;
+  int32 flat_logo_transparency = 2;
+  int32 flat_logo_location = 3;
+  bool is_cn = 4;
+}
+
+message DashboardExtraFrame {
+  double timestampMs = 1;
+  double horizontalSpeed = 2;
+  double aboveGroundHeight = 3;
+}
+
+message DashboardExtra {
+  repeated DashboardExtraFrame frames = 1;
+  double accelerationMin = 2;
+  double verticalSpeedMin = 3;
+  double horizontalSpeedMax = 4;
+  double horizontalSpeedMin = 5;
+  double aboveGroundHeightMax = 6;
+}
+
+message Quaternion {
+  float w = 1;
+  float x = 2;
+  float y = 3;
+  float z = 4;
+}
+
+message StitchingSetting {
+  int32 stabilization_level = 1;
+  int32 shelltype = 2;
+  string optimizedoffset = 3;
+  bool enableimagefusion = 4;
+  bool enable_ai_stitching = 5;
+  bool enable_dynamic_stitching = 6;
+  bool enable_optical_flowstitching = 7;
+}
+
+message LocalImageExportParam {
+  enum IntervalMergeStabType {
+    kStationary = 0;
+    kMotion = 1;
+  }
+
+  StarTrailType starTrailType = 1;
+  SourceGroup sourceGroup = 2;
+  int32 view_mode = 3;
+  IntervalMergeStabType interval_merge_stab_type = 4;
+  StitchingSetting stitching = 5;
+  double start_in_second = 6;
+  int64 video_clip_id = 7;
+  repeated Quaternion quaternions = 8;
+  bool ai_raw_enable = 9;
+  repeated int32 pano_animation_transitions = 10;
+}
+
+// ---------------------------------------------------------------- enums ----
+
+enum ExportType {
+  EXPORT_TYPE_UNKNOWN = 0;
+  PHOTO = 1;
+  VIDEO = 2;
+  DNG_TO_DNG = 3;
+  PANO_ANIMATION = 4;
+  STAR_TRAIL = 5;
+  TIMELAPSE = 6;
+  BULLET_TIME = 7;
+}
+
+enum StitchType {
+  STITCH_TEMPLATE = 0;
+  STITCH_DYNAMIC = 1;
+  STITCH_OPTICAL = 2;
+  STITCH_AI = 3;
+}
+
+enum StabilizationType {
+  STAB_NONE = 0;
+  STAB_FLOWSTATE = 1;
+  STAB_FPV = 2;
+}
+
+enum StarTrailType {
+  STAR_TRAIL_NONE = 0;
+  STAR_TRAIL_CIRCLE = 1;
+  STAR_TRAIL_LINE = 2;
+}

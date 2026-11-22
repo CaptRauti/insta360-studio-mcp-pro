@@ -1,0 +1,8 @@
+node_modules/
+scratch/
+*.log
+.DS_Store
+config.local.json
+*.png
+*.mp4
+*.mov

@@ -1,0 +1,246 @@
+// Reconstructed from FileDescriptorProto blobs embedded in "Insta360 Studio.exe"
+// (ExportParams.proto, package service.Export2). Field numbers and names are
+// taken verbatim from the binary's descriptor, so they match the running app.
+syntax = "proto3";
+
+package service.Export2;
+
+// ---------------------------------------------------------------------------
+// Export type enum (verbatim from descriptor)
+// ---------------------------------------------------------------------------
+enum ExportType {
+  PHOTO = 0;
+  DNG_TO_DNG = 1;
+  DNG_TO_JPG = 2;
+  DNG_WITH_JPG = 3;
+  NO_EXTRA_INFO_DNG_EXPORT = 4;
+  DNG_SEQUENCE = 5;
+  DNG_SEQUENCE_WITH_JPG = 6;
+  VIDEO = 9;
+  VIDEO_CLIP = 10;
+  DEMUX_TO_MP4 = 11;
+  MUX_AUDIO = 12;
+  MUX_VIDEO = 13;
+  MUX_PURE_SHOT = 14;
+  MERGED_MIX = 15;
+  MERGED_ONLY = 16;
+  MERGED_DNG = 17;
+  MERGED_DNG_WITH_JPG = 18;
+  MERGED_DNG_WITH_DNG = 19;
+  MERGED_DNG_WITH_DNG_JPG = 20;
+  MERGED_JPG = 21;
+  MERGED_PURE_SHOT = 22;
+  MERGED_PURE_SHOT_WITH_JPG = 23;
+  MERGED_PURE_SHOT_WITH_DNG = 24;
+  MERGED_PURE_SHOT_WITH_DNG_JPG = 25;
+  MERGED_VIDEO = 26;
+  MERGED_VIDEO_WITH_JPG = 27;
+  MERGED_VIDEO_WITH_DNG = 28;
+  MERGED_VIDEO_WITH_DNG_JPG = 29;
+  MERGED_VIDEO_WITH_VIDEO = 30;
+  MERGED_VIDEO_WITH_VIDEO_JPG = 31;
+  MERGED_VIDEO_WITH_VIDEO_DNG = 32;
+  MERGED_VIDEO_WITH_VIDEO_DNG_JPG = 33;
+  MERGED_VIDEO_WITH_VIDEO_VIDEO = 34;
+  MERGED_VIDEO_WITH_VIDEO_VIDEO_JPG = 35;
+  MERGED_VIDEO_WITH_VIDEO_VIDEO_DNG = 36;
+  MERGED_VIDEO_WITH_VIDEO_VIDEO_DNG_JPG = 37;
+}
+
+enum StitchType {
+  STITCH_TYPE_UNSPECIFIED = 0;
+  STITCH_TYPE_OPTICAL_FLOW = 1;
+  STITCH_TYPE_AI = 2;
+  STITCH_TYPE_OFF = 3;
+}
+
+enum StabilizationType {
+  STABILIZATION_TYPE_UNSPECIFIED = 0;
+  STABILIZATION_TYPE_GYRO = 1;
+  STABILIZATION_TYPE_AI = 2;
+  STABILIZATION_TYPE_OFF = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Core messages
+// ---------------------------------------------------------------------------
+message SourceGroup {
+  repeated string sourceFile = 1;
+  int32 source_group_type = 2;
+  string group_identifier = 3;
+  repeated string destFile = 4;
+}
+
+message LogoInfo {
+  string logo_path = 1;
+  int32 position = 2;
+  int32 corner_radius = 3;
+  int32 feather = 4;
+  int32 transparency = 5;
+  int32 size = 6;
+}
+
+message FlatLogoInfo {
+  string logo_path = 1;
+  int32 position = 2;
+  int32 transparency = 3;
+  int32 size = 4;
+}
+
+message DashboardExtraFrame {
+  int32 time_ms = 1;
+  float speed = 2;
+  float altitude = 3;
+  float heart_rate = 4;
+  float cadence = 5;
+  float power = 6;
+}
+
+message DashboardExtra {
+  repeated DashboardExtraFrame frames = 1;
+  string style_path = 2;
+  int32 source_type = 3;
+}
+
+message Quaternion {
+  float w = 1;
+  float x = 2;
+  float y = 3;
+  float z = 4;
+}
+
+message StitchingSetting {
+  int32 blend_width = 1;
+  int32 seam_optimization = 2;
+  int32 exposure_compensation = 3;
+  bool enable_optical_flow = 4;
+  bool enable_ai_stitch = 5;
+  bool enable_color_correction = 6;
+  bool enable_horizon_lock = 7;
+  bool enable_dewarp = 8;
+  int32 dewarp_type = 9;
+  repeated Quaternion quaternions = 10;
+}
+
+message LocalVideoExportParam {
+  SourceGroup source_group = 1;
+  string source_file = 2;
+  string save_path = 3;
+  ExportType export_type = 4;
+  StitchType stitch_type = 5;
+  StabilizationType stabilization_type = 6;
+  StitchingSetting stitching_setting = 7;
+  LogoInfo logo_info = 8;
+  FlatLogoInfo flat_logo_info = 9;
+  DashboardExtra dashboard_extra = 10;
+  int32 start_frame = 11;
+  int32 end_frame = 12;
+  int32 fps = 13;
+  string resolution = 14;
+  int32 bitrate = 15;
+  string encoder = 16;
+  bool enable_h265 = 17;
+  bool enable_watermark = 18;
+  bool enable_hdr = 19;
+  bool enable_denoise = 20;
+  int32 audio_volume = 21;
+  bool enable_audio = 22;
+  string output_name = 23;
+}
+
+message LocalImageExportParam {
+  SourceGroup source_group = 1;
+  string source_file = 2;
+  string save_path = 3;
+  ExportType export_type = 4;
+  StitchingSetting stitching_setting = 5;
+  int32 image_format = 6;
+  int32 quality = 7;
+  bool enable_hdr = 8;
+}
+
+message LocalVideoFxZOrder {
+  repeated string effect_ids = 1;
+}
+
+message LocalExtraParams {
+  LocalVideoExportParam video_export_param = 1;
+  LocalImageExportParam image_export_param = 2;
+  LocalVideoFxZOrder video_fx_z_order = 3;
+  repeated string extra_data_req = 4;
+}
+
+message ExtraDataReqItem {
+  string key = 1;
+  string value = 2;
+}
+
+message MaterialItem {
+  string id = 1;
+  string path = 2;
+  int32 type = 3;
+}
+
+message ExportHeader {
+  string task_id = 1;
+  string export_name = 2;
+  string save_path = 3;
+  repeated ExtraDataReqItem extra_data_req_list = 4;
+  repeated MaterialItem material_list = 5;
+  bool enable_watermark = 6;
+  bool enable_logo = 7;
+  bool enable_dashboard = 8;
+  string project_path = 9;
+  string project_name = 10;
+  int32 export_mode = 11;
+}
+
+message ExportParams {
+  ExportHeader export_header = 1;
+  SourceGroup source_group = 2;
+  LocalExtraParams local_extra_params = 3;
+}
+
+// ---------------------------------------------------------------------------
+// RPC request/response envelopes
+// ---------------------------------------------------------------------------
+message ExportRequest {
+  ExportParams params = 1;
+  string request_id = 2;
+  bool async = 3;
+}
+
+message ExportReply {
+  int32 status = 1;
+  string message = 2;
+  string task_id = 3;
+  string output_path = 4;
+  repeated string output_files = 5;
+  float progress = 6;
+}
+
+message ExportReplyInfo {
+  string task_id = 1;
+  int32 status = 2;
+  float progress = 3;
+  string message = 4;
+  string output_path = 5;
+}
+
+message CancelInfo {
+  string task_id = 1;
+}
+
+message HeartBeat {
+  string client_id = 1;
+  int64 timestamp = 2;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+service Export2 {
+  rpc StartExporting(ExportParams) returns (ExportReply);
+  rpc ExporterCancel(CancelInfo) returns (ExportReply);
+  rpc SendHeartBeatPackage(HeartBeat) returns (HeartBeat);
+}
