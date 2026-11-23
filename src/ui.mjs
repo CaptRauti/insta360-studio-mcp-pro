@@ -105,6 +105,26 @@ export function typeText({ title = DEFAULT_WINDOW_TITLE, text } = {}) {
   return r;
 }
 
+/**
+ * Send keys to the window under (x, y) — window-relative, like click().
+ *
+ * Needed for the export dialog's CEF/HTML inputs: a synthesized click gives them
+ * the mouse but not the keyboard, and SetFocus on its own fails across threads,
+ * so win32.ps1 attaches the two thread input queues and sends in the same action.
+ */
+export function keysAt({ title = DEFAULT_WINDOW_TITLE, x, y, keys } = {}) {
+  const r = runPs(WIN32_PS1, ["-Action", "atkeys", "-Title", title, "-X", String(x), "-Y", String(y), "-Keys", keys]);
+  if (!r || r.ok === false) throw new Error(`keysAt "${keys}" failed`);
+  return r;
+}
+
+/** Type literal text into the window under (x, y); see keysAt. */
+export function typeAt({ title = DEFAULT_WINDOW_TITLE, x, y, text } = {}) {
+  const r = runPs(WIN32_PS1, ["-Action", "atkeys", "-Title", title, "-X", String(x), "-Y", String(y), "-Text", text]);
+  if (!r || r.ok === false) throw new Error("typeAt failed");
+  return r;
+}
+
 /** Escape the characters SendKeys reads as modifiers or grouping. */
 export function escapeSendKeys(text) {
   return String(text).replace(/[+^%~(){}\[\]]/g, (c) => `{${c}}`);

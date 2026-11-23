@@ -23,7 +23,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { ocrImage } from "./ocr.mjs";
-import { capture, click, sleep, windowInfo } from "./ui.mjs";
+import { capture, click, escapeSendKeys, keysAt, sleep, typeAt, windowInfo } from "./ui.mjs";
 
 const FFMPEG = path.join(
   os.homedir(), "AppData", "Local", "hermes", "tools", "ffmpeg-9.0.1-win32-x64", "bin", "ffmpeg.exe",
@@ -157,6 +157,20 @@ export function rowFor(ocr, label) {
     value: cells.map((w) => w.text).join(" "),
   };
 }
+
+/**
+ * The controls that are not list boxes, so they take a different code path.
+ *
+ * `Pfad` is measured, not assumed: clicking it changes not a single pixel of the
+ * window (no caret, no selection), and no key ever reaches it — with plain
+ * SendKeys or with the thread-attached `keysAt`. It is chosen through its folder
+ * picker, so `setText` says exactly that instead of reporting a quiet no-change.
+ * `Dateiname` is listed for the dialog variants that have the field at all; the
+ * video dialog on 6.0.9 does not.
+ */
+export const TEXT_FIELDS = ["Dateiname", "Pfad"];
+
+export const isTextBox = (label) => TEXT_FIELDS.includes(label);
 
 /** Read every control in the dialog, plus the window rect. */
 export function readDialog({ title = "Insta360 Studio" } = {}) {
@@ -392,6 +406,55 @@ export async function selectOption({ title = "Insta360 Studio", label, text } = 
   };
 }
 
+/**
+ * Type a value into one of the dialog's text fields and read it back.
+ *
+ * The field is clicked first so the caret lands in it, then select-all before
+ * typing: without that the new text is appended to whatever was already there.
+ * `Enter` commits, because these fields only hand their value on when the caret
+ * leaves them.
+ */
+export async function setText({ title = "Insta360 Studio", label, text } = {}) {
+  const before = readDialog({ title });
+  const row = before.fields[label];
+  if (!row) {
+    return { ok: false, label, error: "field not found in the export dialog", fields: Object.keys(before.fields) };
+  }
+
+  const want = String(text ?? "");
+  const at = { title, x: row.click.x, y: row.click.y };
+  // The click puts the caret in the field; the keys then have to go to the same
+  // spot (keysAt/typeAt), because CEF gives its inputs the mouse but not the
+  // keyboard focus.
+  click(at);
+  await sleep(600);
+  keysAt({ ...at, keys: "^{a}" });
+  await sleep(300);
+  if (want === "") keysAt({ ...at, keys: "{BACKSPACE}" });
+  else typeAt({ ...at, text: escapeSendKeys(want) });
+  await sleep(400);
+  keysAt({ ...at, keys: "{ENTER}" });
+  await sleep(1000);
+
+  const after = readDialog({ title });
+  const now = after.fields[label]?.value;
+  if (now === row.value) {
+    return {
+      ok: false,
+      label,
+      requested: want,
+      before: row.value,
+      after: now,
+      changed: false,
+      error: "the field did not take typed input",
+      note:
+        "measured on Studio 6.0.9: clicking this field changes nothing on screen either, so it is not " +
+        "keyboard-editable — Pfad is chosen with its folder picker",
+    };
+  }
+  return { ok: true, label, requested: want, before: row.value, after: now, changed: true };
+}
+
 const norm = (s) => String(s ?? "").toLowerCase().replace(/\s+/g, "");
 
 /**
@@ -426,7 +489,9 @@ export async function applySettings({ title = "Insta360 Studio", settings = {} }
       continue;
     }
 
-    const res = await selectOption({ title, label, text: want });
+    const res = isTextBox(label)
+      ? await setText({ title, label, text: want })
+      : await selectOption({ title, label, text: want });
     report.push({
       control: label,
       requested: want,

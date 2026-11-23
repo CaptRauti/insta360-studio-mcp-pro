@@ -155,8 +155,7 @@ Which controls are which, read off Studio 6.0.9 (the set depends on the preset �
 
 | Control | Kind | Options |
 | --- | --- | --- |
-| `Dateiname` | text field | — (typing, not clicking) |
-| `Pfad` | text field | — |
+| `Pfad` | folder picker | — (not keyboard-editable, see below) |
 | `Voreinstellung` | list | `1080p`, `4K`, `Benutzerdefiniert` |
 | `Auflösung` | list | `1080P - 1920 x 1080`, `2K - 2560 x 1440`, `4K - 3840 x 2160`, `Benutzerdefiniert…` |
 | `Rahmen` | list | `Quellbild-Framerate übernehmen…`, `25.00`, `50.00` |
@@ -164,7 +163,16 @@ Which controls are which, read off Studio 6.0.9 (the set depends on the preset �
 | `Kodierung` | list | `H.264`, `H.265`, `ProRes 422`, `ProRes 422LT` |
 | `Farbraum` | list | `Rec.709 8bit`, `Rec.709 10bit` (`IObit` is how OCR reads the ten) |
 
-Two more traps sit in that table:
+`Dateiname` is not in the video dialog on 6.0.9 at all; the field name is kept for the variants that have it.
+
+Three more traps sit in that table:
+
+- **`Pfad` is not typable.** Clicking it changes not a single pixel of the window — no caret, no selection — and
+  no key reaches it, neither through plain `SendKeys` nor through the thread-attached `keysAt` variant, which
+  attaches the two input queues and calls `SetFocus` on the window under the click point. It is chosen with its
+  folder picker. `studio_ui_export_set { control: "Pfad" }` therefore answers `ok: false, "the field did not take
+  typed input"` instead of a quiet no-change, and `studio_ui_export`'s `outDir` has to match whatever the dialog
+  already holds.
 
 - **Leaving a list open is not harmless.** The open panel covers the controls below it, so the next click on one of those lands on an *option*: probing `Voreinstellung` and then `Kodierung` silently picked a preset and reported a 340×369 list box — the union of both regions. `studio_ui_export_settings` therefore closes again whatever it opened (`closedAgain` in the reply), and `closeControl` is exported for callers doing their own sequence.
 - **The row holding the current value is the one row OCR mangles**, because of its selection marker: `H.265` came back as `1-1.265` and `Rec.709 10bit` as `Rec.709 IObit`. Since every option worth switching to is a *different* row, `selectOption` returns early when the request already matches the current value instead of matching that row. Requests are compared exactly first, then again with `i/l→1` and `o→0` folded, which is what makes a request written as `Rec.709 10bit` still match the `IObit` reading.

@@ -72,7 +72,7 @@ import {
 } from "./camera.mjs";
 import { studioDir, studioExe, studioInfo } from "./studio-path.mjs";
 import { findText, ocrImage } from "./ocr.mjs";
-import { closeControl, openControl, readDialog, selectOption } from "./export-dialog.mjs";
+import { closeControl, isTextBox, openControl, readDialog, selectOption, setText } from "./export-dialog.mjs";
 
 // The install directory is resolved at call time (see studio-path.mjs): Studio
 // 6.0.9 moved from Program Files to %LOCALAPPDATA%\Insta360\Apps, and the old
@@ -840,6 +840,18 @@ tool(
   async ({ title, control, listOptions = false, keepOpen = false }) => {
     const windowTitle = title ?? "Insta360 Studio";
     if (control) {
+      // Text fields have no list box, so there is nothing to open: clicking one
+      // four times looking for a panel would just be noise.
+      if (listOptions && isTextBox(control)) {
+        const dialog = readDialog({ title: windowTitle });
+        return {
+          control,
+          value: dialog.fields[control]?.value ?? null,
+          click: dialog.fields[control]?.click ?? null,
+          isTextBox: true,
+          note: "text field -- set it with studio_ui_export_set, which types into it",
+        };
+      }
       const opened = listOptions ? await openControl({ title: windowTitle, label: control }) : null;
       // The boxes toggle, so close the one just read: left open it covers the
       // controls below it and the next click would pick an option instead.
@@ -871,19 +883,23 @@ tool(
   "studio_ui_export_set",
   {
     description:
-      "Change one setting in Studio's export dialog by picking an option, e.g. codec 'ProRes 422 LT', resolution " +
-      "'4K', colour space 'Rec.709'. Opens the control's list box, clicks the matching entry and reads the field " +
-      "back, so the reply states whether the value actually changed. Use studio_ui_export_settings first to see " +
-      "what the controls are called and what they currently hold.",
+      "Change one setting in Studio's export dialog. The list boxes (Kodierung, Auflösung, Farbraum, Rahmen, " +
+      "Bitrate, Voreinstellung) are opened and the matching entry clicked; the two text fields Dateiname and Pfad " +
+      "are typed into. Either way the field is read back afterwards, so the reply states whether the value " +
+      "actually changed. Use studio_ui_export_settings first to see what the controls are called and what they " +
+      "currently hold.",
     inputSchema: {
-      control: z.string().describe("Control label, e.g. 'Kodierung', 'Auflösung', 'Farbraum'"),
-      value: z.string().describe("Option to pick (case-insensitive substring), e.g. 'ProRes 422 LT'"),
+      control: z.string().describe("Control label, e.g. 'Kodierung', 'Auflösung', 'Farbraum', 'Dateiname'"),
+      value: z.string().describe("Option to pick (case-insensitive substring), or the text to type"),
       title: z.string().optional(),
       showOptions: z.boolean().optional().describe("Include the available options in the reply (default true)"),
     },
   },
   async ({ control, value, title, showOptions = true }) => {
-    const res = await selectOption({ title: title ?? "Insta360 Studio", label: control, text: value });
+    const windowTitle = title ?? "Insta360 Studio";
+    const res = isTextBox(control)
+      ? await setText({ title: windowTitle, label: control, text: value })
+      : await selectOption({ title: windowTitle, label: control, text: value });
     return showOptions ? res : { ...res, options: undefined };
   },
 );

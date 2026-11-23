@@ -47,8 +47,13 @@ public class W32 {
   [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
   [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc cb, IntPtr l);
   [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+  [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
+  [DllImport("user32.dll")] public static extern IntPtr SetFocus(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool attach);
+  [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
   public delegate bool EnumProc(IntPtr h, IntPtr l);
   [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
+  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
 }
 "@
 if (-not ("W32" -as [type])) { Add-Type -TypeDefinition $sig }
@@ -152,6 +157,38 @@ switch ($Action) {
     Start-Sleep -Milliseconds $SleepMs
     $info.action = "dblclick"
     $info.clicked = @{ x = $ax; y = $ay; relx = $X; rely = $Y }
+    Write-Output ($info | ConvertTo-Json -Compress)
+  }
+  "atkeys" {
+    # Focus the window under (X,Y) and send keys to it, all in one action.
+    #
+    # The export dialog is CEF/HTML: a synthesized click gives its inputs the
+    # mouse but not the keyboard, so plain SendKeys went nowhere. SetFocus is not
+    # enough either -- it only works inside the calling thread's input queue, so
+    # the two threads are attached first. Doing both here keeps any other
+    # SetForegroundWindow from taking the focus back in between.
+    $rect = Get-WinRect $h
+    $pt = New-Object W32+POINT
+    $pt.X = $rect.Left + $X
+    $pt.Y = $rect.Top + $Y
+    $child = [W32]::WindowFromPoint($pt)
+    $pid2 = 0
+    $tid = [W32]::GetWindowThreadProcessId($child, [ref]$pid2)
+    $me = [W32]::GetCurrentThreadId()
+    $attached = $false
+    if ($tid -ne 0 -and $tid -ne $me) { $attached = [W32]::AttachThreadInput($me, $tid, $true) }
+    [void][W32]::SetForegroundWindow($h)
+    [void][W32]::SetFocus($child)
+    if ($attached) { [void][W32]::AttachThreadInput($me, $tid, $false) }
+    Start-Sleep -Milliseconds 250
+    if ($Keys) { [System.Windows.Forms.SendKeys]::SendWait($Keys) }
+    if ($Text) { [System.Windows.Forms.SendKeys]::SendWait($Text) }
+    Start-Sleep -Milliseconds $SleepMs
+    $info.action = "atkeys"
+    $info.child = $child.ToInt64()
+    $info.focused = $attached
+    $info.keys = $Keys
+    $info.text = $Text
     Write-Output ($info | ConvertTo-Json -Compress)
   }
   "keys" {
