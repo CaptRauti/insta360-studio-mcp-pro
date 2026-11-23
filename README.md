@@ -144,14 +144,16 @@ The dialog's controls are **CEF/HTML**, not native widgets: they are absent from
 
 1. **The list boxes toggle.** One click opens, the next closes. Never assume a click opened a list.
 2. **An opened list paints a lighter panel** over the dialog beneath it. That is how the server knows a list is open at all: the mean gray of the changed region goes from ~30 to ~48. OCR is only used for the option text, never to decide open or closed.
-3. **Everything is measured, not hardcoded.** The server diffs the frames either side of its own click to obtain the list's rectangle (measured `x 566, width 340, top = label y + 2` on a 1384×900 window), so the same code works for every control even though the resolution list is 171 px tall where the codec list is 160.
+3. **Everything is measured, not hardcoded.** The server diffs the frames either side of its own click to obtain the list's rectangle (measured `x 566, width 340, top = label y + 2` on a 1384×900 window), so the same code works for every control even though the resolution list is 171 px tall where the codec list is 160. The rectangle's **size** is the same on a 2576×1408 window — only its `x` moves with the layout (measured `x 1162` there).
 
 Four traps, each of which had to be fixed before a click landed on the intended option:
 
 - **Full-window OCR misreads the small option rows.** `H.265` came back as `4265`, and the row was placed ~40 px off its true position — enough to click the wrong entry. Option text and coordinates therefore always come from a 4× upscaled crop of the measured rectangle.
 - **The row holding the current value draws a marker** ~20 px left of the text column, which OCR reads as a stray token and prepends (`s/ H.265`). Rows are re-aligned to the column they all share.
-- **The popup scrolls the current selection to its top edge**, clipping that row's glyphs — `Benutzerdefiniert` arrives as `utzeraetlmert`. Such a fragment is dropped; the full entry is listed again further down.
-- **A control's value line sits only 2 px above the list's rectangle**, so the crop must carry no margin. With one, the field's own value shows up as a phantom first option.
+- **The control's own value line overhangs the list's rectangle by ~8 px**, so the crop catches the bottom of those glyphs: `Benutzerdefiniert` arrives as `utzeraetlmert`, `1080P - 1920 x 1080` as `- IYZU X 1`, with a glyph height of ~8 px against ~10-11 px for a whole row. Measured, and it corrects an earlier guess (a scrolled-and-clipped current selection) that the geometry does not support. Such rows are dropped, and the margin is 20 px rather than 5 because the first real option sits 32 px (codec list) to 42 px (resolution list) below the box top while the fragment sits at 0-3 px — the box is found by pixel-diffing two frames, so its top wanders a few px between runs.
+- **A control's value line sits just above the list's rectangle**, so the crop must carry no margin at all. With one, the field's own value shows up as a phantom first option.
+- **An accent-coloured button in the dialog region is weaker evidence than it looks.** `uiState` used to call the dialog open on that alone. Measured: an accent box at `x 1422, y 1006` (110×32) on a 2576×1408 window while `readDialog()` returned **zero** fields and the OCR of the same capture listed the media library instead of any dialog label. What produced that state is **not** established — the capture may have caught the dialog half-painted, since the same box is present when the dialog is unmistakably open. `uiState` therefore verifies with the dialog's own labels (two of `Auflösung`/`Kodierung`/`Voreinstellung`/`Farbraum`/`Bitrate`/`Rahmen`/`Dateiname`) and reports `dialogCheck: labels | accent-only | ocr-failed | no-accent`, so a bare `dialogOpen: true` can be told apart from a verified one. A `readDialog()` that comes back empty is worth a second look before it is read as a missing control: the window size was the reason in the case above.
+- **The reader was pinned to the window size it was measured on.** `rowFor` bounded the value column with an absolute `x < 700` taken from a 1384×900 window. On a 2576×1408 window the labels sit at `x~1074` and the values at `x~1171`, so the bound cut the value column off and **every** control read as `not found` while its label was plainly in the OCR — `studio_ui_export_settings` returned `value: null`, and an export through `runExport` would have started nothing. Measured at both sizes, the label-to-value distance is the same 97 px and the values run out at 222-237 px, so the bound is now **relative to the label** (`lab.x + 250`) and the row tolerance follows the glyph height. `tests/export-dialog.test.mjs` carries fixtures for both window sizes.
 
 Which controls are which, read off Studio 6.0.9 (the set depends on the preset — `Benutzerdefiniert` shows all of them):
 
@@ -340,7 +342,7 @@ All of these were run and the outputs checked with `ffprobe` / `file` — the si
 ## Tests
 
 ```bash
-npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads — 66 tests
+npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads — 71 tests
 npm run check           # syntax-check every module
 npm run test:nvap       # NVAP extractor self-test (hybrid headers, 44/44 containers)
 npm run probe           # live MCP handshake, tool list, gRPC port discovery

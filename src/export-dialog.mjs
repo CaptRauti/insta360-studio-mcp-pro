@@ -131,20 +131,35 @@ export function zoomOcr(png, { x, y, w, h, factor = 4 } = {}) {
 // Dialog reading
 // ---------------------------------------------------------------------------
 
-/** Labels sit at x~478 and their values at x~575; right of ~700 is other UI. */
-const VALUE_MIN_OFFSET = 0;
-const VALUE_MAX_X = 700;
+// Where a control's value sits, **relative to its own label**.
+//
+// The first version of this used absolute pixels taken from a 1384x900 window
+// (labels at x~478, values at x~575, "right of 700 is other UI"). Those numbers
+// do not survive a bigger window: on a 2576x1408 window the same labels sit at
+// x~1074 with their values at x~1171, so the value column fell outside the
+// hardcoded bound and **every** control read as "not found" while its label was
+// plainly in the OCR.
+//
+// Measured at both sizes, the offsets from the label are the same: the value
+// starts 97 px right of the label, its words run out at ~222 px (1384 wide) and
+// ~237 px (2576 wide), and the nearest unrelated text on the row ("Speichern",
+// "Mana.„") sits 355-1430 px away. Hence a span of 250 px from the label -- the
+// text itself is barely bigger in the larger window, only the layout moved.
+const VALUE_SPAN = 250;
+/** Row tolerance: 13 px at the reference size, but a taller font needs more. */
+const rowTolerance = (lab) => Math.max(13, Math.round((lab.h ?? 12) * 1.5));
 
 /** The label's row: the value cells sitting right of it on the same line. */
 export function rowFor(ocr, label) {
   const key = label.toLowerCase().slice(0, 8);
   const lab = ocr.words.find((w) => w.text.toLowerCase().startsWith(key));
   if (!lab) return null;
-  // Bound the right edge: the OCR also reads unrelated text far right on the
-  // same line (fragments at x~1318), which would drag the cell's centre across
-  // the window and click into empty space.
+  // Bound the right edge relative to the label: the OCR also reads unrelated
+  // text far right on the same line (x~1318 on the small layout, x~2506 on the
+  // large one), which would drag the cell's centre across the window and click
+  // into empty space.
   const cells = ocr.words
-    .filter((w) => Math.abs(w.y - lab.y) <= 13 && w.x > lab.x + lab.w + VALUE_MIN_OFFSET && w.x < VALUE_MAX_X)
+    .filter((w) => Math.abs(w.y - lab.y) <= rowTolerance(lab) && w.x > lab.x + lab.w && w.x < lab.x + VALUE_SPAN)
     .sort((a, b) => a.x - b.x);
   if (!cells.length) return null;
   const x0 = cells[0].x;
@@ -270,12 +285,19 @@ export function readOptions(frame, box, factor = 4) {
 /**
  * Drop rows that hug the crop's top edge.
  *
- * The popup scrolls the current selection up to its own top edge, which clips
- * that row's glyphs into nonsense -- "utzeraetlmert" for "Benutzerdefiniert",
- * "s/ H.265" for "H.265". The full entry is listed again further down, so such
- * a row is a fragment, not an option.
+ * Measured cause, not a guess: the control's **own value line** sits just above
+ * the list rectangle and overhangs it by about 8 px, so the crop catches the
+ * bottom of those glyphs -- "Benutzerdefiniert" arrives as "utzeraetlmert",
+ * "1080P - 1920 x 1080" as "- IYZU X 1", with a glyph height of ~8 px against
+ * ~10-11 px for a whole row. The same entry is listed again in full inside the
+ * box, so such a row is a fragment, not an option.
+ *
+ * The margin is 20 px because the first real option sits **32 px** (codec list)
+ * to **42 px** (resolution list) below the box top, while the fragment sits at
+ * 0-3 px. Five px only ever worked by luck: the box is measured by pixel-diffing
+ * two frames, so its top wanders a few px between runs.
  */
-export function dropClippedRows(rows, cropY, margin = 5) {
+export function dropClippedRows(rows, cropY, margin = 20) {
   return rows.filter((r) => r.y - cropY > margin);
 }
 
@@ -303,7 +325,7 @@ export async function openControl({ title = "Insta360 Studio", label, attempts =
       const after = meanRegion(current.plane, box);
       if (after > before + 4) {
         // This click opened the list box.
-        const { options, crop, words, factor } = readOptions(current, box);
+        const { options, rows, crop, words, factor } = readOptions(current, box);
         return {
           ok: true,
           label,
@@ -313,7 +335,11 @@ export async function openControl({ title = "Insta360 Studio", label, attempts =
           factor,
           brightness: { closed: +before.toFixed(1), open: +after.toFixed(1) },
           options: options.map((o) => o.text),
-          rows: options,
+          // `rows` is every row read off the popup (with coordinates), `filtered`
+          // is what survived the fragment/marker filters -- keep both so a
+          // mis-filtered row can be diagnosed instead of disappearing silently.
+          rows,
+          filtered: options,
           words,
           attempt,
         };

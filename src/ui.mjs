@@ -16,6 +16,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { findText, ocrImage } from "./ocr.mjs";
 import { readPng, findAccentBoxes } from "./png.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -206,11 +207,71 @@ export function analyzeShot(file) {
   };
 }
 
+/** Labels that exist only inside the export dialog. */
+export const DIALOG_LABELS = [
+  "Auflösung",
+  "Kodierung",
+  "Voreinstellung",
+  "Farbraum",
+  "Bitrate",
+  "Rahmen",
+  "Dateiname",
+];
+
+/**
+ * Do these OCR hits describe the export dialog? Two labels is the threshold: a
+ * single one could be a stray match, while two can only come from the dialog.
+ */
+export function looksLikeExportDialog(found = []) {
+  return found.length >= 2;
+}
+
+/**
+ * Check a window for the export dialog's own labels.
+ *
+ * Needed because an accent box in the dialog region is weaker evidence than it
+ * looks. Measured: an accent box at x=1422, y=1006 (110x32) on a 2576x1408 window
+ * was present while `readDialog()` came back with **zero** fields and the OCR of
+ * the same capture listed the media library (`Medienbibliothek`, `VID_002mp4`)
+ * instead of any dialog label. The same box is also present while the dialog is
+ * unmistakably open, so the box alone cannot separate the two states -- the
+ * dialog's labels can, and that is what decides here.
+ *
+ * What caused that intermediate state is *not* established: the capture may have
+ * caught the dialog half-painted, or the library is genuinely what was on screen.
+ * Hence `dialogCheck` in `uiState`, which reports which evidence was used
+ * (`labels`, `accent-only`, `ocr-failed`, `no-accent`) instead of a bare boolean.
+ */
+export function exportDialogLabels({ title = DEFAULT_WINDOW_TITLE, shot } = {}) {
+  const file = shot ?? capture({ title, mode: "print" }).path;
+  const ocr = ocrImage(file);
+  if (!ocr.ok) return { ok: false, error: ocr.error, shot: file };
+  const found = DIALOG_LABELS.filter((label) => findText(ocr, label).length > 0);
+  return { ok: true, found, isDialog: looksLikeExportDialog(found), shot: file };
+}
+
 /** One-shot: screenshot + analysis. */
-export function uiState({ title = DEFAULT_WINDOW_TITLE, mode = "print" } = {}) {
+export function uiState({ title = DEFAULT_WINDOW_TITLE, mode = "print", verifyDialog = true } = {}) {
   const shot = capture({ title, mode });
   const analysis = analyzeShot(shot.path);
-  return { window: windowInfo(title), screenshot: shot.path, ...analysis };
+  const state = { window: windowInfo(title), screenshot: shot.path, ...analysis };
+
+  // Pixels alone are weaker evidence about the dialog than they look (see
+  // exportDialogLabels), so the labels get the last word whenever an accent box
+  // in the dialog region was found. `dialogCheck` records which one decided.
+  if (state.dialogOpen && verifyDialog) {
+    const probe = exportDialogLabels({ title, shot: shot.path });
+    state.dialogLabels = probe.found ?? [];
+    if (probe.ok) {
+      state.dialogOpen = probe.isDialog;
+      state.dialogCheck = probe.isDialog ? "labels" : "accent-only";
+    } else {
+      state.dialogCheck = "ocr-failed";
+    }
+  } else {
+    state.dialogCheck = state.dialogOpen ? "unverified" : "no-accent";
+  }
+  return state;
 }
 
 // ---------------------------------------------------------------------------
