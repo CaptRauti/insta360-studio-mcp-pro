@@ -151,6 +151,24 @@ Four traps, each of which had to be fixed before a click landed on the intended 
 - **The popup scrolls the current selection to its top edge**, clipping that row's glyphs — `Benutzerdefiniert` arrives as `utzeraetlmert`. Such a fragment is dropped; the full entry is listed again further down.
 - **A control's value line sits only 2 px above the list's rectangle**, so the crop must carry no margin. With one, the field's own value shows up as a phantom first option.
 
+Which controls are which, read off Studio 6.0.9 (the set depends on the preset — `Benutzerdefiniert` shows all of them):
+
+| Control | Kind | Options |
+| --- | --- | --- |
+| `Dateiname` | text field | — (typing, not clicking) |
+| `Pfad` | text field | — |
+| `Voreinstellung` | list | `1080p`, `4K`, `Benutzerdefiniert` |
+| `Auflösung` | list | `1080P - 1920 x 1080`, `2K - 2560 x 1440`, `4K - 3840 x 2160`, `Benutzerdefiniert…` |
+| `Rahmen` | list | `Quellbild-Framerate übernehmen…`, `25.00`, `50.00` |
+| `Bitrate` | list | `Empfohlen`, `Original`, `Benutzerdefiniert` |
+| `Kodierung` | list | `H.264`, `H.265`, `ProRes 422`, `ProRes 422LT` |
+| `Farbraum` | list | `Rec.709 8bit`, `Rec.709 10bit` (`IObit` is how OCR reads the ten) |
+
+Two more traps sit in that table:
+
+- **Leaving a list open is not harmless.** The open panel covers the controls below it, so the next click on one of those lands on an *option*: probing `Voreinstellung` and then `Kodierung` silently picked a preset and reported a 340×369 list box — the union of both regions. `studio_ui_export_settings` therefore closes again whatever it opened (`closedAgain` in the reply), and `closeControl` is exported for callers doing their own sequence.
+- **The row holding the current value is the one row OCR mangles**, because of its selection marker: `H.265` came back as `1-1.265` and `Rec.709 10bit` as `Rec.709 IObit`. Since every option worth switching to is a *different* row, `selectOption` returns early when the request already matches the current value instead of matching that row. Requests are compared exactly first, then again with `i/l→1` and `o→0` folded, which is what makes a request written as `Rec.709 10bit` still match the `IObit` reading.
+
 Live, against Studio 6.0.9:
 
 ```
@@ -159,10 +177,16 @@ studio_ui_export_settings {}
      Auflösung "1080P - 1920 x 1080", Rahmen "Quellbild-Framerate übernehmen",
      Bitrate "Empfohlen", Kodierung "H265", Farbraum "Rec.709"
 studio_ui_export_settings { control: "Kodierung", listOptions: true }
-  -> list box 566,594 340x178 (brightness 33 -> 51)
+  -> list box 566,594 340x178 (brightness 33 -> 51), closedAgain {ok:true, closed:true}
      options: H.264 | H.265 | ProRes 422 | ProRes 422LT
 studio_ui_export_set { control: "Auflösung", value: "4K - 3840 x 2160" }
   -> picked "4K - 3840 x 2160": "Benutzerdefiniert" -> "4K -3840 x 2160", changed true
+```
+
+`studio_ui_export` takes the same settings as a `settings` object and applies them between opening the dialog and clicking the button, so one call can export 4K H.264 instead of the default:
+
+```
+studio_ui_export { settings: { Voreinstellung: "4K", Kodierung: "H.264" } }
 ```
 
 `studio_ui_export_set` reads the field back after clicking, so its reply states whether the value actually changed: a click that lands beside an option reports `changed: false` rather than passing for success.
@@ -269,6 +293,18 @@ HEVC 1920×1080 @ 50 fps, 1.82 s, 91 frames + AAC audio
 source: VID_20260917_193416_00_002.insv — 3840×3840 360°, 1.813 s
 ```
 
+And the same export with a setting changed by the server, `studio_ui_export { settings: { Kodierung: "H.264" } }`:
+
+```
+Kodierung: h265 -> h264   (changed, read back from the dialog)
+VID_20260917_193416_00_002.mp4   337,661 bytes
+H.264 1920×1080 @ 50 fps, 1.80 s + AAC audio
+```
+
+Studio's own default is H.265, and the neighbouring run without the setting produced HEVC — so the 337 KB H.264
+file is the proof that the dialog control reaches the encoder, not just the UI.
+`npm run probe:ui-export-with-settings [Codec]` runs that comparison and sets the codec back afterwards.
+
 The export is complete, not truncated: the 3840×3840 dual-fisheye source is 1.813 s, and stitching and reframing to 1920×1080 landed in the output. This is the path video has to take — see [Limitations](#limitations).
 
 Reading and changing the dialog's settings (no hardcoded coordinates, each change read back from the UI):
@@ -286,7 +322,7 @@ All of these were run and the outputs checked with `ffprobe` / `file` — the si
 ## Tests
 
 ```bash
-npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR helpers — 53 tests
+npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR helpers — 55 tests
 npm run check           # syntax-check every module
 npm run test:nvap       # NVAP extractor self-test (hybrid headers, 44/44 containers)
 npm run probe           # live MCP handshake, tool list, gRPC port discovery
@@ -300,6 +336,7 @@ npm run probe:ui-export-dialog  # open the export dialog and OCR it
 npm run probe:ui-export-fields  # read the dialog's fields with coordinates
 npm run probe:ui-export-video   # SLOW: GUI video export, then ffprobe the result
 npm run probe:ui-export-settings  # read the dialog's settings, change one, read it back
+npm run probe:ui-export-with-settings [Codec]  # SLOW: export with a changed codec, ffprobe the file
 ```
 
 `node tests/mcp-call.mjs <tool> '<json args>'` calls any tool on this server over stdio — handy for exercising the live ones without an MCP client.

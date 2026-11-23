@@ -296,15 +296,79 @@ export async function openControl({ title = "Insta360 Studio", label, attempts =
 }
 
 /**
+ * Close an open list box again by clicking its value cell (the boxes toggle).
+ *
+ * Leaving one open is not harmless: the next control's value cell can sit under
+ * the open list, so the next click lands on an *option* instead of on that
+ * control. Measured: probing "Voreinstellung" and then "Kodierung" silently
+ * picked a preset and reported a 340x369 list box -- the union of both regions.
+ * Close after reading unless an option is about to be clicked.
+ */
+export async function closeControl({ title = "Insta360 Studio", label, attempts = 4 } = {}) {
+  let previous = snap(title);
+  const row = rowFor(previous.ocr, label);
+  if (!row) return { ok: false, error: `control "${label}" not found` };
+
+  let sawOpen = false;
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    click({ title, x: row.click.x, y: row.click.y });
+    await sleep(1100);
+
+    const current = snap(title);
+    const box = diffBox(previous.plane, current.plane);
+    if (box && box.w > 40 && box.h > 40) {
+      const before = meanRegion(previous.plane, box);
+      const after = meanRegion(current.plane, box);
+      if (after > before + 4) sawOpen = true;
+      if (sawOpen && after < before - 4) {
+        return {
+          ok: true,
+          label,
+          closed: true,
+          box,
+          brightness: { open: +before.toFixed(1), closed: +after.toFixed(1) },
+          attempt,
+        };
+      }
+      if (!sawOpen && after < before - 4) {
+        // It was open on entry and this click shut it.
+        return { ok: true, label, closed: true, box, brightness: { open: +before.toFixed(1), closed: +after.toFixed(1) }, attempt };
+      }
+    }
+    previous = current;
+  }
+  // No brightness transition at all over four clicks: not a list box, nothing to close.
+  return { ok: true, label, closed: false, isListBox: false };
+}
+
+/**
  * Pick an option by text (case-insensitive, whitespace-insensitive substring).
  * Reads the field back afterwards, so a mis-click cannot pass for success.
+ *
+ * Asking for the value that is already set returns early: the row carrying the
+ * current value draws a marker that OCR can glue to the text and misread
+ * ("H.265" arrives as "1-1.265"), so that row is the one row not to match
+ * against. Every option worth switching to is a different row.
  */
 export async function selectOption({ title = "Insta360 Studio", label, text } = {}) {
+  const wanted = norm(text);
+  const currentValue = readDialog({ title }).fields[label]?.value;
+  if (currentValue !== undefined && wanted.length >= 3 && matches(currentValue, text)) {
+    return {
+      ok: true,
+      label,
+      picked: currentValue,
+      before: currentValue,
+      after: currentValue,
+      changed: false,
+      note: "already the current value",
+    };
+  }
+
   const opened = await openControl({ title, label });
   if (!opened.ok) return opened;
 
-  const wanted = text.toLowerCase().replace(/\s+/g, "");
-  const hits = opened.rows.filter((r) => r.text.toLowerCase().replace(/\s+/g, "").includes(wanted));
+  const hits = opened.rows.filter((r) => matches(r.text, text));
   if (!hits.length) {
     return { ok: false, error: `no option matching "${text}"`, options: opened.options };
   }
@@ -325,5 +389,61 @@ export async function selectOption({ title = "Insta360 Studio", label, text } = 
     changed: now !== opened.current,
     options: opened.options,
     brightness: opened.brightness,
+  };
+}
+
+const norm = (s) => String(s ?? "").toLowerCase().replace(/\s+/g, "");
+
+/**
+ * Second-pass normalisation for the OCR engine's habitual confusions in this
+ * dialog: "Rec.709 10bit" is read as "Rec.709 IObit" and "H.265" loses its dot.
+ * Applied to both sides, so a request written the way the UI displays it still
+ * matches the mangled reading.
+ */
+const normLoose = (s) => norm(s).replace(/[^a-z0-9]/g, "").replace(/[il]/g, "1").replace(/o/g, "0");
+
+/** True when `text` contains `want`, exactly or tolerating those confusions. */
+export const matches = (text, want) =>
+  norm(text).includes(norm(want)) || normLoose(text).includes(normLoose(want));
+
+/**
+ * Set several dialog controls in one go, reading each field back to prove it took.
+ *
+ * A control whose current value already matches is skipped rather than re-picked:
+ * every list-box round trip costs two clicks plus two waits, and each open box
+ * briefly covers the controls below it.
+ */
+export async function applySettings({ title = "Insta360 Studio", settings = {} } = {}) {
+  const before = readDialog({ title });
+  const report = [];
+
+  for (const [label, want] of Object.entries(settings)) {
+    if (want === undefined || want === null || want === "") continue;
+    const cur = before.fields[label]?.value;
+
+    if (cur !== undefined && norm(want).length >= 3 && matches(cur, want)) {
+      report.push({ control: label, value: cur, changed: false, note: "already set" });
+      continue;
+    }
+
+    const res = await selectOption({ title, label, text: want });
+    report.push({
+      control: label,
+      requested: want,
+      before: res.before,
+      after: res.after,
+      ok: !!res.ok,
+      changed: !!res.changed,
+      error: res.error,
+      options: res.ok ? undefined : res.options,
+    });
+  }
+
+  const after = readDialog({ title });
+  return {
+    report,
+    changed: report.filter((r) => r.changed).map((r) => r.control),
+    failed: report.filter((r) => r.ok === false).map((r) => `${r.control}: ${r.error}`),
+    settings: Object.fromEntries(Object.entries(after.fields).map(([k, v]) => [k, v.value])),
   };
 }

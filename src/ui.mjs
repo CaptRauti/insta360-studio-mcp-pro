@@ -88,9 +88,26 @@ export function click({ title = DEFAULT_WINDOW_TITLE, x, y, double = false } = {
 
 /** Send a key chord to the window, e.g. "^{s}" or "{ESC}". */
 export function sendKeys({ title = DEFAULT_WINDOW_TITLE, keys } = {}) {
-  const r = runPs(WIN32_PS1, ["-Action", "key", "-Title", title, "-Keys", keys]);
+  const r = runPs(WIN32_PS1, ["-Action", "keys", "-Title", title, "-Keys", keys]);
   if (!r || r.ok === false) throw new Error(`key "${keys}" failed`);
   return r;
+}
+
+/**
+ * Type literal text into whatever has the keyboard focus.
+ *
+ * Goes through SendKeys, so reserved characters (`+ ^ % ~ ( ) { } [ ]`) must be
+ * escaped by the caller — see `escapeSendKeys` below.
+ */
+export function typeText({ title = DEFAULT_WINDOW_TITLE, text } = {}) {
+  const r = runPs(WIN32_PS1, ["-Action", "type", "-Title", title, "-Text", text]);
+  if (!r || r.ok === false) throw new Error(`typing failed`);
+  return r;
+}
+
+/** Escape the characters SendKeys reads as modifiers or grouping. */
+export function escapeSendKeys(text) {
+  return String(text).replace(/[+^%~(){}\[\]]/g, (c) => `{${c}}`);
 }
 
 /** Dump the UI Automation tree (returns [] for Studio's Qt canvas — expected). */
@@ -215,11 +232,16 @@ function listVideos(dir) {
  * stub (a few dozen bytes) while the encoder spins up, and a size that merely
  * stops changing for a few seconds is not proof the export is done. Only a file
  * that is stable AND at least this large counts as finished.
+ *
+ * `settings` sets dialog controls before the export starts, e.g.
+ * `{ Voreinstellung: "4K", Kodierung: "H.264" }`. Each entry is read back
+ * afterwards, so the reply says what actually took effect.
  */
 export async function runExport({
   title = DEFAULT_WINDOW_TITLE,
   outDir = DEFAULT_OUT_DIR,
   stage = "full",
+  settings = null,
   settleMs = 1200,
   timeoutMs = 15 * 60 * 1000,
   pollMs = 2000,
@@ -245,8 +267,19 @@ export async function runExport({
   if (!state1.dialogOpen) {
     throw new Error("export dialog did not open after clicking the toolbar button");
   }
+  // Imported here rather than at the top: export-dialog.mjs already imports this
+  // module, and a static import back would make the cycle load-order dependent.
+  let applied = null;
+  if (settings && Object.keys(settings).length) {
+    const { applySettings } = await import("./export-dialog.mjs");
+    applied = await applySettings({ title, settings });
+    log.push({ step: "settings", report: applied.report });
+    const failed = applied.report.filter((r) => r.ok === false || r.changed === false);
+    if (failed.length) log.push({ step: "settings-not-applied", failed });
+  }
+
   if (stage === "dialog") {
-    return { ok: true, stage, dialogOpen: true, clicked: false, log };
+    return { ok: true, stage, dialogOpen: true, clicked: false, settings: applied, log };
   }
 
   const btn = state1.dialogExport;
@@ -274,7 +307,7 @@ export async function runExport({
         candidate = newest;
         if (stable >= stableFor && newest.size >= minBytes) {
           log.push({ step: "done", file: newest.file, size: newest.size });
-          return { ok: true, stage, dialogOpen: false, file: newest.file, size: newest.size, log };
+          return { ok: true, stage, dialogOpen: false, file: newest.file, size: newest.size, settings: applied, log };
         }
         if (stable === stableFor) {
           log.push({ step: "too-small", file: newest.file, size: newest.size });

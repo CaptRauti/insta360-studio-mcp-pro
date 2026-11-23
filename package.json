@@ -22,7 +22,8 @@
     "probe:ui-export-dialog": "node tests/ui-export-dialog.mjs",
     "probe:ui-export-fields": "node tests/ui-export-fields.mjs",
     "probe:ui-export-video": "node tests/ui-export-video.mjs",
-    "probe:ui-export-settings": "node tests/ui-export-settings.mjs"
+    "probe:ui-export-settings": "node tests/ui-export-settings.mjs",
+    "probe:ui-export-with-settings": "node tests/ui-export-with-settings.mjs"
   },
   "keywords": [
     "mcp",

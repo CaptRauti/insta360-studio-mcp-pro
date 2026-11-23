@@ -72,7 +72,7 @@ import {
 } from "./camera.mjs";
 import { studioDir, studioExe, studioInfo } from "./studio-path.mjs";
 import { findText, ocrImage } from "./ocr.mjs";
-import { openControl, readDialog, selectOption } from "./export-dialog.mjs";
+import { closeControl, openControl, readDialog, selectOption } from "./export-dialog.mjs";
 
 // The install directory is resolved at call time (see studio-path.mjs): Studio
 // 6.0.9 moved from Program Files to %LOCALAPPDATA%\Insta360\Apps, and the old
@@ -656,22 +656,30 @@ tool(
   {
     description:
       "Run a real GUI export end-to-end: click the toolbar's export button, click the dialog's primary button, " +
-      "then wait until the new file in the output folder stops growing. This is the path that actually produces " +
-      "video files — the gRPC exporter (studio_export) accepts jobs but writes nothing. " +
-      "A clip must be loaded and the export dialog must be reachable.",
+      "then wait until the new file in the output folder stops growing. This is the only path that produces " +
+      "video files — the gRPC exporter (studio_export) answers EXPORTER_START_FAILURE for VIDEO and VIDEO_CLIP, " +
+      "whatever state the app is in. A clip must be loaded and the export dialog must be reachable.",
     inputSchema: {
       outDir: z.string().optional().describe("Folder to watch for the new file (default: Desktop)"),
       stage: z
         .enum(["dialog", "full"])
         .optional()
         .describe("dialog = only open the export dialog; full = also start and wait for the file"),
+      settings: z
+        .record(z.string(), z.string())
+        .optional()
+        .describe(
+          'Dialog settings to apply before exporting, keyed by control label, e.g. {"Voreinstellung":"4K",' +
+            '"Kodierung":"H.264"}. Applied with studio_ui_export_set and each one read back, so the reply ' +
+            "reports which actually took. Must agree with outDir — the path is a dialog control too.",
+        ),
       timeoutMs: z.number().int().optional().describe("How long to wait for the finished file (default 900000)"),
       pollMs: z.number().int().optional().describe("Polling interval (default 2000)"),
       title: z.string().optional(),
     },
   },
-  async ({ outDir = DEFAULT_OUT_DIR, stage = "full", timeoutMs = 900000, pollMs = 2000, title }) =>
-    runExport({ title: title ?? "Insta360 Studio", outDir, stage, timeoutMs, pollMs }),
+  async ({ outDir = DEFAULT_OUT_DIR, stage = "full", settings = null, timeoutMs = 900000, pollMs = 2000, title }) =>
+    runExport({ title: title ?? "Insta360 Studio", outDir, stage, settings, timeoutMs, pollMs }),
 );
 
 tool(
@@ -820,12 +828,22 @@ tool(
         .boolean()
         .optional()
         .describe("Also open the control's list box and return the options it offers"),
+      keepOpen: z
+        .boolean()
+        .optional()
+        .describe(
+          "Leave the list box open after reading it (default false). An open box covers the controls " +
+            "below it, so the next click on one of those lands on an option instead.",
+        ),
     },
   },
-  async ({ title, control, listOptions = false }) => {
+  async ({ title, control, listOptions = false, keepOpen = false }) => {
     const windowTitle = title ?? "Insta360 Studio";
     if (control) {
       const opened = listOptions ? await openControl({ title: windowTitle, label: control }) : null;
+      // The boxes toggle, so close the one just read: left open it covers the
+      // controls below it and the next click would pick an option instead.
+      const closed = opened?.ok && !keepOpen ? await closeControl({ title: windowTitle, label: control }) : null;
       const dialog = readDialog({ title: windowTitle });
       const field = dialog.fields[control];
       return {
@@ -833,7 +851,10 @@ tool(
         value: field?.value ?? null,
         click: field?.click ?? null,
         options: opened?.ok ? opened.options : undefined,
-        listBox: opened ? { ok: opened.ok, error: opened.error, box: opened.box } : undefined,
+        listBox: opened
+          ? { ok: opened.ok, error: opened.error, box: opened.box, brightness: opened.brightness }
+          : undefined,
+        closedAgain: closed ? { ok: closed.ok, closed: closed.closed, isListBox: closed.isListBox } : undefined,
       };
     }
     const dialog = readDialog({ title: windowTitle });

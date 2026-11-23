@@ -8,7 +8,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { dropClippedRows, optionRows, rowFor, stripIndicators } from "../src/export-dialog.mjs";
+import { dropClippedRows, matches, optionRows, rowFor, stripIndicators } from "../src/export-dialog.mjs";
 
 // As OCR reported it: labels at x~478, values at x~575, and unrelated fragments
 // at x~1318 on the same visual line as the codec row.
@@ -116,6 +116,24 @@ test("dropClippedRows keeps a first row that sits clear of the top edge", () => 
     { text: "H.265", x: 609, y: 616, h: 12 },
   ];
   assert.equal(dropClippedRows(rows, 548).length, 2);
+});
+
+test("matches tolerates the OCR engine's confusions in this dialog", () => {
+  // All left-hand values are real Windows OCR output from Studio 6.0.9; the
+  // right-hand side is what the UI actually displays.
+  assert.equal(matches("H265", "H.265"), true, "dropped dot");
+  assert.equal(matches("Rec.709 IObit", "Rec.709 10bit"), true, "IObit for 10bit");
+  assert.equal(matches("ProRes 422LT", "ProRes 422 LT"), true, "spacing only");
+  assert.equal(matches("1080P - 1920 x 1080", "1080P"), true, "prefix request");
+});
+
+test("matches stays discriminating between neighbouring options", () => {
+  assert.equal(matches("H.264", "H.265"), false);
+  assert.equal(matches("ProRes 422", "ProRes 422LT"), false);
+  assert.equal(matches("25.00", "50.00"), false);
+  // The marked row's misreading is why selectOption short-circuits on the
+  // current value instead of matching that row at all.
+  assert.equal(matches("1-1.265", "H.265"), false);
 });
 
 test("stripIndicators removes the marker glyph from the selected row", () => {
