@@ -1,0 +1,3800 @@
+{
+ "tables": {
+  "fov_distance_table1_a3.json": {
+   "format": "CameraType##LensType##VideoOrPhoto##Mode##OriginalScale##DisplayScale##Horizontal##Flowstate##FPS##FileType##FovType:defaultAngle|Angle",
+   "version": "A3 table1 \u8fc1\u79fb\u81f3\u98de\u4e66\u8868\u683c\u7ef4\u62a4",
+   "lastUpdate": "2025-11-01"
+  },
+  "fov_distance_table1_b2.json": {
+   "format": "CameraType##LensType##VideoOrPhoto##Mode##OriginalScale##DisplayScale##Horizontal##Flowstate##FPS##FileType##FovType:defaultAngle|Angle",
+   "version": "v1.0.01_2025.7.23",
+   "lastUpdate": "2025-11-24"
+  },
+  "fov_distance_table1_c9.json": {
+   "format": "CameraType##LensType##VideoOrPhoto##Mode##OriginalScale##DisplayScale##FPS##FileType##Dimension##FovType:defaultAngle|Angle",
+   "version": "v88_25.11.04",
+   "lastUpdate": "2026-08-06"
+  },
+  "fov_distance_table1_iac4.json": {
+   "format": "CameraType##LensType##VideoOrPhoto##Mode##OriginalScale##DisplayScale##Horizontal##Flowstate##FPS##FileType##FovType:defaultAngle|Angle",
+   "version": "v1.0.01_2025.7.23",
+   "lastUpdate": "2026-09-11"
+  },
+  "fov_distance_table1_other.json": {
+   "format": "CameraType##LensType##VideoOrPhoto##Mode##OriginalScale##DisplayScale##Horizontal##Flowstate##FPS##FileType##FovType:defaultAngle|Angle",
+   "version": "v1.0.01_2025.7.23",
+   "lastUpdate": "2025-10-17"
+  },
+  "fov_distance_table1_tc4.json": {
+   "format": "CameraType##LensType##VideoOrPhoto##Mode##OriginalScale##DisplayScale##Horizontal##Flowstate##FPS##FileType##FovType:defaultAngle|Angle",
+   "version": "v2.3.00_2024.11.26",
+   "lastUpdate": "2026-08-14"
+  },
+  "fov_distance_table2_a3.json": {
+   "format": "Angle##CameraType##LensType##VideoOrPhoto##Mode##ScreenRatio##FrameRate##Flowstate##FileType:defaultFov,defaultDistance,minFov,minDistance,maxFov,maxDistance",
+   "version": "v136_25.03.21",
+   "lastUpdate": "2026-06-08"
+  },
+  "fov_distance_table2_b2.json": {
+   "format": "Angle##CameraType##LensType##VideoOrPhoto##Mode##ScreenRatio##FrameRate##Flowstate##FileType:defaultFov,defaultDistance,minFov,minDistance,maxFov,maxDistance",
+   "version": "v1.0.01_2025.7.23",
+   "lastUpdate": "2026-06-08"
+  },
+  "fov_distance_table2_c9.json": {
+   "format": "Angle##CameraType##LensType##VideoOrPhoto##Mode##ScreenRatio##FrameRate##Flowstate##FileType:defaultFov,defaultDistance,minFov,minDistance,maxFov,maxDistance",
+   "version": "v136_25.11.04",
+   "lastUpdate": "2026-08-26"
+  },
+  "fov_distance_table2_iac4.json": {
+   "format": "Angle##CameraType##LensType##VideoOrPhoto##Mode##ScreenRatio##FrameRate##Flowstate##FileType:defaultFov,defaultDistance,minFov,minDistance,maxFov,maxDistance",
+   "lastUpdate": "2026-10-21"
+  }
+ },
+ "cameras": {
+  "Ace": {
+   "lenses": [
+    "194",
+    "195",
+    "50h",
+    "586"
+   ],
+   "modes": [
+    "Photo",
+    "Video",
+    "WideAngle"
+   ],
+   "fovTypes": [
+    "Dewarp",
+    "Fpv",
+    "Linear",
+    "LinearHorizon",
+    "LinearHorizonWider",
+    "MegaView",
+    "Narrow",
+    "Super",
+    "SuperPlus",
+    "Wide"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "AcePro3": {
+   "lenses": [
+    "200",
+    "202",
+    "203"
+   ],
+   "modes": [
+    "Photo",
+    "Video",
+    "WideAngle"
+   ],
+   "fovTypes": [
+    "Dewarp",
+    "Fpv",
+    "Linear",
+    "LinearHorizon",
+    "LinearHorizonWider",
+    "MegaView",
+    "Super",
+    "SuperPlus"
+   ],
+   "aspectRatios": [
+    "100:235",
+    "16:9",
+    "1:1",
+    "235:100",
+    "3:4",
+    "4:3",
+    "9:16"
+   ],
+   "angleRows": 71
+  },
+  "Flow": {
+   "lenses": [
+    "Phone"
+   ],
+   "modes": [
+    "Photo",
+    "Sphere"
+   ],
+   "fovTypes": [
+    "Super"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "GO": {
+   "lenses": [
+    "OV13870"
+   ],
+   "modes": [
+    "FishEye",
+    "Photo",
+    "Video"
+   ],
+   "fovTypes": [
+    "Linear",
+    "Wide"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "GO2": {
+   "lenses": [
+    "577"
+   ],
+   "modes": [
+    "FishEye",
+    "Photo",
+    "Video",
+    "WideAngle"
+   ],
+   "fovTypes": [
+    "Linear",
+    "Narrow",
+    "SuperPlus",
+    "Wide"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "GO3": {
+   "lenses": [
+    "577"
+   ],
+   "modes": [
+    "FishEye",
+    "Photo",
+    "Video",
+    "WideAngle"
+   ],
+   "fovTypes": [
+    "Linear",
+    "Narrow",
+    "Super",
+    "SuperPlus"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "GO3S": {
+   "lenses": [
+    "577"
+   ],
+   "modes": [
+    "Photo",
+    "Video",
+    "WideAngle"
+   ],
+   "fovTypes": [
+    "Dewarp",
+    "LinearHorizon",
+    "LinearHorizonWider",
+    "MegaView",
+    "Narrow",
+    "Super",
+    "SuperBaby",
+    "SuperPlus"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "GOUltra": {
+   "lenses": [
+    "06C",
+    "06C_MICRO_11p6cm_8x",
+    "06C_MICRO_21p5cm_4x",
+    "06C_MICRO_38cm_2x",
+    "06C_MICRO_5cm_19p4x",
+    "06C_MICRO_Lens_0",
+    "06C_Wide_Angle_185"
+   ],
+   "modes": [
+    "Photo",
+    "Video",
+    "WideAngle"
+   ],
+   "fovTypes": [
+    "Dewarp",
+    "Fpv",
+    "Linear",
+    "LinearHorizon",
+    "LinearHorizonWider",
+    "MegaView",
+    "Micro",
+    "Super",
+    "SuperPlus"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "OneR": {
+   "lenses": [
+    "283",
+    "577",
+    "586"
+   ],
+   "modes": [
+    "Photo",
+    "Sphere",
+    "Video",
+    "WideAngle"
+   ],
+   "fovTypes": [
+    "Dewarp",
+    "Fpv",
+    "Linear",
+    "LinearHorizon",
+    "LinearHorizonWider",
+    "MegaView",
+    "Narrow",
+    "Super",
+    "SuperPlus",
+    "Super_perspective",
+    "TinyPlanet",
+    "Wide"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "OneRS": {
+   "lenses": [
+    "283",
+    "577",
+    "586"
+   ],
+   "modes": [
+    "Photo",
+    "Sphere",
+    "Video",
+    "WideAngle"
+   ],
+   "fovTypes": [
+    "Dewarp",
+    "Fpv",
+    "Linear",
+    "LinearHorizon",
+    "LinearHorizonWider",
+    "MegaView",
+    "Narrow",
+    "Super",
+    "SuperPlus",
+    "Super_perspective",
+    "TinyPlanet",
+    "Wide"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "OneX": {
+   "lenses": [
+    "577"
+   ],
+   "modes": [
+    "Photo",
+    "Sphere",
+    "Video"
+   ],
+   "fovTypes": [
+    "Linear",
+    "LinearPlus",
+    "Narrow",
+    "Super",
+    "TinyPlanet",
+    "Wide"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "OneX2": {
+   "lenses": [
+    "577"
+   ],
+   "modes": [
+    "FishEye",
+    "Photo",
+    "Sphere",
+    "Video",
+    "WideAngle"
+   ],
+   "fovTypes": [
+    "Dewarp",
+    "Linear",
+    "MegaView",
+    "Super",
+    "Super_perspective",
+    "TinyPlanet",
+    "Wide",
+    "Wide_perspective"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "X3": {
+   "lenses": [
+    "586"
+   ],
+   "modes": [
+    "FishEye",
+    "Photo",
+    "Sphere",
+    "Video",
+    "WideAngle"
+   ],
+   "fovTypes": [
+    "Dewarp",
+    "Linear",
+    "MaxView",
+    "MegaView",
+    "Super",
+    "SuperPlus",
+    "Super_perspective",
+    "TinyPlanet",
+    "Wide",
+    "Wide_perspective"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "X4": {
+   "lenses": [
+    "586"
+   ],
+   "modes": [
+    "FishEye",
+    "Photo",
+    "Sphere",
+    "Video"
+   ],
+   "fovTypes": [
+    "Dewarp",
+    "Linear",
+    "MaxView",
+    "MegaView",
+    "Super",
+    "SuperPlus",
+    "Super_perspective",
+    "TinyPlanet"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  },
+  "X5": {
+   "lenses": [
+    "06C",
+    "A0B"
+   ],
+   "modes": [
+    "FishEye",
+    "Photo",
+    "Sphere",
+    "Video",
+    "WideAngle"
+   ],
+   "fovTypes": [
+    "Dewarp",
+    "Linear",
+    "MaxView",
+    "MegaView",
+    "Narrow",
+    "Super",
+    "SuperPlus",
+    "Super_perspective",
+    "TinyPlanet",
+    "Wide",
+    "Wide_perspective"
+   ],
+   "aspectRatios": [
+    "16:9",
+    "1:1",
+    "235:100",
+    "3:4",
+    "4:3",
+    "9:16"
+   ],
+   "angleRows": 169
+  },
+  "X6": {
+   "lenses": [
+    "01F"
+   ],
+   "modes": [
+    "FishEye",
+    "Photo",
+    "Sphere",
+    "Video",
+    "WideAngle"
+   ],
+   "fovTypes": [
+    "Dewarp",
+    "Linear",
+    "MaxView",
+    "MegaView",
+    "Narrow",
+    "Super",
+    "SuperPlus",
+    "Super_perspective",
+    "TinyPlanet",
+    "Wide",
+    "Wide_perspective"
+   ],
+   "aspectRatios": [
+    "16:9",
+    "1:1",
+    "235:100",
+    "3:4",
+    "4:3",
+    "9:16"
+   ],
+   "angleRows": 175
+  },
+  "ZFY": {
+   "lenses": [
+    "577"
+   ],
+   "modes": [
+    "Photo",
+    "Sphere",
+    "Video"
+   ],
+   "fovTypes": [
+    "Linear",
+    "Narrow",
+    "Super",
+    "TinyPlanet",
+    "Wide"
+   ],
+   "aspectRatios": [],
+   "angleRows": 0
+  }
+ },
+ "angles": {
+  "X5": {
+   "MegaView|Video|Sphere|235:100": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|Sphere|16:9": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|Sphere|4:3": {
+    "defaultFov": 77.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|Sphere|1:1": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|Sphere|3:4": {
+    "defaultFov": 60.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|Sphere|9:16": {
+    "defaultFov": 39.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|Sphere|235:100": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|Sphere|16:9": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|Sphere|4:3": {
+    "defaultFov": 64.5,
+    "defaultDistance": 650.0,
+    "minFov": 30.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Super|Video|Sphere|1:1": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|Sphere|3:4": {
+    "defaultFov": 51.0,
+    "defaultDistance": 650.0,
+    "minFov": 30.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Super|Video|Sphere|9:16": {
+    "defaultFov": 39.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|Sphere|235:100": {
+    "defaultFov": 100.0,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|Sphere|16:9": {
+    "defaultFov": 100.0,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|Sphere|4:3": {
+    "defaultFov": 100.0,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Video|Sphere|1:1": {
+    "defaultFov": 100.0,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|Sphere|3:4": {
+    "defaultFov": 83.0,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Video|Sphere|9:16": {
+    "defaultFov": 69.7,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|Sphere|235:100": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|Sphere|16:9": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|Sphere|4:3": {
+    "defaultFov": 110.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Linear|Video|Sphere|1:1": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|Sphere|3:4": {
+    "defaultFov": 94.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Linear|Video|Sphere|9:16": {
+    "defaultFov": 72.0,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "SuperPlus|Video|Sphere|16:9": {
+    "defaultFov": 70.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "SuperPlus|Video|Sphere|9:16": {
+    "defaultFov": 42.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Narrow|Video|Sphere|235:100": {
+    "defaultFov": 88.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Narrow|Video|Sphere|16:9": {
+    "defaultFov": 75.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Narrow|Video|Sphere|1:1": {
+    "defaultFov": 60.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Narrow|Video|Sphere|9:16": {
+    "defaultFov": 43.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|Sphere|235:100": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|Sphere|16:9": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|Sphere|1:1": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|Sphere|9:16": {
+    "defaultFov": 38.3,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Video|Sphere|9:16": {
+    "defaultFov": 110.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Video|Sphere|4:3": {
+    "defaultFov": 147.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Video|Sphere|3:4": {
+    "defaultFov": 124.6,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Video|Sphere|235:100": {
+    "defaultFov": 157.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Video|Sphere|1:1": {
+    "defaultFov": 137.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Video|Sphere|16:9": {
+    "defaultFov": 155.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|Sphere|235:100": {
+    "defaultFov": 75.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|Sphere|16:9": {
+    "defaultFov": 75.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|Sphere|1:1": {
+    "defaultFov": 68.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|Sphere|9:16": {
+    "defaultFov": 46.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|Sphere|235:100": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|Sphere|16:9": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|Sphere|1:1": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|Sphere|9:16": {
+    "defaultFov": 71.5,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|Sphere|235:100": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|Sphere|16:9": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|Sphere|1:1": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|Sphere|9:16": {
+    "defaultFov": 64.9,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|Sphere|235:100": {
+    "defaultFov": 93.0,
+    "defaultDistance": 760.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "MegaView|Photo|Sphere|16:9": {
+    "defaultFov": 88.0,
+    "defaultDistance": 760.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "MegaView|Photo|Sphere|4:3": {
+    "defaultFov": 77.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|Sphere|1:1": {
+    "defaultFov": 90.0,
+    "defaultDistance": 480.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "MegaView|Photo|Sphere|3:4": {
+    "defaultFov": 60.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|Sphere|9:16": {
+    "defaultFov": 57.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|Sphere|235:100": {
+    "defaultFov": 89.0,
+    "defaultDistance": 760.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Super|Photo|Sphere|16:9": {
+    "defaultFov": 79.0,
+    "defaultDistance": 760.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Super|Photo|Sphere|4:3": {
+    "defaultFov": 70.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|Sphere|1:1": {
+    "defaultFov": 68.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|Sphere|3:4": {
+    "defaultFov": 55.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|Sphere|9:16": {
+    "defaultFov": 49.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|Sphere|": {
+    "defaultFov": 54.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Photo|Sphere|235:100": {
+    "defaultFov": 85.0,
+    "defaultDistance": 760.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Photo|Sphere|16:9": {
+    "defaultFov": 99.0,
+    "defaultDistance": 440.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Photo|Sphere|4:3": {
+    "defaultFov": 110.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Photo|Sphere|1:1": {
+    "defaultFov": 90.5,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Photo|Sphere|3:4": {
+    "defaultFov": 94.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Photo|Sphere|9:16": {
+    "defaultFov": 65.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Photo|Sphere|": {
+    "defaultFov": 65.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "TinyPlanet|Photo|Sphere|9:16": {
+    "defaultFov": 110.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Photo|Sphere|4:3": {
+    "defaultFov": 147.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Photo|Sphere|3:4": {
+    "defaultFov": 124.6,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Photo|Sphere|235:100": {
+    "defaultFov": 157.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Photo|Sphere|1:1": {
+    "defaultFov": 137.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Photo|Sphere|16:9": {
+    "defaultFov": 155.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Photo|Sphere|": {
+    "defaultFov": 137.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|FishEye|16:9": {
+    "defaultFov": 75.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|FishEye|4:3": {
+    "defaultFov": 75.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|FishEye|3:4": {
+    "defaultFov": 59.8,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|FishEye|9:16": {
+    "defaultFov": 46.7,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|FishEye|235:100": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|FishEye|16:9": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|FishEye|4:3": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|FishEye|1:1": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|FishEye|3:4": {
+    "defaultFov": 50.6,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|FishEye|9:16": {
+    "defaultFov": 39.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "SuperPlus|Video|FishEye|16:9": {
+    "defaultFov": 63.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "SuperPlus|Video|FishEye|9:16": {
+    "defaultFov": 38.3,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|FishEye|235:100": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|FishEye|16:9": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|FishEye|4:3": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|FishEye|1:1": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|FishEye|3:4": {
+    "defaultFov": 51.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|FishEye|9:16": {
+    "defaultFov": 39.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|FishEye|235:100": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 150.0
+   },
+   "Super_perspective|Video|FishEye|16:9": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|FishEye|4:3": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|FishEye|1:1": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|FishEye|3:4": {
+    "defaultFov": 87.5,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|FishEye|9:16": {
+    "defaultFov": 71.5,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|FishEye|235:100": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|FishEye|16:9": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|FishEye|4:3": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|FishEye|1:1": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|FishEye|3:4": {
+    "defaultFov": 49.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|FishEye|9:16": {
+    "defaultFov": 38.3,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|FishEye|235:100": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 150.0
+   },
+   "Wide_perspective|Video|FishEye|16:9": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|FishEye|4:3": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|FishEye|1:1": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|FishEye|3:4": {
+    "defaultFov": 80.5,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|FishEye|9:16": {
+    "defaultFov": 64.9,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|FishEye|235:100": {
+    "defaultFov": 100.9,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 150.0
+   },
+   "Dewarp|Video|FishEye|16:9": {
+    "defaultFov": 100.9,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Video|FishEye|4:3": {
+    "defaultFov": 100.9,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Video|FishEye|1:1": {
+    "defaultFov": 100.9,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Video|FishEye|3:4": {
+    "defaultFov": 85.0,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Video|FishEye|9:16": {
+    "defaultFov": 69.7,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Linear|Video|FishEye|235:100": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 150.0
+   },
+   "Linear|Video|FishEye|16:9": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Linear|Video|FishEye|4:3": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Linear|Video|FishEye|1:1": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Linear|Video|FishEye|3:4": {
+    "defaultFov": 83.2,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Linear|Video|FishEye|9:16": {
+    "defaultFov": 70.0,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "MegaView|Photo|FishEye|1:1": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 44.5,
+    "minDistance": 400.0,
+    "maxFov": 64.5,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|FishEye|235:100": {
+    "defaultFov": 67.5,
+    "defaultDistance": 800.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 67.5,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|FishEye|16:9": {
+    "defaultFov": 80.0,
+    "defaultDistance": 800.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 80.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|FishEye|4:3": {
+    "defaultFov": 80.0,
+    "defaultDistance": 800.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 64.5,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|FishEye|3:4": {
+    "defaultFov": 50.6,
+    "defaultDistance": 800.0,
+    "minFov": 30.6,
+    "minDistance": 400.0,
+    "maxFov": 50.6,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|FishEye|9:16": {
+    "defaultFov": 39.0,
+    "defaultDistance": 800.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 39.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|FishEye|235:100": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 44.5,
+    "minDistance": 400.0,
+    "maxFov": 64.5,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|FishEye|1:1": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 44.5,
+    "minDistance": 400.0,
+    "maxFov": 64.5,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|FishEye|16:9": {
+    "defaultFov": 80.0,
+    "defaultDistance": 800.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 80.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|FishEye|4:3": {
+    "defaultFov": 80.0,
+    "defaultDistance": 800.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 80.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|FishEye|3:4": {
+    "defaultFov": 50.6,
+    "defaultDistance": 800.0,
+    "minFov": 30.6,
+    "minDistance": 400.0,
+    "maxFov": 50.6,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|FishEye|9:16": {
+    "defaultFov": 50.3,
+    "defaultDistance": 800.0,
+    "minFov": 30.3,
+    "minDistance": 400.0,
+    "maxFov": 50.6,
+    "maxDistance": 800.0
+   },
+   "Wide|Photo|FishEye|235:100": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Photo|FishEye|16:9": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 35.0,
+    "minDistance": 400.0,
+    "maxFov": 87.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Photo|FishEye|4:3": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 35.0,
+    "minDistance": 400.0,
+    "maxFov": 87.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Photo|FishEye|1:1": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 35.0,
+    "minDistance": 400.0,
+    "maxFov": 75.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Photo|FishEye|3:4": {
+    "defaultFov": 49.5,
+    "defaultDistance": 650.0,
+    "minFov": 35.0,
+    "minDistance": 400.0,
+    "maxFov": 56.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Photo|FishEye|9:16": {
+    "defaultFov": 50.6,
+    "defaultDistance": 800.0,
+    "minFov": 30.6,
+    "minDistance": 400.0,
+    "maxFov": 50.6,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Photo|FishEye|235:100": {
+    "defaultFov": 110.0,
+    "defaultDistance": 60.0,
+    "minFov": 90.0,
+    "minDistance": 0.0,
+    "maxFov": 110.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Photo|FishEye|16:9": {
+    "defaultFov": 110.0,
+    "defaultDistance": 60.0,
+    "minFov": 90.0,
+    "minDistance": 0.0,
+    "maxFov": 110.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Photo|FishEye|4:3": {
+    "defaultFov": 110.0,
+    "defaultDistance": 60.0,
+    "minFov": 90.0,
+    "minDistance": 0.0,
+    "maxFov": 110.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Photo|FishEye|1:1": {
+    "defaultFov": 110.0,
+    "defaultDistance": 60.0,
+    "minFov": 90.0,
+    "minDistance": 0.0,
+    "maxFov": 110.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Photo|FishEye|3:4": {
+    "defaultFov": 93.8,
+    "defaultDistance": 60.0,
+    "minFov": 73.8,
+    "minDistance": 0.0,
+    "maxFov": 93.8,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Photo|FishEye|9:16": {
+    "defaultFov": 77.0,
+    "defaultDistance": 60.0,
+    "minFov": 57.0,
+    "minDistance": 0.0,
+    "maxFov": 77.0,
+    "maxDistance": 60.0
+   },
+   "Linear|Photo|FishEye|235:100": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 102.3,
+    "maxDistance": 60.0
+   },
+   "Linear|Photo|FishEye|16:9": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 102.3,
+    "maxDistance": 60.0
+   },
+   "Linear|Photo|FishEye|4:3": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 102.3,
+    "maxDistance": 60.0
+   },
+   "Linear|Photo|FishEye|1:1": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 102.3,
+    "maxDistance": 60.0
+   },
+   "Linear|Photo|FishEye|3:4": {
+    "defaultFov": 84.8,
+    "defaultDistance": 60.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 84.8,
+    "maxDistance": 60.0
+   },
+   "Linear|Photo|FishEye|9:16": {
+    "defaultFov": 72.9,
+    "defaultDistance": 60.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 72.9,
+    "maxDistance": 60.0
+   },
+   "Super|Video|WideAngle|16:9": {
+    "defaultFov": 65.8,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|WideAngle|9:16": {
+    "defaultFov": 38.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|WideAngle|16:9": {
+    "defaultFov": 102.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|WideAngle|9:16": {
+    "defaultFov": 60.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|WideAngle|16:9": {
+    "defaultFov": 60.6,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|WideAngle|9:16": {
+    "defaultFov": 35.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|WideAngle|16:9": {
+    "defaultFov": 92.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|WideAngle|9:16": {
+    "defaultFov": 54.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|WideAngle|16:9": {
+    "defaultFov": 96.8,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 0.0
+   },
+   "Dewarp|Video|WideAngle|9:16": {
+    "defaultFov": 57.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 0.0
+   },
+   "Linear|Video|WideAngle|16:9": {
+    "defaultFov": 96.8,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 0.0
+   },
+   "Linear|Video|WideAngle|9:16": {
+    "defaultFov": 57.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 0.0
+   }
+  },
+  "X6": {
+   "MegaView|Video|Sphere|235:100": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|Sphere|16:9": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|Sphere|4:3": {
+    "defaultFov": 77.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|Sphere|1:1": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|Sphere|3:4": {
+    "defaultFov": 60.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|Sphere|9:16": {
+    "defaultFov": 39.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|Sphere|235:100": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|Sphere|16:9": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|Sphere|4:3": {
+    "defaultFov": 70.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|Sphere|1:1": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|Sphere|3:4": {
+    "defaultFov": 55.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|Sphere|9:16": {
+    "defaultFov": 39.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|Sphere|235:100": {
+    "defaultFov": 100.0,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|Sphere|16:9": {
+    "defaultFov": 100.0,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|Sphere|4:3": {
+    "defaultFov": 100.0,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Video|Sphere|1:1": {
+    "defaultFov": 100.0,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|Sphere|3:4": {
+    "defaultFov": 83.0,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Video|Sphere|9:16": {
+    "defaultFov": 69.7,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|Sphere|235:100": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|Sphere|16:9": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|Sphere|4:3": {
+    "defaultFov": 110.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Linear|Video|Sphere|1:1": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|Sphere|3:4": {
+    "defaultFov": 94.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Linear|Video|Sphere|9:16": {
+    "defaultFov": 72.0,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "SuperPlus|Video|Sphere|16:9": {
+    "defaultFov": 70.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "SuperPlus|Video|Sphere|9:16": {
+    "defaultFov": 42.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Narrow|Video|Sphere|235:100": {
+    "defaultFov": 88.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Narrow|Video|Sphere|16:9": {
+    "defaultFov": 75.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Narrow|Video|Sphere|1:1": {
+    "defaultFov": 60.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Narrow|Video|Sphere|9:16": {
+    "defaultFov": 43.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|Sphere|235:100": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|Sphere|16:9": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|Sphere|1:1": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|Sphere|9:16": {
+    "defaultFov": 38.3,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Video|Sphere|9:16": {
+    "defaultFov": 110.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Video|Sphere|4:3": {
+    "defaultFov": 147.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Video|Sphere|3:4": {
+    "defaultFov": 124.6,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Video|Sphere|235:100": {
+    "defaultFov": 157.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Video|Sphere|1:1": {
+    "defaultFov": 137.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Video|Sphere|16:9": {
+    "defaultFov": 155.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|Sphere|235:100": {
+    "defaultFov": 75.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|Sphere|16:9": {
+    "defaultFov": 75.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|Sphere|1:1": {
+    "defaultFov": 68.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|Sphere|9:16": {
+    "defaultFov": 46.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|Sphere|235:100": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|Sphere|16:9": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|Sphere|1:1": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|Sphere|9:16": {
+    "defaultFov": 71.5,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|Sphere|235:100": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|Sphere|16:9": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|Sphere|1:1": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|Sphere|9:16": {
+    "defaultFov": 64.9,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|Sphere|235:100": {
+    "defaultFov": 93.0,
+    "defaultDistance": 760.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "MegaView|Photo|Sphere|16:9": {
+    "defaultFov": 88.0,
+    "defaultDistance": 760.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "MegaView|Photo|Sphere|4:3": {
+    "defaultFov": 77.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|Sphere|1:1": {
+    "defaultFov": 90.0,
+    "defaultDistance": 480.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "MegaView|Photo|Sphere|3:4": {
+    "defaultFov": 60.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|Sphere|9:16": {
+    "defaultFov": 57.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|Sphere|235:100": {
+    "defaultFov": 89.0,
+    "defaultDistance": 760.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Super|Photo|Sphere|16:9": {
+    "defaultFov": 79.0,
+    "defaultDistance": 760.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Super|Photo|Sphere|4:3": {
+    "defaultFov": 70.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|Sphere|1:1": {
+    "defaultFov": 68.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|Sphere|3:4": {
+    "defaultFov": 55.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|Sphere|9:16": {
+    "defaultFov": 49.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|Sphere|": {
+    "defaultFov": 54.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Photo|Sphere|235:100": {
+    "defaultFov": 85.0,
+    "defaultDistance": 760.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Photo|Sphere|16:9": {
+    "defaultFov": 99.0,
+    "defaultDistance": 440.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Photo|Sphere|4:3": {
+    "defaultFov": 110.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Photo|Sphere|1:1": {
+    "defaultFov": 90.5,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Photo|Sphere|3:4": {
+    "defaultFov": 94.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Photo|Sphere|9:16": {
+    "defaultFov": 65.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "Dewarp|Photo|Sphere|": {
+    "defaultFov": 65.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 760.0
+   },
+   "TinyPlanet|Photo|Sphere|9:16": {
+    "defaultFov": 110.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Photo|Sphere|4:3": {
+    "defaultFov": 147.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Photo|Sphere|3:4": {
+    "defaultFov": 124.6,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Photo|Sphere|235:100": {
+    "defaultFov": 157.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Photo|Sphere|1:1": {
+    "defaultFov": 137.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Photo|Sphere|16:9": {
+    "defaultFov": 155.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "TinyPlanet|Photo|Sphere|": {
+    "defaultFov": 137.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|FishEye|16:9": {
+    "defaultFov": 75.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|FishEye|4:3": {
+    "defaultFov": 75.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|FishEye|3:4": {
+    "defaultFov": 59.8,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Video|FishEye|9:16": {
+    "defaultFov": 46.7,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|FishEye|235:100": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|FishEye|16:9": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|FishEye|4:3": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|FishEye|1:1": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|FishEye|3:4": {
+    "defaultFov": 50.6,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|FishEye|9:16": {
+    "defaultFov": 39.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "SuperPlus|Video|FishEye|16:9": {
+    "defaultFov": 63.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "SuperPlus|Video|FishEye|9:16": {
+    "defaultFov": 38.3,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|FishEye|235:100": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|FishEye|16:9": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|FishEye|4:3": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|FishEye|1:1": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|FishEye|3:4": {
+    "defaultFov": 51.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|FishEye|9:16": {
+    "defaultFov": 39.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|FishEye|235:100": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 150.0
+   },
+   "Super_perspective|Video|FishEye|16:9": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|FishEye|4:3": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|FishEye|1:1": {
+    "defaultFov": 104.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|FishEye|3:4": {
+    "defaultFov": 87.5,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|FishEye|9:16": {
+    "defaultFov": 71.5,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|FishEye|235:100": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|FishEye|16:9": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|FishEye|4:3": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|FishEye|1:1": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|FishEye|3:4": {
+    "defaultFov": 49.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|FishEye|9:16": {
+    "defaultFov": 38.3,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|FishEye|235:100": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 150.0
+   },
+   "Wide_perspective|Video|FishEye|16:9": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|FishEye|4:3": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|FishEye|1:1": {
+    "defaultFov": 97.0,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|FishEye|3:4": {
+    "defaultFov": 80.5,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|FishEye|9:16": {
+    "defaultFov": 64.9,
+    "defaultDistance": 150.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|FishEye|235:100": {
+    "defaultFov": 100.9,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 150.0
+   },
+   "Dewarp|Video|FishEye|16:9": {
+    "defaultFov": 100.9,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Video|FishEye|4:3": {
+    "defaultFov": 100.9,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Video|FishEye|1:1": {
+    "defaultFov": 100.9,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Video|FishEye|3:4": {
+    "defaultFov": 85.0,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Video|FishEye|9:16": {
+    "defaultFov": 69.7,
+    "defaultDistance": 100.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Linear|Video|FishEye|235:100": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 150.0
+   },
+   "Linear|Video|FishEye|16:9": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Linear|Video|FishEye|4:3": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Linear|Video|FishEye|1:1": {
+    "defaultFov": 102.3,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Linear|Video|FishEye|3:4": {
+    "defaultFov": 83.2,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "Linear|Video|FishEye|9:16": {
+    "defaultFov": 70.0,
+    "defaultDistance": 60.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 60.0
+   },
+   "MegaView|Photo|FishEye|1:1": {
+    "defaultFov": 55.0,
+    "defaultDistance": 800.0,
+    "minFov": 35.0,
+    "minDistance": 400.0,
+    "maxFov": 64.5,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|FishEye|235:100": {
+    "defaultFov": 101.3,
+    "defaultDistance": 168.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 101.3,
+    "maxDistance": 168.0
+   },
+   "MegaView|Photo|FishEye|16:9": {
+    "defaultFov": 93.3,
+    "defaultDistance": 160.0,
+    "minFov": 73.3,
+    "minDistance": 80.0,
+    "maxFov": 93.3,
+    "maxDistance": 160.0
+   },
+   "MegaView|Photo|FishEye|4:3": {
+    "defaultFov": 80.1,
+    "defaultDistance": 320.0,
+    "minFov": 60.0,
+    "minDistance": 0.0,
+    "maxFov": 80.1,
+    "maxDistance": 320.0
+   },
+   "MegaView|Photo|FishEye|3:4": {
+    "defaultFov": 50.6,
+    "defaultDistance": 800.0,
+    "minFov": 30.6,
+    "minDistance": 400.0,
+    "maxFov": 50.6,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|FishEye|9:16": {
+    "defaultFov": 39.0,
+    "defaultDistance": 800.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 39.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Photo|FishEye|1:1": {
+    "defaultFov": 64.5,
+    "defaultDistance": 800.0,
+    "minFov": 44.5,
+    "minDistance": 400.0,
+    "maxFov": 64.5,
+    "maxDistance": 800.0
+   },
+   "MaxView|Photo|FishEye|235:100": {
+    "defaultFov": 80.0,
+    "defaultDistance": 800.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 80.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Photo|FishEye|16:9": {
+    "defaultFov": 80.0,
+    "defaultDistance": 800.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 80.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Photo|FishEye|4:3": {
+    "defaultFov": 80.0,
+    "defaultDistance": 800.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 80.0,
+    "maxDistance": 800.0
+   },
+   "MaxView|Photo|FishEye|3:4": {
+    "defaultFov": 71.6,
+    "defaultDistance": 560.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 71.6,
+    "maxDistance": 560.0
+   },
+   "MaxView|Photo|FishEye|9:16": {
+    "defaultFov": 45.0,
+    "defaultDistance": 800.0,
+    "minFov": 25.0,
+    "minDistance": 400.0,
+    "maxFov": 45.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|FishEye|235:100": {
+    "defaultFov": 74.7,
+    "defaultDistance": 400.0,
+    "minFov": 35.0,
+    "minDistance": 200.0,
+    "maxFov": 74.7,
+    "maxDistance": 400.0
+   },
+   "Super|Photo|FishEye|1:1": {
+    "defaultFov": 74.7,
+    "defaultDistance": 400.0,
+    "minFov": 35.0,
+    "minDistance": 200.0,
+    "maxFov": 74.7,
+    "maxDistance": 400.0
+   },
+   "Super|Photo|FishEye|16:9": {
+    "defaultFov": 80.0,
+    "defaultDistance": 800.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 80.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|FishEye|4:3": {
+    "defaultFov": 80.0,
+    "defaultDistance": 800.0,
+    "minFov": 60.0,
+    "minDistance": 400.0,
+    "maxFov": 80.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|FishEye|3:4": {
+    "defaultFov": 71.2,
+    "defaultDistance": 224.0,
+    "minFov": 30.6,
+    "minDistance": 0.0,
+    "maxFov": 71.2,
+    "maxDistance": 224.0
+   },
+   "Super|Photo|FishEye|9:16": {
+    "defaultFov": 37.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 400.0,
+    "maxFov": 37.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Photo|FishEye|235:100": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Photo|FishEye|16:9": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 35.0,
+    "minDistance": 400.0,
+    "maxFov": 87.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Photo|FishEye|4:3": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 35.0,
+    "minDistance": 400.0,
+    "maxFov": 87.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Photo|FishEye|1:1": {
+    "defaultFov": 63.5,
+    "defaultDistance": 650.0,
+    "minFov": 35.0,
+    "minDistance": 400.0,
+    "maxFov": 75.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Photo|FishEye|3:4": {
+    "defaultFov": 49.5,
+    "defaultDistance": 650.0,
+    "minFov": 35.0,
+    "minDistance": 400.0,
+    "maxFov": 56.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Photo|FishEye|9:16": {
+    "defaultFov": 50.6,
+    "defaultDistance": 800.0,
+    "minFov": 30.6,
+    "minDistance": 400.0,
+    "maxFov": 50.6,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Photo|FishEye|235:100": {
+    "defaultFov": 110.0,
+    "defaultDistance": 60.0,
+    "minFov": 90.0,
+    "minDistance": 0.0,
+    "maxFov": 110.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Photo|FishEye|16:9": {
+    "defaultFov": 110.0,
+    "defaultDistance": 60.0,
+    "minFov": 90.0,
+    "minDistance": 0.0,
+    "maxFov": 110.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Photo|FishEye|4:3": {
+    "defaultFov": 110.0,
+    "defaultDistance": 60.0,
+    "minFov": 90.0,
+    "minDistance": 0.0,
+    "maxFov": 110.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Photo|FishEye|1:1": {
+    "defaultFov": 110.0,
+    "defaultDistance": 60.0,
+    "minFov": 90.0,
+    "minDistance": 0.0,
+    "maxFov": 110.0,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Photo|FishEye|3:4": {
+    "defaultFov": 93.8,
+    "defaultDistance": 60.0,
+    "minFov": 73.8,
+    "minDistance": 0.0,
+    "maxFov": 93.8,
+    "maxDistance": 60.0
+   },
+   "Dewarp|Photo|FishEye|9:16": {
+    "defaultFov": 77.0,
+    "defaultDistance": 60.0,
+    "minFov": 57.0,
+    "minDistance": 0.0,
+    "maxFov": 77.0,
+    "maxDistance": 60.0
+   },
+   "Linear|Photo|FishEye|235:100": {
+    "defaultFov": 90.0,
+    "defaultDistance": 0.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 90.0,
+    "maxDistance": 0.0
+   },
+   "Linear|Photo|FishEye|16:9": {
+    "defaultFov": 90.0,
+    "defaultDistance": 0.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 90.0,
+    "maxDistance": 0.0
+   },
+   "Linear|Photo|FishEye|4:3": {
+    "defaultFov": 90.0,
+    "defaultDistance": 0.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 90.0,
+    "maxDistance": 0.0
+   },
+   "Linear|Photo|FishEye|1:1": {
+    "defaultFov": 80.0,
+    "defaultDistance": 0.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 80.0,
+    "maxDistance": 0.0
+   },
+   "Linear|Photo|FishEye|3:4": {
+    "defaultFov": 55.1,
+    "defaultDistance": 224.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 55.1,
+    "maxDistance": 224.0
+   },
+   "Linear|Photo|FishEye|9:16": {
+    "defaultFov": 51.9,
+    "defaultDistance": 80.0,
+    "minFov": 35.0,
+    "minDistance": 0.0,
+    "maxFov": 51.9,
+    "maxDistance": 80.0
+   },
+   "Super|Video|WideAngle|16:9": {
+    "defaultFov": 65.8,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|WideAngle|9:16": {
+    "defaultFov": 38.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|WideAngle|16:9": {
+    "defaultFov": 102.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super_perspective|Video|WideAngle|9:16": {
+    "defaultFov": 60.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|WideAngle|16:9": {
+    "defaultFov": 60.6,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide|Video|WideAngle|9:16": {
+    "defaultFov": 35.0,
+    "defaultDistance": 800.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|WideAngle|16:9": {
+    "defaultFov": 92.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Wide_perspective|Video|WideAngle|9:16": {
+    "defaultFov": 54.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|WideAngle|16:9": {
+    "defaultFov": 96.8,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 0.0
+   },
+   "Dewarp|Video|WideAngle|9:16": {
+    "defaultFov": 57.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 0.0
+   },
+   "Linear|Video|WideAngle|16:9": {
+    "defaultFov": 96.8,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 0.0
+   },
+   "Linear|Video|WideAngle|9:16": {
+    "defaultFov": 57.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 0.0
+   }
+  },
+  "AcePro3": {
+   "Linear|Photo|WideAngle|4:3": {
+    "defaultFov": 105.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Photo|WideAngle|3:4": {
+    "defaultFov": 88.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Photo|WideAngle|16:9": {
+    "defaultFov": 105.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Photo|WideAngle|9:16": {
+    "defaultFov": 72.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Photo|WideAngle|235:100": {
+    "defaultFov": 105.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Photo|WideAngle|1:1": {
+    "defaultFov": 105.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Photo|WideAngle|100:235": {
+    "defaultFov": 58.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|WideAngle|4:3": {
+    "defaultFov": 101.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|WideAngle|3:4": {
+    "defaultFov": 81.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|WideAngle|16:9": {
+    "defaultFov": 101.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|WideAngle|9:16": {
+    "defaultFov": 66.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|WideAngle|235:100": {
+    "defaultFov": 102.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|WideAngle|1:1": {
+    "defaultFov": 91.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Linear|Video|WideAngle|100:235": {
+    "defaultFov": 55.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|WideAngle|4:3": {
+    "defaultFov": 81.2,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|WideAngle|4:3": {
+    "defaultFov": 105.8,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Photo|WideAngle|4:3": {
+    "defaultFov": 97.1,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|WideAngle|3:4": {
+    "defaultFov": 51.4,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|WideAngle|3:4": {
+    "defaultFov": 66.6,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Photo|WideAngle|3:4": {
+    "defaultFov": 80.8,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|WideAngle|16:9": {
+    "defaultFov": 81.2,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|WideAngle|16:9": {
+    "defaultFov": 105.8,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Photo|WideAngle|16:9": {
+    "defaultFov": 97.1,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|WideAngle|9:16": {
+    "defaultFov": 51.4,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|WideAngle|9:16": {
+    "defaultFov": 66.6,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Photo|WideAngle|9:16": {
+    "defaultFov": 64.8,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|WideAngle|235:100": {
+    "defaultFov": 83.0,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|WideAngle|235:100": {
+    "defaultFov": 103.4,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Photo|WideAngle|235:100": {
+    "defaultFov": 97.1,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|WideAngle|100:235": {
+    "defaultFov": 41.3,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|WideAngle|100:235": {
+    "defaultFov": 56.3,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Photo|WideAngle|100:235": {
+    "defaultFov": 51.1,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Photo|WideAngle|1:1": {
+    "defaultFov": 74.8,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Photo|WideAngle|1:1": {
+    "defaultFov": 97.9,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Photo|WideAngle|1:1": {
+    "defaultFov": 97.1,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|WideAngle|4:3": {
+    "defaultFov": 78.9,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|WideAngle|4:3": {
+    "defaultFov": 110.6,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|WideAngle|4:3": {
+    "defaultFov": 93.5,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "LinearHorizonWider|Video|WideAngle|4:3": {
+    "defaultFov": 109.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "LinearHorizon|Video|WideAngle|4:3": {
+    "defaultFov": 109.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Fpv|Video|WideAngle|4:3": {
+    "defaultFov": 110.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|WideAngle|3:4": {
+    "defaultFov": 63.3,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|WideAngle|3:4": {
+    "defaultFov": 82.4,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|WideAngle|3:4": {
+    "defaultFov": 73.7,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "LinearHorizonWider|Video|WideAngle|3:4": {
+    "defaultFov": 109.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "LinearHorizon|Video|WideAngle|3:4": {
+    "defaultFov": 109.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|WideAngle|16:9": {
+    "defaultFov": 80.6,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|WideAngle|16:9": {
+    "defaultFov": 105.8,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "SuperPlus|Video|WideAngle|16:9": {
+    "defaultFov": 93.3,
+    "defaultDistance": 400.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|WideAngle|16:9": {
+    "defaultFov": 93.5,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "LinearHorizonWider|Video|WideAngle|16:9": {
+    "defaultFov": 109.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "LinearHorizon|Video|WideAngle|16:9": {
+    "defaultFov": 109.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Fpv|Video|WideAngle|16:9": {
+    "defaultFov": 110.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|WideAngle|9:16": {
+    "defaultFov": 51.4,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|WideAngle|9:16": {
+    "defaultFov": 66.6,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|WideAngle|9:16": {
+    "defaultFov": 59.5,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "LinearHorizonWider|Video|WideAngle|9:16": {
+    "defaultFov": 89.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "LinearHorizon|Video|WideAngle|9:16": {
+    "defaultFov": 89.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|WideAngle|235:100": {
+    "defaultFov": 83.0,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|WideAngle|235:100": {
+    "defaultFov": 103.4,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|WideAngle|235:100": {
+    "defaultFov": 94.4,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Fpv|Video|WideAngle|235:100": {
+    "defaultFov": 110.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|WideAngle|100:235": {
+    "defaultFov": 41.3,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|WideAngle|100:235": {
+    "defaultFov": 56.3,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|WideAngle|100:235": {
+    "defaultFov": 48.9,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Fpv|Video|WideAngle|100:235": {
+    "defaultFov": 62.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Super|Video|WideAngle|1:1": {
+    "defaultFov": 74.8,
+    "defaultDistance": 640.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "MegaView|Video|WideAngle|1:1": {
+    "defaultFov": 97.9,
+    "defaultDistance": 320.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "Dewarp|Video|WideAngle|1:1": {
+    "defaultFov": 84.4,
+    "defaultDistance": 120.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "LinearHorizonWider|Video|WideAngle|1:1": {
+    "defaultFov": 109.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   },
+   "LinearHorizon|Video|WideAngle|1:1": {
+    "defaultFov": 109.0,
+    "defaultDistance": 0.0,
+    "minFov": 20.0,
+    "minDistance": 0.0,
+    "maxFov": 150.0,
+    "maxDistance": 800.0
+   }
+  }
+ }
+}

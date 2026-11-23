@@ -63,6 +63,13 @@ import {
   waitForExport,
   windowInfo as uiWindowInfo,
 } from "./ui.mjs";
+import {
+  cameraAngles,
+  cameraCaps,
+  describeCamera,
+  listCameras,
+  validateFov,
+} from "./camera.mjs";
 
 const STUDIO_DIR = process.env.INSTA360_STUDIO_DIR ?? "C:\\Program Files\\Insta360 Studio";
 const STUDIO_PROJECT_ROOT =
@@ -145,6 +152,33 @@ tool(
     ],
     note: "Studio's gRPC server does not implement reflection; the field map in proto/export2.proto was recovered from FileDescriptorProto blobs embedded in Insta360 Studio.exe.",
   }),
+);
+
+tool(
+  "studio_camera_caps",
+  {
+    description:
+      "Look up which FOV types, modes, aspect ratios and reframe angles Insta360 Studio allows. Backed by the FOV/distance tables inside the app's Qt resources, so it matches what the UI enforces. With no camera it lists every known camera.",
+    inputSchema: {
+      camera: z.string().optional().describe('Camera name, e.g. "X6", "X4", "Ace Pro 2". Omit to list all.'),
+      fov: z.string().optional().describe('FOV type, e.g. "Dewarp", "Linear", "MegaView"'),
+      videoPhoto: z.string().optional().describe('"Video" or "Photo"'),
+      mode: z.string().optional().describe('e.g. "Sphere", "Flat"'),
+      aspect: z.string().optional().describe('e.g. "16:9", "9:16", "1:1"'),
+      angle: z.number().optional().describe("FOV angle in degrees to validate against the allowed range"),
+    },
+  },
+  async ({ camera, fov, videoPhoto, mode, aspect, angle }) => {
+    if (!camera) {
+      return { cameras: listCameras(), summary: listCameras().map(describeCamera) };
+    }
+    const caps = cameraCaps(camera);
+    if (!caps) return { error: `unknown camera "${camera}"`, known: listCameras() };
+    const rules = cameraAngles(camera, { fov, videoPhoto, mode, aspect });
+    const out = { ...caps, matchedRules: rules.length, rules: rules.slice(0, 60) };
+    if (angle != null) out.validation = validateFov(camera, { fov, videoPhoto, mode, aspect, angle });
+    return out;
+  },
 );
 
 // ---------------------------------------------------------------------------

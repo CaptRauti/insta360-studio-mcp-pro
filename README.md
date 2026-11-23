@@ -60,6 +60,24 @@ The gRPC exporter is the interesting part and the disappointing part. Its full p
 | `studio_thumbnail_remove` | Remove a cached thumbnail |
 | `studio_thumbnail_heartbeat` | Keep-alive for the thumbnail service |
 | `studio_install_info` | Inspect the install directory |
+| `studio_camera_caps` | Which FOV types, modes, aspects and reframe angles a camera allows — from the FOV/distance tables inside Studio's Qt resources |
+
+### Camera capability data
+
+`studio_camera_caps` is backed by `src/data/camera_matrix.json`, built from the
+FOV/distance tables in `Resources/resource.rcc` (see
+`research/APPS_AND_ASSETS.md`). It covers **17 cameras, 17 FOV types and 415
+angle rules**, each with the default/min/max FOV angle and distance bounds the
+Studio UI enforces:
+
+```
+studio_camera_caps { camera: "X6", fov: "Dewarp", videoPhoto: "Video",
+                     mode: "Sphere", aspect: "16:9", angle: 120 }
+-> { valid: true, rule: { defaultFov: 100, minFov: 20, maxFov: 150, ... } }
+```
+
+Use it before setting a clip transform so you don't hand Studio a value it
+would silently clamp.
 
 ---
 
