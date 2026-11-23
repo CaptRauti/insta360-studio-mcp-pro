@@ -1,8 +1,10 @@
 """Extract QML singleton / type registrations and QML URI strings from Studio.exe."""
+
+from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
 import re
 import sys
 
-EXE = r'C:\Program Files\Insta360 Studio\Insta360 Studio.exe'
+EXE = ROOT + r'\Insta360 Studio.exe'
 
 # RegisterQmlSingleton / RegisterQtType / RegisterQmlType call sites leave the
 # registered name as a plain C string nearby. Pull the whole RegisterQml* region.

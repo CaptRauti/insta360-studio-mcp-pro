@@ -4,13 +4,15 @@ The JSON translation files are the authoritative catalogue of every UI string
 the application can display. Grouping them by key prefix yields the complete
 feature surface (panels, dialogs, settings, export options, error codes).
 """
+
+from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
 import json
 import os
 import re
 import sys
 from collections import Counter, defaultdict
 
-TR = r'C:\Program Files\Insta360 Studio\translations'
+TR = ROOT + r'\translations'
 OUT = 'research/feature_catalog.json'
 
 lang = sys.argv[1] if len(sys.argv) > 1 else 'de-DE'

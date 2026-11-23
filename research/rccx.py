@@ -5,6 +5,8 @@ properly, keeps full paths, and writes every file's bytes to disk.
 
 Run with the interpreter that has PySide6 installed.
 """
+
+from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
 import json
 import os
 import sys
@@ -12,8 +14,8 @@ import sys
 from PySide6 import QtCore
 
 RCCS = [
-    r"C:\Program Files\Insta360 Studio\Resources\insta360.rcc",
-    r"C:\Program Files\Insta360 Studio\Resources\resource.rcc",
+    ROOT + r'\Resources\insta360.rcc',
+    ROOT + r'\Resources\resource.rcc',
 ]
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, 'rcc', 'extracted')

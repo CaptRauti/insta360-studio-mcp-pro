@@ -70,8 +70,12 @@ import {
   listCameras,
   validateFov,
 } from "./camera.mjs";
+import { studioDir, studioExe, studioInfo } from "./studio-path.mjs";
+import { findText, ocrImage } from "./ocr.mjs";
 
-const STUDIO_DIR = process.env.INSTA360_STUDIO_DIR ?? "C:\\Program Files\\Insta360 Studio";
+// The install directory is resolved at call time (see studio-path.mjs): Studio
+// 6.0.9 moved from Program Files to %LOCALAPPDATA%\Insta360\Apps, and the old
+// path is left behind as an empty folder, so a hardcoded value silently breaks.
 const STUDIO_PROJECT_ROOT =
   process.env.INSTA360_PROJECT_ROOT ?? "D:\\Dokumente\\Insta360\\Studio";
 
@@ -114,9 +118,10 @@ tool(
     const exporterOpen = exporter ? await portOpen(exporter.port) : false;
     const thumbnailOpen = thumbnail ? await portOpen(thumbnail.port) : false;
     return {
-      studioDir: STUDIO_DIR,
-      studioDirExists: existsSync(STUDIO_DIR),
-      studioExeExists: existsSync(path.join(STUDIO_DIR, "Insta360 Studio.exe")),
+      studioDir: studioDir(),
+      studioDirExists: Boolean(studioDir() && existsSync(studioDir())),
+      studioExeExists: Boolean(studioExe() && existsSync(studioExe())),
+      studioInstall: studioInfo(),
       exporter: exporter ? { ...exporter, reachable: exporterOpen } : null,
       thumbnail: thumbnail ? { ...thumbnail, reachable: thumbnailOpen } : null,
       projectRoot: STUDIO_PROJECT_ROOT,
@@ -526,12 +531,14 @@ tool(
     inputSchema: {},
   },
   async () => {
-    if (!existsSync(STUDIO_DIR)) return { studioDir: STUDIO_DIR, exists: false };
-    const entries = await readdir(STUDIO_DIR, { withFileTypes: true });
+    const dir = studioDir();
+    if (!dir || !existsSync(dir)) return { studioDir: dir, exists: false, ...studioInfo() };
+    const entries = await readdir(dir, { withFileTypes: true });
     const files = entries.filter((e) => e.isFile()).map((e) => e.name);
     return {
-      studioDir: STUDIO_DIR,
+      studioDir: dir,
       exists: true,
+      ...studioInfo(),
       executables: files.filter((f) => f.toLowerCase().endsWith(".exe")),
       helperServices: files.filter((f) => /service/i.test(f)),
       fileCount: files.length,
@@ -680,8 +687,8 @@ tool(
   },
   async ({ file }) => {
     if (!existsSync(file)) return { launched: false, error: "file not found", file };
-    const exe = path.join(STUDIO_DIR, "Insta360 Studio.exe");
-    if (!existsSync(exe)) return { launched: false, error: "Studio executable not found", exe };
+    const exe = studioExe();
+    if (!exe || !existsSync(exe)) return { launched: false, error: "Studio executable not found", exe };
     const { spawn } = await import("node:child_process");
     const child = spawn(exe, [file], { detached: true, stdio: "ignore" });
     child.unref();
@@ -696,6 +703,92 @@ tool(
     inputSchema: { file: z.string().describe("Path to a .png screenshot") },
   },
   async ({ file }) => analyzeShot(file),
+);
+
+// ---------------------------------------------------------------------------
+// Text-level UI control (OCR)
+//
+// Studio's Qt canvas exposes no UI Automation tree, so the only way to find a
+// control used to be its accent colour. These tools read the actual text off a
+// screenshot with the OCR engine built into Windows, so a caller can click
+// "Exportieren" by name and land wherever that button currently sits.
+// ---------------------------------------------------------------------------
+
+tool(
+  "studio_ui_ocr",
+  {
+    description:
+      "Screenshot the Studio window (or read an existing .png) and return the text on it, with window-relative " +
+      "bounding boxes. This is the text-based counterpart to studio_ui_state's colour detection: use it to find " +
+      "out what the dialog actually offers and where.",
+    inputSchema: {
+      file: z.string().optional().describe("Existing .png to read; omit to screenshot the window first"),
+      title: z.string().optional().describe("Window title (default 'Insta360 Studio')"),
+      lang: z.string().optional().describe("OCR language tag such as 'de' or 'en-US'; defaults to the Windows profile languages"),
+      contains: z.string().optional().describe("Only return words containing this text (case-insensitive)"),
+    },
+  },
+  async ({ file, title, lang, contains }) => {
+    const shot = file ?? (await uiCapture({ title: title ?? "Insta360 Studio", mode: "print" })).path;
+    const result = ocrImage(shot, { lang });
+    if (!result.ok) return { ...result, screenshot: shot };
+    return {
+      screenshot: shot,
+      lang: result.lang,
+      size: { width: result.width, height: result.height },
+      lineCount: result.lines.length,
+      wordCount: result.words.length,
+      ...(contains
+        ? { words: findText(result, contains) }
+        : { lines: result.lines.map((l) => l.text) }),
+    };
+  },
+);
+
+tool(
+  "studio_ui_click_text",
+  {
+    description:
+      "Find on-screen text in the Studio window by OCR and click it. Far more robust than studio_ui_click with a " +
+      "hardcoded pixel, because the click lands on wherever the text currently is. " +
+      "Example: text 'Exportieren' clicks the export button. Always reads the window with PrintWindow, so the " +
+      "coordinates stay window-relative even when the window is occluded.",
+    inputSchema: {
+      text: z.string().describe("Text to click (case-insensitive substring match)"),
+      title: z.string().optional(),
+      lang: z.string().optional(),
+      nth: z.number().int().optional().describe("Which match to click when several match (default 1)"),
+      double: z.boolean().optional().describe("Double-click instead of a single click"),
+    },
+  },
+  async ({ text, title, lang, nth = 1, double = false }) => {
+    const windowTitle = title ?? "Insta360 Studio";
+    const shot = (await uiCapture({ title: windowTitle, mode: "print" })).path;
+    const result = ocrImage(shot, { lang });
+    if (!result.ok) return { ...result, screenshot: shot };
+
+    const hits = findText(result, text);
+    if (!hits.length) {
+      return {
+        clicked: false,
+        text,
+        screenshot: shot,
+        reason: "text not found on screen",
+        visible: result.words.map((w) => w.text),
+      };
+    }
+
+    const hit = hits[Math.min(nth, hits.length) - 1];
+    const click = await uiClick({ title: windowTitle, x: hit.x, y: hit.y, double });
+    return {
+      clicked: true,
+      text,
+      matched: hit,
+      otherMatches: hits.length - 1,
+      click,
+      screenshot: shot,
+    };
+  },
 );
 
 // ---------------------------------------------------------------------------

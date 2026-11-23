@@ -1,8 +1,10 @@
 """Dump ExportType / StitchType / StabilizationType enum values from the plaintext
 FileDescriptorProto region in studio_worker.dll."""
+
+from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
 import re
 
-DLL = r'C:\Program Files\Insta360 Studio\studio_worker.dll'
+DLL = ROOT + r'\studio_worker.dll'
 data = open(DLL, 'rb').read()
 
 # Locate the plaintext descriptor region containing "ExportType"

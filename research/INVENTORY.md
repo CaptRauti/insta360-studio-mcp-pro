@@ -1,5 +1,14 @@
 # Insta360 Studio — Vollständiges Software-Inventar
 
+> **Install path moved (2026-11-23).** Studio 6.0.9's launcher installs per-user and moved the
+> application from `C:\Program Files\Insta360 Studio\` to
+> `%LOCALAPPDATA%\Insta360\Apps\Insta360 Studio\current\`, leaving the old folder behind **empty**.
+> Every path below was captured from the old location; the file set is the same, only the root moved.
+> Scripts resolve it through `research/studioroot.py` instead of hardcoding it.
+>
+> Binary offsets are build-specific: `studio_worker.dll` is 188,050,376 bytes on 6.0.8 and
+> 188,077,512 on 6.0.9, so embedded descriptor offsets shift between versions.
+
 Installationspfad: `C:\Program Files\Insta360 Studio\`
 Version: 6.0.8
 Stand der Analyse: 2026-11-22

@@ -2,9 +2,11 @@
 studio_worker.dll. Enums are stored as:
   * <len> \n <len> <EnumName>  ( 0x12 <len> \n <len> <VALUE> 0x10 <varint> )*
 """
+
+from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
 import re, sys
 
-DLL = r'C:\Program Files\Insta360 Studio\studio_worker.dll'
+DLL = ROOT + r'\studio_worker.dll'
 data = open(DLL, 'rb').read()
 
 

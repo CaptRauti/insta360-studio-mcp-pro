@@ -1,7 +1,9 @@
 """Mine ASCII strings from studio_worker.dll (and friends) for option/param keys."""
+
+from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
 import re, sys, os, json
 
-TARGET = r'C:\Program Files\Insta360 Studio\studio_worker.dll'
+TARGET = ROOT + r'\studio_worker.dll'
 
 def load(path):
     with open(path, 'rb') as f:

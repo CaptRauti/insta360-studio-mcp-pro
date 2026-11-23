@@ -6,6 +6,7 @@ config.local.json
 *.png
 *.mp4
 *.mov
+__pycache__/
 
 # Extracted Insta360 Studio resources — proprietary assets, never publish.
 # Keep the extraction scripts and the derived analysis JSON.

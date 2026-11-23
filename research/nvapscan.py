@@ -4,10 +4,11 @@ container magic, and describe its header.
 Earlier notes claimed the model files shared the NVAP container. They do not —
 verify instead of assuming.
 """
+
+from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
 import os
 import struct
 
-ROOT = r'C:\Program Files\Insta360 Studio'
 MAGIC = b'NVAP'
 
 hits = []

@@ -17,6 +17,8 @@ Some containers still yield short or undecompressable entries. Those payloads
 are dropped instead of written, so everything in the output directory is
 known-good. Pass --verbose to see which containers came out partial.
 """
+
+from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
 import argparse
 import json
 import os
@@ -25,7 +27,6 @@ import struct
 import xml.etree.ElementTree as ET
 import zlib
 
-ROOT = r'C:\Program Files\Insta360 Studio'
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nvap')
 
 SAFE = re.compile(r'^[A-Za-z0-9._/\-]+$')

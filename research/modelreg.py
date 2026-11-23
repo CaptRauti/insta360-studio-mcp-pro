@@ -17,11 +17,13 @@ carry an obfuscated filename and are the encrypted variant of the same id.
 This is what makes the hash-named files under `data/` meaningful: the registry
 is the only place the human-readable purpose survives.
 """
+
+from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
 import json
 import os
 import re
 
-DLL = r'C:\Program Files\Insta360 Studio\studio_worker.dll'
+DLL = ROOT + r'\studio_worker.dll'
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model_registry.json')
 
 GROUP_KEYS = ('mnn_model', 'xml_model', 'onnx_model', 'snpe_model',

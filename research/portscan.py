@@ -1,9 +1,11 @@
 """Find gRPC service registration paths and port hints in the Studio binaries."""
+
+from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
 import os
 import re
 import sys
 
-BASE = r'C:\Program Files\Insta360 Studio'
+BASE = ROOT
 TARGETS = [
     'studio-exporter-service.exe',
     'studio-thumbnail-service.exe',

@@ -1,6 +1,8 @@
 import re, json, collections, sys
 
-DLL = r'C:\Program Files\Insta360 Studio\studio_worker.dll'
+from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
+
+DLL = ROOT + r'\studio_worker.dll'
 d = open(DLL, 'rb').read()
 
 paths = collections.Counter()

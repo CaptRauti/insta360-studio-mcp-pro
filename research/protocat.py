@@ -6,13 +6,15 @@ Each blob starts with 0x0a <len> "<name>.proto" and carries a package name.
 We walk the whole file, attempt a parse at every candidate start, and keep the
 largest valid descriptor per file name.
 """
+
+from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
 import json
 import re
 import sys
 
 from google.protobuf import descriptor_pb2
 
-DLL = r'C:\Program Files\Insta360 Studio\studio_worker.dll'
+DLL = ROOT + r'\studio_worker.dll'
 OUT_JSON = 'research/proto_catalog.json'
 OUT_MD = 'research/PROTO_CATALOG.md'
 
