@@ -481,8 +481,18 @@ kann unterbrochen und fortgesetzt werden.
 
 ## 14. Offene Punkte
 
-1. **`.rcc`-Baumparser** — PySide6-Weg funktioniert (928+71 Pfade), handgeschriebener
-   Big-Endian-Parser scheitert an der Node-Layout-Annahme.
+**Erledigt (siehe `APPS_AND_ASSETS.md`):**
+- `.rcc`-Ressourcen vollständig ausgepackt (951 Dateien, 37 MB) — enthält
+  **keine QML-Quellen**, nur Assets. JSON-Tabellen sind zlib-komprimiert und
+  wurden dekodiert; daraus die Kamera-/FOV-Fähigkeitsmatrix gebaut.
+- `data/web_dashboard` erschlossen (Sport-Dashboard, 69 Widgets, 25 Themes).
+- Die Hilfsprogramme identifiziert: `studio_utility.exe` (HW-Beschleunigungs-Prober),
+  `app_detector.exe` (GPU-Treiber-Detektor), `quick-look.exe` + `-daemon.exe` (Player).
+- Öffentliche Config-Endpunkte abgerufen (Feature-Gates, GPU-Treiber-Matrix).
+
+**Weiter offen:**
+1. **QML-UI-Quellcode** — kompiliert in `Insta360 Studio.exe`, nicht als Quelle
+   rekonstruierbar; nur die Asset-Ebene ist zugänglich.
 2. **NVAP-Format** — Header verstanden (`NVAP` + Version 2 + 16-Byte-Header),
    Index-Struktur noch nicht vollständig dekodiert.
 3. **`data/*.xml` SVM-Zweck** — Dimensionen und Kernel bekannt, semantische
@@ -490,3 +500,5 @@ kann unterbrochen und fortgesetzt werden.
 4. **`heatX5_d1790022.xml`** — vermutlich X5-spezifisches Wärmemodell.
 5. **`data/b56efdaa/*.ins`** — 9 Modelle mit anderem Header als `data/models/`
    (`01 00 00 00` + Float-Block) — vermutlich Farb-/Optik-Modelle.
+6. **Sport-Dashboard-Steuerung** — 69 Widgets/25 Themes bekannt, aber nur über
+   GUI/CEF ansteuerbar, keine API.

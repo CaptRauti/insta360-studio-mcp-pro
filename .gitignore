@@ -6,3 +6,9 @@ config.local.json
 *.png
 *.mp4
 *.mov
+
+# Extracted Insta360 Studio resources — proprietary assets, never publish.
+# Keep the extraction scripts and the derived analysis JSON.
+research/rcc/extracted/
+research/rcc/decoded/
+research/rcc/*.json
