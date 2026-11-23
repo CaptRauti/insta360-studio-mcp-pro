@@ -150,16 +150,87 @@ und nennt die Download-Seite.
 
 ---
 
-## 5. Was das für den MCP-Server bedeutet
+## 5. NVAP-Container — Filter-Captions und Sticker
+
+**Werkzeug:** `research/nvap_extract.py` → `research/nvap/` (+ `manifest.json`)
+
+**44 Dateien** im Installationsbaum tragen die `NVAP`-Signatur, **alle** unter
+`Resources/`: 22 × `.compoundcaption` (Filter-Namenskarten) und
+22 × `.animatedsticker{in,out,}animation` (Sticker-Animationen).
+Die Dateien unter `data/models/*.ins(nx)` sind **kein** NVAP — sie beginnen mit
+Rohdaten (Floats), nicht mit dem Container-Kopf.
+
+### Aufbau
+
+```
+"NVAP" | u32 version (2) | u32 headerLen (16) | u32 count   <- 16 Byte
+danach eine Chunk-Tabelle, dann die Nutzdaten
+```
+
+`count` ist die **Anzahl der ZIP-Einträge** (7 bei Captions, 16–18 bei
+Stickern). Der Nutzlast-Chunk ist ein ZIP, geschrieben mit **nur lokalen
+File-Headern** (`PK\x03\x04`), je Eintrag gefolgt von einem 16-Byte
+Data-Descriptor (`PK\x07\x08`) und **rohem Deflate** (kein zlib-Kopf).
+Central Directory (`PK\x01\x02`) und EOCD (`PK\x05\x06`) sind vorhanden, aber
+ihre aufgezeichneten Offsets lassen sich zu keinem gültigen Archivstart
+auflösen — `zipfile` lehnt die Dateien deshalb ab ("Bad magic number for
+central directory"). Ein Offset-Brute-Force über die ersten 1200 Bytes findet
+ebenfalls keinen Start, die Offsets sind also nicht einfach verschoben.
+
+### Inhalt
+
+| Eintrag | Bedeutung |
+|---|---|
+| `caption0_<aspect>.xml` | Storyboard **pro Seitenverhältnis** (`1v1`, `21v9`, `3v4`, `4v3`, `9v16`, `9v21`) |
+| `<md5>.png` | Hintergrundbild der Karte (mit `useFastBlur` weichgezeichnet) |
+| `info.json` | Paket-Beschreibung: `name`, `uuid`, `version`, `minSdkVersion`, `supportedAspectRatio`, `captions[]`, `cover`, `frameBounding` |
+| `cover.png` | Vorschaubild |
+
+Das Storyboard ist ein `<storyboard sceneWidth sceneHeight>` mit
+`trackGroup`/`textTrack` (Platzhaltertext, `fontFamily="LG1052"`,
+Outline, Ausrichtung) und `transform`-Parametern
+(`scaleX`, `scaleY`, `transX`, `transY`, `opacity`) plus einem
+`complexRender`-Effekt mit `outline`/`body`-Layern und `blurRadius`.
+Das ist die **im Video eingebrannte Filter-Namenskarte**.
+
+### Abdeckung (ehrlich)
+
+| | Anzahl |
+|---|---|
+| Container gesamt | 44 |
+| davon auslesbar | 16 (1 vollständig, 15 teilweise) |
+| nicht auslesbar | 28 |
+| **valide Einträge geschrieben** | **77** (75 XML, 2 JSON) |
+
+Nicht auslesbar: alle 22 `.animatedsticker*` (count 16/17/18) sowie die
+`.compoundcaption` der **neueren Kameras** (X6, Ace Pro3, B2, DE, Z03, Z05).
+Dort ist zusätzlich die Deflate-Nutzlast einzelner Einträge unvollständig
+(Stream endet mit `eof=True`, liefert aber weniger Bytes als der deklarierte
+`usize`). Der Extraktor verwirft solche Einträge, statt sie zu schreiben —
+im Ausgabeverzeichnis liegt daher nur Geprüftes (XML parst, PNG-Signatur,
+Größe stimmt).
+
+### Zwei Fallen beim Parsen
+1. Rohdaten erzeugen **viele falsche** `PK\x03\x04`-Treffer. Jeder Kandidat
+   muss validiert werden (Version 20, Methode 0/8, Namenslänge 0 < n < 300),
+   sonst bricht der Durchlauf an einem Zufallstreffer ab.
+2. `decompressobj.flush()` ist Pflicht — ohne den Aufruf fehlt der letzte
+   Deflate-Block und das extrahierte XML ist stillschweigend abgeschnitten.
+
+---
+
+## 6. Was das für den MCP-Server bedeutet
 
 | Bereich | Status |
 |---|---|
 | FOV-/Kamera-Validierung | **neu möglich** — `camera_matrix.json` als Referenzdaten |
 | Wasserzeichen-Positionen | **neu möglich** — Tabelle liegt vor |
+| Filter-Captions / Sticker | Format entschlüsselt; Steuerung nur über GUI (Filter-Panel) |
 | Sport-Dashboard | 69 Widgets + 25 Themes bekannt; Steuerung nur über GUI/CEF, keine API |
 | GPU-Beschleunigung | `--hw_accel_hint` erklärt; kein direkter Aufruf nötig |
 | Treiber-Detektor | irrelevant für Automation |
 | Quick Look | eigenständige App, nicht Teil der Studio-Automation |
 
-Offen bleibt: QML-UI-Quellcode (kompiliert im Binary), NVAP-Container-Index,
+Offen bleibt: QML-UI-Quellcode (kompiliert im Binary), die exakte
+Offset-Patchlogik der NVAP-Container bei Stickern und neuen Kameras,
 semantische Zuordnung der SVM-Modelle.

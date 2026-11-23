@@ -12,3 +12,4 @@ config.local.json
 research/rcc/extracted/
 research/rcc/decoded/
 research/rcc/*.json
+research/nvap/
