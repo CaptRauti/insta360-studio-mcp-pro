@@ -13,9 +13,10 @@ The only other Insta360 Studio MCP server does UI automation and nothing else. S
 | Surface | What it is | Status |
 |---|---|---|
 | `.insproj` projects | Plain JSON — tracks, clips, transforms, stitching | **works, fully read/write** |
-| `studio-thumbnail-service.exe` | gRPC on a dynamic port: thumbnails + scene detection | **works, verified** |
+| `studio-thumbnail-service.exe` | gRPC on a dynamic port: thumbnail rendering, scene detection | **thumbnails work, verified (real JPEGs on disk); scene detection accepted but replies empty** |
 | `studio-exporter-service.exe` | gRPC on a dynamic port: export/stitching | **works for photo/image types; video types fail regardless of UI state** |
 | The GUI export dialog | Qt canvas | **works — the path for video, and for anything needing the loaded project** |
+| `NetworkService` | gRPC the app *calls out* to Insta360's cloud: downloads, telemetry, log upload | **not a local surface** — no listener, no host binary, identical in 6.0.8 and 6.0.9 |
 
 The gRPC exporter was long written off as "accepts jobs, never writes a file". That
 verdict was wrong, and the reason is instructive: the test scripts passed the whole
@@ -77,8 +78,9 @@ anything the UI or an `.insproj` hands it.
 | `studio_export` | Start an export via the Exporter2 gRPC service |
 | `studio_export_cancel` | Cancel a gRPC export |
 | `studio_export_heartbeat` | Keep-alive for the gRPC exporter |
-| `studio_thumbnail_request` | Render a thumbnail via gRPC |
-| `studio_thumbnail_remove` | Remove a cached thumbnail |
+| `studio_thumbnail_request` | Render a frame of a source via gRPC and report the file it wrote (needs no UI) |
+| `studio_scene_detect` | Ask the service to analyse a source for scene changes |
+| `studio_thumbnail_remove` | Drop cached thumbnails for named sources |
 | `studio_thumbnail_heartbeat` | Keep-alive for the thumbnail service |
 | `studio_install_info` | Inspect the install directory |
 | `studio_camera_caps` | Which FOV types, modes, aspects and reframe angles a camera allows — from the FOV/distance tables inside Studio's Qt resources |
@@ -338,7 +340,7 @@ All of these were run and the outputs checked with `ffprobe` / `file` — the si
 ## Tests
 
 ```bash
-npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR helpers — 55 tests
+npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads — 66 tests
 npm run check           # syntax-check every module
 npm run test:nvap       # NVAP extractor self-test (hybrid headers, 44/44 containers)
 npm run probe           # live MCP handshake, tool list, gRPC port discovery
@@ -353,6 +355,7 @@ npm run probe:ui-export-fields  # read the dialog's fields with coordinates
 npm run probe:ui-export-video   # SLOW: GUI video export, then ffprobe the result
 npm run probe:ui-export-settings  # read the dialog's settings, change one, read it back
 npm run probe:ui-export-with-settings [Codec]  # SLOW: export with a changed codec, ffprobe the file
+npm run probe:thumbnail <media> [scene|thumb|remove|beat]  # live thumbnail service, prints what it wrote
 ```
 
 `node tests/mcp-call.mjs <tool> '<json args>'` calls any tool on this server over stdio — handy for exercising the live ones without an MCP client.
@@ -365,6 +368,10 @@ npm run probe:ui-export-with-settings [Codec]  # SLOW: export with a changed cod
 
 Kept here because it's hard to find anywhere else:
 
+- The thumbnail service takes a `SourceGroup` (repeated `sourceFile` in field 1) in **field 2** of `ThumbnailRequest`; field 1 is an int64 `id`. `taskType` decides which file it writes: `0 kFootageCover` → `simple_cover.jpg`, `1 kSingleTask` → `clip_0_cover.jpg`, `2 kQuickSeekTask` → `seek_0.jpg`, all under `<AppData>/Insta360/Studio/Project/<hash>/thumbnail/`. `renderType` is `0 kPlane`, `1 kPlaneSphere`, `2 kSphere`, `3 kDewarp`, `4 kStereo`. Verified: a 360 `.insv` in, a dewarped 1280x720 JPEG out, no UI involved.
+- A descriptor-correct payload is the difference between a working call and a silent no-op: with the field numbers guessed (a string in `id`, the source file in `width`) the service still answered, still returned success, and never wrote a file. "The RPC returned" is not evidence that it did anything — check for the artefact.
+- `SendSceneDetectRequest` is accepted on the same service but has answered with an empty reply in every test so far; where it would put a result is still unknown. It is exposed as-is rather than dressed up as working.
+- `NetworkService` (16 methods: `StartDownload`, `SendEventTrack`, `UploadLogToOss`, ...) is **not** a local surface. It is the app calling Insta360's cloud: no Studio process listens on TCP, there is no host binary for it, and the method-path strings sit next to `cloud.insta360.com` endpoints. It is present with the same 16 methods in both the 6.0.8 and 6.0.9 descriptor dumps, so nothing was switched off by the update.
 - Two helper services run as separate processes: `studio-exporter-service.exe` and `studio-thumbnail-service.exe`, each on a dynamically assigned localhost port, bound to the parent Studio PID with `--pid=` and `--enable_heartbeat`.
 - gRPC reflection is **not** enabled (`UNIMPLEMENTED`).
 - The protobuf descriptors are compiled into `studio_worker.dll` as plain-text `FileDescriptorProto` blobs — recoverable by scanning for the `.proto` name strings and walking the varint length prefix. `src/proto/export2.proto` is reconstructed from those.

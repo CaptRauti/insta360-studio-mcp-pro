@@ -49,6 +49,7 @@ import {
   removeThumbnail,
   requestThumbnail,
   requireThumbnailPort,
+  sendSceneDetect,
   thumbnailHeartbeat,
 } from "./thumbnail.mjs";
 import {
@@ -494,42 +495,97 @@ tool(
 tool(
   "studio_thumbnail_request",
   {
-    description: "Ask Studio's thumbnail service to render a thumbnail or run scene detection for a source file.",
+    description:
+      "Render a frame of an Insta360 source through Studio's thumbnail service and report the file it wrote. " +
+      "taskType picks the kind: 0 kFootageCover -> simple_cover.jpg, 1 kSingleTask -> clip_0_cover.jpg, " +
+      "2 kQuickSeekTask -> seek_0.jpg. renderType picks the projection: 0 kPlane, 1 kPlaneSphere, 2 kSphere, " +
+      "3 kDewarp, 4 kStereo. Verified: a 360 .insv in, a dewarped 1280x720 JPEG out, no UI involved.",
     inputSchema: {
-      sourceFile: z.string().describe("Absolute path to the source file"),
-      taskType: z.number().int().optional().describe("ThumbnailTaskType enum value (default 0)"),
+      files: z.array(z.string()).min(1).describe("Absolute paths of the source files (a SourceGroup can hold several)"),
+      sourceFile: z.string().optional().describe("Single source file; shorthand for files: [sourceFile]"),
+      width: z.number().int().optional(),
+      height: z.number().int().optional(),
+      frameIndex: z.number().int().optional(),
+      frameTimeMs: z.number().int().optional(),
+      taskType: z.number().int().optional().describe("0 kFootageCover | 1 kSingleTask | 2 kQuickSeekTask"),
+      renderType: z.number().int().optional().describe("0 kPlane | 1 kPlaneSphere | 2 kSphere | 3 kDewarp | 4 kStereo"),
+      onlyUseKeyframe: z.boolean().optional(),
+      clipId: z.number().int().optional(),
+      aspectRatio: z.number().int().optional(),
+      isPanoMedia: z.boolean().optional().describe("Set for 360 footage so the frame is projected correctly"),
+      isPanoExport: z.boolean().optional(),
+      id: z.number().int().optional(),
       timeoutMs: z.number().int().optional(),
     },
   },
-  async ({ sourceFile, taskType = 0, timeoutMs = 120000 }) => {
+  async ({ files, sourceFile, timeoutMs = 180000, ...rest }) => {
     const port = requireThumbnailPort();
-    if (!existsSync(sourceFile)) return { requested: false, error: "Source file not found", sourceFile };
-    const reply = await requestThumbnail({ port, sourceFile, taskType, timeoutMs });
-    return { port, sourceFile, ...reply };
+    const list = files ?? (sourceFile ? [sourceFile] : []);
+    const missing = list.filter((f) => !existsSync(f));
+    if (!list.length) return { requested: false, error: "No source file given" };
+    if (missing.length) return { requested: false, error: "Source file not found", missing };
+    const reply = await requestThumbnail({ port, files: list, timeoutMs, ...rest });
+    return {
+      port,
+      requested: true,
+      written: reply.thumbnails.filter((t) => t.thumbnailPath && existsSync(t.thumbnailPath)),
+      ...reply,
+    };
   },
 );
 
 tool(
   "studio_thumbnail_remove",
   {
-    description: "Drop a cached thumbnail from the thumbnail service.",
-    inputSchema: {},
+    description:
+      "Drop cached thumbnails for the given sources. The service takes a SourceGroup, so the files have to be " +
+      "named -- an empty request asks it to forget nothing.",
+    inputSchema: {
+      files: z.array(z.string()).min(1).describe("Absolute paths whose cached entries should be dropped"),
+      timeoutMs: z.number().int().optional(),
+    },
   },
-  async () => {
+  async ({ files, timeoutMs = 30000 }) => {
     const port = requireThumbnailPort();
-    return { port, ...(await removeThumbnail({ port })) };
+    return { port, ...(await removeThumbnail({ port, files, timeoutMs })) };
+  },
+);
+
+tool(
+  "studio_scene_detect",
+  {
+    description:
+      "Ask the thumbnail service to analyse a source for scene changes (SendSceneDetectRequest). The service " +
+      "accepts the request but has answered empty in tests so far, so treat the reply as unverified: it is " +
+      "exposed for completeness, not as a working scene-cutting feature.",
+    inputSchema: {
+      files: z.array(z.string()).min(1).describe("Absolute paths of the source files (a SourceGroup)"),
+      sourceGroupName: z.string().optional().describe("Label the service should echo back"),
+      timeoutMs: z.number().int().optional(),
+    },
+  },
+  async ({ files, sourceGroupName, timeoutMs = 300000 }) => {
+    const port = requireThumbnailPort();
+    const missing = files.filter((f) => !existsSync(f));
+    if (missing.length) return { requested: false, error: "Source file not found", missing };
+    return { port, ...(await sendSceneDetect({ port, files, sourceGroupName, timeoutMs })) };
   },
 );
 
 tool(
   "studio_thumbnail_heartbeat",
   {
-    description: "Send a keep-alive heartbeat to the thumbnail service.",
-    inputSchema: {},
+    description:
+      "Send a keep-alive heartbeat to the thumbnail service (HeartBeat 1=count, 2=exit_app). exitApp=true asks " +
+      "the service to shut down, which is what the app sends when it quits.",
+    inputSchema: {
+      count: z.number().int().optional(),
+      exitApp: z.boolean().optional(),
+    },
   },
-  async () => {
+  async ({ count = 1, exitApp = false }) => {
     const port = requireThumbnailPort();
-    return { port, ...(await thumbnailHeartbeat({ port })) };
+    return { port, ...(await thumbnailHeartbeat({ port, count, exitApp })) };
   },
 );
 
