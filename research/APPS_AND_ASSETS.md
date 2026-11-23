@@ -161,7 +161,7 @@ und nennt die Download-Seite.
 
 ## 5. NVAP-Container — Filter-Captions und Sticker
 
-**Werkzeug:** `research/nvap_extract.py` → `research/nvap/` (+ `manifest.json`)
+**Werkzeug:** `research/nvap_extract2.py [--verbose] [--write]` → `research/nvap/`
 
 **44 Dateien** im Installationsbaum tragen die `NVAP`-Signatur, **alle** unter
 `Resources/`: 22 × `.compoundcaption` (Filter-Namenskarten) und
@@ -173,58 +173,119 @@ Rohdaten (Floats), nicht mit dem Container-Kopf.
 
 ```
 "NVAP" | u32 version (2) | u32 headerLen (16) | u32 count   <- 16 Byte
-danach eine Chunk-Tabelle, dann die Nutzdaten
+u32 @ +16 (Archiv-Starthinweis) | u32 @ +20
+danach das ZIP-Archiv
 ```
 
-`count` ist die **Anzahl der ZIP-Einträge** (7 bei Captions, 16–18 bei
-Stickern). Der Nutzlast-Chunk ist ein ZIP, geschrieben mit **nur lokalen
-File-Headern** (`PK\x03\x04`), je Eintrag gefolgt von einem 16-Byte
-Data-Descriptor (`PK\x07\x08`) und **rohem Deflate** (kein zlib-Kopf).
-Central Directory (`PK\x01\x02`) und EOCD (`PK\x05\x06`) sind vorhanden, aber
-ihre aufgezeichneten Offsets lassen sich zu keinem gültigen Archivstart
-auflösen — `zipfile` lehnt die Dateien deshalb ab ("Bad magic number for
-central directory"). Ein Offset-Brute-Force über die ersten 1200 Bytes findet
-ebenfalls keinen Start, die Offsets sind also nicht einfach verschoben.
+Der Container ist ein **echtes ZIP-Archiv**, und die entscheidende Eigenheit
+ist: **die Nutzlast-Bytes sind invertiert (XOR 0xFF)**. Deshalb fand ein Scan
+nach dem literalen `PK\x03\x04` nur Zufallstreffer — der echte Header steht als
+`\xaf\xb4\xfc\xfb` in der Datei. Der Beweis ist direkt lesbar: in
+`…Ace Pro3….compoundcaption` enthält das Feld bei Offset 176 die Bytes
+`\xbb\xbe\xcb\xba\xc9\xbb\xcd\xb9\xd2…`, und XOR 0xFF ergibt exakt
+`DA4E6D2F-B305-4FFC-AFB4-A36DC9BFB69F/`.
+
+Zwei Varianten existieren:
+
+| Variante | Dateien | Lokale Header |
+|---|---|---|
+| A | 16 (`.compoundcaption` älterer Kameras) | literal — validierbarer LFH-Scan genügt |
+| B | 25 (neuere Kameras + alle Sticker) | invertiert — nur über die Central Directory lesbar |
+
+### Warum das ZIP nicht direkt öffnet — und wie es doch geht
+
+Central Directory (`PK\x01\x02`) und EOCD (`PK\x05\x06`) liegen im **Klartext**
+und sind in sich stimmig. `zipfile` lehnt die Dateien trotzdem ab, weil die
+aufgezeichneten `local_header_offset`-Werte **relativ zur Archivbasis** sind und
+diese Basis unbekannt ist. Die Auflösung ist eindeutig:
+
+```
+base   = Position des ersten Local File Header im Archiv
+cd_at  = base + cd_offset_aus_dem_EOCD
+```
+
+`base + lho` landet dann für **jeden** Eintrag exakt auf einem Header. Belegt
+an Ace Pro3: `lho` = 83 / 63703 / 64388 / 65082 … und die Basis 176 ergibt
+176+83 = 259, 176+63703 = 63879, … — genau die Stellen mit (invertierter)
+Header-Signatur. Das CD-Feld `cd_size` ist für diese Rechnung **unbrauchbar**:
+`eocd − cd_size` liefert 69117, die echte Directory liegt bei 69200.
+
+Der **Eintragsname in der Central Directory dient als Prüfsumme**: akzeptiert
+wird ein Eintrag nur, wenn der Name im Header mit dem Namen im Verzeichnis
+übereinstimmt (literal oder invertiert dekodiert). Als zweite Stufe greift ein
+gelockerter Test, der nur die Header-Signatur an `base + lho` verlangt.
 
 ### Inhalt
+
+**Captions** (`.compoundcaption`)
 
 | Eintrag | Bedeutung |
 |---|---|
 | `caption0_<aspect>.xml` | Storyboard **pro Seitenverhältnis** (`1v1`, `21v9`, `3v4`, `4v3`, `9v16`, `9v21`) |
 | `<md5>.png` | Hintergrundbild der Karte (mit `useFastBlur` weichgezeichnet) |
-| `info.json` | Paket-Beschreibung: `name`, `uuid`, `version`, `minSdkVersion`, `supportedAspectRatio`, `captions[]`, `cover`, `frameBounding` |
-| `cover.png` | Vorschaubild |
 
 Das Storyboard ist ein `<storyboard sceneWidth sceneHeight>` mit
-`trackGroup`/`textTrack` (Platzhaltertext, `fontFamily="LG1052"`,
-Outline, Ausrichtung) und `transform`-Parametern
-(`scaleX`, `scaleY`, `transX`, `transY`, `opacity`) plus einem
-`complexRender`-Effekt mit `outline`/`body`-Layern und `blurRadius`.
-Das ist die **im Video eingebrannte Filter-Namenskarte**.
+`trackGroup`/`textTrack` (Platzhaltertext, `fontFamily="LG1052"`, Outline,
+Ausrichtung) und `transform`-Parametern (`scaleX`, `scaleY`, `transX`,
+`transY`, `opacity`) plus `complexRender`-Effekt mit `outline`/`body`-Layern
+und `blurRadius`. Das ist die **im Video eingebrannte Filter-Namenskarte**.
+
+**Sticker** (`.animatedsticker*`) — ein vollständiges Keyframe-System:
+
+| Eintrag | Bedeutung |
+|---|---|
+| `info.json` | `name` (z. B. `StickerAnimation_in_08`), `uuid`, `version`, `minSdkVersion`, `refDuration` (ms), `supportedAspectRatio`, `noBackground`, `cover`, `translation[]` |
+| `in-animation.xml` / `out-animation.xml` | Ein-/Ausblend-Animation |
+| `animation.xml`, `animation<aspect>.xml` | Animation je Seitenverhältnis (`1v1`, `3v4`, `4v3`, `9v16`, `21v9`) |
+| `cover.jpg`, `*.png` | Vorschau- und Grafikebenen |
+
+Die Animations-XMLs sind reine Keyframe-Listen:
+
+```xml
+<effect name="transform">
+ <animation paramName="opacity">
+  <key time="0" value="0"/>
+  <key time="480" value="1"/>
+ </animation>
+</effect>
+```
+
+`refDuration` 500 ms, `supportedAspectRatio` z. B. `16v9`, `translation[]`
+enthält u. a. die chinesischen Anzeigenamen (`贴纸入动画_弹入`). Damit sind
+Sticker-Namen, Dauern, Seitenverhältnis-Varianten und Animationskurven
+maschinell lesbar — Grundlage für eine Sticker-Auswahl über den MCP-Server.
 
 ### Abdeckung (ehrlich)
 
 | | Anzahl |
 |---|---|
 | Container gesamt | 44 |
-| davon auslesbar | 16 (1 vollständig, 15 teilweise) |
-| nicht auslesbar | 28 |
-| **valide Einträge geschrieben** | **77** (75 XML, 2 JSON) |
+| davon auslesbar | **41** |
+| nicht auslesbar | 3 (B2, DE, 1 Sticker) |
+| **valide Einträge geschrieben** | **200** (163 XML, 17 PNG, 20 JSON) |
+| davon XML gültig geparst | **163 von 163** |
 
-Nicht auslesbar: alle 22 `.animatedsticker*` (count 16/17/18) sowie die
-`.compoundcaption` der **neueren Kameras** (X6, Ace Pro3, B2, DE, Z03, Z05).
-Dort ist zusätzlich die Deflate-Nutzlast einzelner Einträge unvollständig
-(Stream endet mit `eof=True`, liefert aber weniger Bytes als der deklarierte
-`usize`). Der Extraktor verwirft solche Einträge, statt sie zu schreiben —
-im Ausgabeverzeichnis liegt daher nur Geprüftes (XML parst, PNG-Signatur,
-Größe stimmt).
+Gegenüber dem ersten Extraktor (16 Container, 77 Einträge, 10 defekte XMLs)
+ist das die 2,6-fache Ausbeute ohne einen einzigen defekten Eintrag. Offen
+bleiben `B2` und `DE` (`.compoundcaption`) sowie eine Sticker-Datei: dort
+liegt `base + lho` auf echten Headern, aber Name bzw. Deflate-Strom passen
+nicht zusammen — vermutlich enthält der erste Eintrag ein verschachteltes
+Archiv. Der Extraktor schreibt nichts, was er nicht validiert hat (XML parst,
+PNG-Signatur, Größe stimmt).
 
-### Zwei Fallen beim Parsen
-1. Rohdaten erzeugen **viele falsche** `PK\x03\x04`-Treffer. Jeder Kandidat
-   muss validiert werden (Version 20, Methode 0/8, Namenslänge 0 < n < 300),
-   sonst bricht der Durchlauf an einem Zufallstreffer ab.
-2. `decompressobj.flush()` ist Pflicht — ohne den Aufruf fehlt der letzte
-   Deflate-Block und das extrahierte XML ist stillschweigend abgeschnitten.
+### Vier Fallen beim Parsen
+
+1. **Nicht nach `PK\x03\x04` scannen und jeden Treffer glauben.** Die Nutzdaten
+   enthalten diese Bytes zufällig. Jeder Kandidat muss validiert werden
+   (Version, Methode 0/8, Namenslänge plausibel, Name druckbar mit bekannter
+   Endung, Deflate liefert exakt `usize`).
+2. **Die Invertierung nicht übersehen.** Ohne XOR 0xFF sehen die Header wie
+   Zufallsbytes aus; `\xaf\xb4` ist `PK`, nicht Müll.
+3. **`cd_offset` steht bei `EOCD + 16`, nicht bei `+12`.** Bei `+12` liegt
+   `cd_size`. Ein einzelner `unpack` an der falschen Stelle verschiebt die Basis
+   um die Directory-Größe (987) und lässt jede Rekonstruktion scheitern.
+4. **`decompressobj.flush()` ist Pflicht** — sonst fehlt der letzte
+   Deflate-Block und das XML ist stillschweigend abgeschnitten.
 
 ---
 
@@ -234,12 +295,11 @@ Größe stimmt).
 |---|---|
 | FOV-/Kamera-Validierung | **neu möglich** — `camera_matrix.json` als Referenzdaten |
 | Wasserzeichen-Positionen | **neu möglich** — Tabelle liegt vor |
-| Filter-Captions / Sticker | Format entschlüsselt; Steuerung nur über GUI (Filter-Panel) |
+| Filter-Captions / Sticker | **Format vollständig entschlüsselt** (200 Einträge); Auswahl weiterhin nur über GUI |
 | Sport-Dashboard | 69 Widgets + 25 Themes bekannt; Steuerung nur über GUI/CEF, keine API |
 | GPU-Beschleunigung | `--hw_accel_hint` erklärt; kein direkter Aufruf nötig |
 | Treiber-Detektor | irrelevant für Automation |
 | Quick Look | eigenständige App, nicht Teil der Studio-Automation |
 
-Offen bleibt: QML-UI-Quellcode (kompiliert im Binary), die exakte
-Offset-Patchlogik der NVAP-Container bei Stickern und neuen Kameras,
-semantische Zuordnung der SVM-Modelle.
+Offen bleibt: QML-UI-Quellcode (kompiliert im Binary), drei NVAP-Container
+(B2, DE, 1 Sticker), die Entschlüsselung des Studio-Hauptlogs.
