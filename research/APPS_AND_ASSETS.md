@@ -255,25 +255,24 @@ enthält u. a. die chinesischen Anzeigenamen (`贴纸入动画_弹入`). Damit s
 Sticker-Namen, Dauern, Seitenverhältnis-Varianten und Animationskurven
 maschinell lesbar — Grundlage für eine Sticker-Auswahl über den MCP-Server.
 
-### Abdeckung (ehrlich)
+### Abdeckung (vollständig)
 
 | | Anzahl |
 |---|---|
 | Container gesamt | 44 |
-| davon auslesbar | **41** |
-| nicht auslesbar | 3 (B2, DE, 1 Sticker) |
-| **valide Einträge geschrieben** | **200** (163 XML, 17 PNG, 20 JSON) |
-| davon XML gültig geparst | **163 von 163** |
+| davon auslesbar | **44** |
+| nicht auslesbar | 0 |
+| **valide Einträge geschrieben** | **254 Dateien** (206 XML, 18 PNG, 30 JSON) |
+| davon fehlerhaft | **0** |
 
 Gegenüber dem ersten Extraktor (16 Container, 77 Einträge, 10 defekte XMLs)
-ist das die 2,6-fache Ausbeute ohne einen einzigen defekten Eintrag. Offen
-bleiben `B2` und `DE` (`.compoundcaption`) sowie eine Sticker-Datei: dort
-liegt `base + lho` auf echten Headern, aber Name bzw. Deflate-Strom passen
-nicht zusammen — vermutlich enthält der erste Eintrag ein verschachteltes
-Archiv. Der Extraktor schreibt nichts, was er nicht validiert hat (XML parst,
-PNG-Signatur, Größe stimmt).
+ist das die 3,3-fache Ausbeute ohne einen einzigen defekten Eintrag. Die zuletzt
+fehlenden drei Container (`B2`, `DE` und eine Sticker-Datei) waren kein anderes
+Format, sondern eine **hybride Kodierung** — siehe Falle 5. `research/nvap_verify.py`
+prüft jede geschriebene Datei nach (XML wohlgeformt, JSON parst, Bildsignatur,
+Größe stimmt); der Extraktor schreibt nichts, was er nicht validiert hat.
 
-### Vier Fallen beim Parsen
+### Fünf Fallen beim Parsen
 
 1. **Nicht nach `PK\x03\x04` scannen und jeden Treffer glauben.** Die Nutzdaten
    enthalten diese Bytes zufällig. Jeder Kandidat muss validiert werden
@@ -286,6 +285,18 @@ PNG-Signatur, Größe stimmt).
    um die Directory-Größe (987) und lässt jede Rekonstruktion scheitern.
 4. **`decompressobj.flush()` ist Pflicht** — sonst fehlt der letzte
    Deflate-Block und das XML ist stillschweigend abgeschnitten.
+5. **Signaturform und Feldkodierung sind unabhängig.** `B2`, `DE` und eine
+   Sticker-Datei tragen eine **literale** Signatur `PK\x03\x04`, gefolgt von
+   **invertierten** Kopffeldern und einem invertierten Namen. Wer die
+   Feldinterpretation aus der Signaturform ableitet (`Signatur invertiert →
+   Felder invertieren`), liest dort `nlen=65482` und verwirft den Header. Die
+   Feldkodierung muss eigenständig bestimmt werden: plausible `nlen`/`elen`
+   plus dekodierbarer Name. Im Zweifel entscheidet der Name aus dem Central
+   Directory, weil beide Lesarten zufällig plausibel sein können. Deshalb ist
+   `parse_lfh(data, at, expect=<Name aus dem CD>)` der Normalfall.
+
+   Gegenprobe: `B2` → `base=200`, 8 von 8 Namen stimmen; `DE` → `base=224`,
+   9 von 9. Beide Basen liegen auf der ersten literalen LFH-Signatur.
 
 ---
 
@@ -295,11 +306,11 @@ PNG-Signatur, Größe stimmt).
 |---|---|
 | FOV-/Kamera-Validierung | **neu möglich** — `camera_matrix.json` als Referenzdaten |
 | Wasserzeichen-Positionen | **neu möglich** — Tabelle liegt vor |
-| Filter-Captions / Sticker | **Format vollständig entschlüsselt** (200 Einträge); Auswahl weiterhin nur über GUI |
+| Filter-Captions / Sticker | **Format vollständig entschlüsselt** (44/44 Container, 254 Dateien); Auswahl weiterhin nur über GUI |
 | Sport-Dashboard | 69 Widgets + 25 Themes bekannt; Steuerung nur über GUI/CEF, keine API |
 | GPU-Beschleunigung | `--hw_accel_hint` erklärt; kein direkter Aufruf nötig |
 | Treiber-Detektor | irrelevant für Automation |
 | Quick Look | eigenständige App, nicht Teil der Studio-Automation |
 
-Offen bleibt: QML-UI-Quellcode (kompiliert im Binary), drei NVAP-Container
-(B2, DE, 1 Sticker), die Entschlüsselung des Studio-Hauptlogs.
+Offen bleibt: QML-UI-Quellcode (kompiliert im Binary) und die Entschlüsselung
+des Studio-Hauptlogs.

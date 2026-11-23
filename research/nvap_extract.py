@@ -96,29 +96,43 @@ def parse_cd(data):
     return entries
 
 
-def parse_lfh(data, at):
-    """Local file header at `at`, accepting a literal or inverted signature."""
-    if at + 30 > len(data) or at < 0:
+def parse_lfh(data, at, expect=None):
+    """Local file header at `at`, or None.
+
+    The signature and the rest of the header can disagree about the XOR-0xFF
+    convention: B2 and DE store a literal ``PK\\x03\\x04`` followed by inverted
+    fields and an inverted name. So the field reading is judged on its own
+    merits -- plausible nlen/elen plus a decodable name -- instead of being
+    inferred from the signature form. ``expect`` (the name from the central
+    directory) settles it when both readings happen to look plausible.
+    """
+    if at < 0 or at + 30 > len(data):
         return None
-    inverted = False
-    if data[at:at + 4] != LFH:
-        if data[at:at + 4] == LFH.translate(INVERT):
-            inverted = True
-        else:
-            return None
-    fields = data[at:at + 30]
-    if inverted:
-        fields = fields.translate(INVERT)
-    (ver, flags, method, _t, _d, crc, csize, usize,
-     nlen, elen) = struct.unpack_from('<HHHHHIIIHH', fields, 4)
-    if not 1 <= nlen <= 512 or elen > 4096:
+    sig = data[at:at + 4]
+    if sig != LFH and sig != LFH.translate(INVERT):
         return None
-    name = decode_name(data[at + 30:at + 30 + nlen])
-    return {
-        'inverted': inverted, 'name': name, 'method': method, 'flags': flags,
-        'csize': csize, 'usize': usize,
-        'body': at + 30 + nlen + elen, 'nlen': nlen, 'elen': elen,
-    }
+
+    fallback = None
+    for inverted in (False, True):
+        fields = data[at:at + 30].translate(INVERT) if inverted else data[at:at + 30]
+        (ver, flags, method, _t, _d, crc, csize, usize,
+         nlen, elen) = struct.unpack_from('<HHHHHIIIHH', fields, 4)
+        if not 1 <= nlen <= 512 or elen > 4096:
+            continue
+        name = decode_name(data[at + 30:at + 30 + nlen])
+        if not name:
+            continue
+        found = {
+            'inverted': inverted, 'name': name, 'method': method, 'flags': flags,
+            'csize': csize, 'usize': usize,
+            'body': at + 30 + nlen + elen, 'nlen': nlen, 'elen': elen,
+        }
+        if expect is not None:
+            if name == expect:
+                return found
+        elif fallback is None:
+            fallback = found
+    return fallback
 
 
 def find_bases(data, cd):
@@ -147,11 +161,11 @@ def find_bases(data, cd):
         name_hits = 0
         sig_hits = 0
         for entry in cd:
-            lfh = parse_lfh(data, base + entry['lho'])
-            if lfh:
+            at = base + entry['lho']
+            if parse_lfh(data, at) is not None:
                 sig_hits += 1
-                if lfh['name'] == entry['name']:
-                    name_hits += 1
+            if parse_lfh(data, at, entry['name']) is not None:
+                name_hits += 1
         if name_hits > strict_score:
             strict, strict_score = base, name_hits
         if sig_hits > relaxed_score:
@@ -167,8 +181,8 @@ def find_bases(data, cd):
 
 def locate_body(data, at, entry):
     """Where the entry's payload starts, using the header or the stored name."""
-    lfh = parse_lfh(data, at)
-    if lfh and lfh['name'] == entry['name']:
+    lfh = parse_lfh(data, at, entry['name'])
+    if lfh:
         return lfh
 
     # The offset hit a header whose name does not match; look for the entry's

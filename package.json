@@ -17,7 +17,8 @@
     "probe:ocr": "node tests/ui-ocr-probe.mjs",
     "probe:grpc-export": "node tests/grpc-export-once.mjs",
     "probe:grpc-types": "node tests/grpc-export-image.mjs",
-    "probe:grpc-material": "node tests/grpc-export-material.mjs"
+    "probe:grpc-material": "node tests/grpc-export-material.mjs",
+    "test:nvap": "python research/nvap_selftest.py"
   },
   "keywords": [
     "mcp",

@@ -535,10 +535,12 @@ kann unterbrochen und fortgesetzt werden.
 **Weiter offen:**
 1. **QML-UI-Quellcode** — kompiliert in `Insta360 Studio.exe`, nicht als Quelle
    rekonstruierbar; nur die Asset-Ebene ist zugänglich.
-2. **NVAP-Offset-Patchlogik** — bei 28 der 44 Container (alle Sticker, plus die
-   `.compoundcaption` von X6, Ace Pro3, B2, DE, Z03, Z05) lassen sich die
-   Central-Directory-Offsets nicht auflösen; ein Offset-Brute-Force über die
-   ersten 1200 Bytes findet ebenfalls keinen gültigen Archivstart.
+2. **NVAP** — gelöst. Alle 44 Container sind auslesbar (254 Dateien, 0 defekt).
+   Die 28 zuletzt offenen Fälle waren keine unauflösbaren Offsets, sondern eine
+   **hybride Kodierung**: literale `PK\x03\x04`-Signatur bei invertierten
+   Kopffeldern und invertiertem Namen. `parse_lfh` muss die Feldinterpretation
+   deshalb unabhängig von der Signaturform bestimmen und im Zweifel am Namen aus
+   dem Central Directory prüfen. Details in `APPS_AND_ASSETS.md`, Abschnitt 5.
 3. **`data/b56efdaa/*.ins`** — 9 Blobs, Kopf `u32` + `float32` (z. B. 4992.0 /
    2700.0 = Bildmaße), kein NVAP. Vier Dateien sind byte-identisch
    (824027 B), zwei weitere (3296096 B) ebenfalls — Varianten unter
