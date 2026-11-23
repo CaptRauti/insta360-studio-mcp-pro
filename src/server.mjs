@@ -343,8 +343,9 @@ tool(
       "Start an export through Studio's Exporter2 gRPC service. Builds the verified ExportParams tree " +
       "(exportHeader + localExtraParams{exportType, videoExportParam[], imageExportParam{sourceGroup}}) " +
       "and returns the decoded ExportReply (state, errCode, message, logPath). Studio must be running. " +
-      "Photo/image types name their source directly and work with nothing loaded; VIDEO and VIDEO_CLIP " +
-      "resolve footage from the project open in Studio, so they fail with EXPORTER_START_FAILURE otherwise.",
+      "Photo/image types name their source directly and work with nothing loaded. VIDEO and VIDEO_CLIP " +
+      "always fail with EXPORTER_START_FAILURE — the exporter resolves footage from internal project state " +
+      "that neither the UI nor an .insproj fills; use studio_ui_export for video.",
     inputSchema: {
       sources: z.array(z.string()).describe("Absolute source file paths to export"),
       savePath: z.string().describe("Destination directory — the exporter writes the file inside it"),

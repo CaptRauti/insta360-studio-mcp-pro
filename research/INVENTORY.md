@@ -242,9 +242,27 @@ Exporter gebunden an `--pid=<Studio-PID>` mit `--enable_heartbeat`.
 **Schema:** vollständig rekonstruiert in `src/proto/export2.proto` (481 Zeilen)
 und `src/proto/ins_cloud_export_data.proto`.
 
-**Wichtig:** gRPC-Export akzeptiert Jobs (Typen 13/14/25/27), schreibt aber
-**keine Dateien** — der Dienst braucht einen geladenen Zustand in der GUI.
-Der **GUI-Export ist der einzige funktionierende Weg** (verifiziert).
+**Wichtig (korrigiert):** Der frühere Befund „akzeptiert Jobs, schreibt aber keine
+Dateien" war ein Fehler in den Testskripten — sie übergaben das ganze Objekt aus
+`discoverExporter()` (`{pid, port, ports}`) als Port, sodass jeder Aufruf mit
+`Invalid URL` starb, bevor er den Dienst erreichte. Mit `port` destrukturiert
+funktioniert der Export:
+
+* **Foto-/Bildtypen (0–8, 11)** exportieren eigenständig, ohne Projekt und ohne GUI.
+  Verifiziert: `exportType 5` (`JPG_SEQUENCE`) mit der Quelle in
+  `LocalImageExportParam.sourceGroup.sourceFile` schreibt eine 18.266.497-Byte-JPEG
+  (7680×4320). `ExportHeader.savePath` ist ein **Ausgabe-Verzeichnis**, keine Datei.
+* **`StartExporting`** antwortet sofort mit `stateCode 1` (RUNNING) und wird über
+  `SendHeartBeatPackage` getrieben — ein einzelner Aufruf ohne Herzschläge bewirkt
+  nichts.
+* **Video-Typen (9, 10)** scheitern mit `EXPORTER_START_FAILURE` in *jedem* getesteten
+  UI-Zustand: Kaltstart, Clip im Player geladen, Projekt in Studio geöffnet. Der
+  Exporter löst das Material aus seinem internen Projektzustand auf, den weder die UI
+  noch eine `.insproj` befüllt. `ExportHeader.materialList` ist **nicht** der
+  Medienkanal (mit mehreren `MaterialItem.type`-Werten getestet, ohne Wirkung).
+* Der Exporter **stirbt bei einem langen Anfrage-Schwall** und braucht danach einen
+  Studio-Neustart.
+* Der **GUI-Export bleibt der Weg für Video** (verifiziert).
 
 ---
 

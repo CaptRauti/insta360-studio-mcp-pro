@@ -14,7 +14,7 @@ The only other Insta360 Studio MCP server does UI automation and nothing else. S
 |---|---|---|
 | `.insproj` projects | Plain JSON — tracks, clips, transforms, stitching | **works, fully read/write** |
 | `studio-thumbnail-service.exe` | gRPC on a dynamic port: thumbnails + scene detection | **works, verified** |
-| `studio-exporter-service.exe` | gRPC on a dynamic port: export/stitching | **works for photo/image types; video types need the project loaded** |
+| `studio-exporter-service.exe` | gRPC on a dynamic port: export/stitching | **works for photo/image types; video types fail regardless of UI state** |
 | The GUI export dialog | Qt canvas | **works — the path for video, and for anything needing the loaded project** |
 
 The gRPC exporter was long written off as "accepts jobs, never writes a file". That
@@ -31,7 +31,10 @@ What is genuinely true: `ExportParams` carries **no media path for video**. Its
 model (render settings, no file). The one source-file field in the whole request is
 `SourceGroup.sourceFile`, and it hangs off `LocalImageExportParam`. So photo and
 image export types can be driven from a cold start, while `VIDEO` and `VIDEO_CLIP`
-fail with `EXPORTER_START_FAILURE` until the project is open in the app.
+answer `EXPORTER_START_FAILURE`. That was tested three ways — cold start, a clip loaded
+in the player, and a project opened in the app — and it fails identically each time, so
+the exporter resolves footage from its own internal project state rather than from
+anything the UI or an `.insproj` hands it.
 
 ---
 
@@ -275,7 +278,7 @@ Kept here because it's hard to find anywhere else:
 
   `npm run probe:grpc-export` runs exactly this and verifies the output on disk.
 - `savePath` in `ExportHeader` is an **output directory**, not a file path. The exporter creates it and writes the file inside, named after the source unless `SourceGroup.dest_file_name` is set.
-- The photo/image export types (`PHOTO` 0 through `DEMO…` 8, `DEMUX_TO_JPEG` 11) accept a source named directly. `VIDEO` (9) and `VIDEO_CLIP` (10) answer `EXPORTER_START_FAILURE` — they resolve footage from the project loaded in the app, because the request cannot carry a video path at all.
+- The photo/image export types (`PHOTO` 0 through `DNG_SEQUENCE_DNG_WITH_JPG` 8, `DEMUX_TO_JPEG` 11) accept a source named directly. `VIDEO` (9) and `VIDEO_CLIP` (10) answer `EXPORTER_START_FAILURE` — tested cold, with a clip loaded in the player, and with a project open in Studio; all three the same. The request has no video path field, and the exporter resolves footage from internal project state that neither the UI nor an `.insproj` populates.
 - The exporter dies if you fire a long burst of requests at it; it then needs Studio restarted to come back. Space the calls out.
 - Most Studio logs are encrypted (a `bf08ac29` frame header plus a counter), but the CEF and detector logs in the same tree are plain text — check both before giving up on a log.
 
@@ -286,7 +289,7 @@ The probe scripts that got us there are in `research/grpc-probes/`.
 ## Limitations
 
 - **Windows only.** The GUI layer is Win32 + PowerShell.
-- **gRPC video export needs the project open.** The request format has no video path field, so `VIDEO`/`VIDEO_CLIP` only work with the project loaded; photo and image types export standalone. For video from a cold start, use `studio_ui_export`.
+- **gRPC video export does not work — use the GUI for video.** `VIDEO`/`VIDEO_CLIP` fail with `EXPORTER_START_FAILURE` whether Studio is cold, has a clip loaded, or has a project open. Photo and image types export standalone over gRPC; `studio_ui_export` is the video path.
 - **GUI export needs a loaded clip.** An empty player means nothing to export — `studio_ui_state` tells you.
 - The GUI layer assumes Studio's accent colour is `#FFD200`. If a future version changes its theme, the button detector needs the new colour.
 - `.insproj` writes are structural JSON edits; Studio must reload the project to see them.
