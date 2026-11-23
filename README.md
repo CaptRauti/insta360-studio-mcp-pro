@@ -53,6 +53,8 @@ anything the UI or an `.insproj` hands it.
 | `studio_ui_analyze_shot` | Analyse an existing screenshot for buttons and player content |
 | `studio_ui_ocr` | Read the text on screen (Windows OCR) with window-relative boxes |
 | `studio_ui_click_text` | Find on-screen text by name and click it |
+| `studio_ui_export_settings` | Read the export dialog's settings — path, preset, resolution, frame rate, bitrate, codec, colour space — with the click coordinates of every control |
+| `studio_ui_export_set` | Change one of those settings by picking an option, then read the field back to prove it took |
 
 ### Projects (`.insproj` JSON)
 
@@ -133,6 +135,37 @@ studio_ui_ocr {}
 studio_ui_click_text { text: "Bearbeiten" }
   -> matched word "Bearbeiten", click (1495, 1357)
 ```
+
+### Driving the export dialog's settings
+
+The dialog's controls are **CEF/HTML**, not native widgets: they are absent from the UI Automation tree, and the page is not reachable over a debug port (Studio's `libcef.dll` ignores `--remote-debugging-port`). So its settings are read and set by OCR and clicks — which only works with three measured facts, because the plausible shortcut gives the wrong answer:
+
+1. **The list boxes toggle.** One click opens, the next closes. Never assume a click opened a list.
+2. **An opened list paints a lighter panel** over the dialog beneath it. That is how the server knows a list is open at all: the mean gray of the changed region goes from ~30 to ~48. OCR is only used for the option text, never to decide open or closed.
+3. **Everything is measured, not hardcoded.** The server diffs the frames either side of its own click to obtain the list's rectangle (measured `x 566, width 340, top = label y + 2` on a 1384×900 window), so the same code works for every control even though the resolution list is 171 px tall where the codec list is 160.
+
+Four traps, each of which had to be fixed before a click landed on the intended option:
+
+- **Full-window OCR misreads the small option rows.** `H.265` came back as `4265`, and the row was placed ~40 px off its true position — enough to click the wrong entry. Option text and coordinates therefore always come from a 4× upscaled crop of the measured rectangle.
+- **The row holding the current value draws a marker** ~20 px left of the text column, which OCR reads as a stray token and prepends (`s/ H.265`). Rows are re-aligned to the column they all share.
+- **The popup scrolls the current selection to its top edge**, clipping that row's glyphs — `Benutzerdefiniert` arrives as `utzeraetlmert`. Such a fragment is dropped; the full entry is listed again further down.
+- **A control's value line sits only 2 px above the list's rectangle**, so the crop must carry no margin. With one, the field's own value shows up as a phantom first option.
+
+Live, against Studio 6.0.9:
+
+```
+studio_ui_export_settings {}
+  -> Pfad "C:/Users/stefa/Desktop", Voreinstellung "Benutzerdefiniert",
+     Auflösung "1080P - 1920 x 1080", Rahmen "Quellbild-Framerate übernehmen",
+     Bitrate "Empfohlen", Kodierung "H265", Farbraum "Rec.709"
+studio_ui_export_settings { control: "Kodierung", listOptions: true }
+  -> list box 566,594 340x178 (brightness 33 -> 51)
+     options: H.264 | H.265 | ProRes 422 | ProRes 422LT
+studio_ui_export_set { control: "Auflösung", value: "4K - 3840 x 2160" }
+  -> picked "4K - 3840 x 2160": "Benutzerdefiniert" -> "4K -3840 x 2160", changed true
+```
+
+`studio_ui_export_set` reads the field back after clicking, so its reply states whether the value actually changed: a click that lands beside an option reports `changed: false` rather than passing for success.
 
 ---
 
@@ -238,14 +271,22 @@ source: VID_20260917_193416_00_002.insv — 3840×3840 360°, 1.813 s
 
 The export is complete, not truncated: the 3840×3840 dual-fisheye source is 1.813 s, and stitching and reframing to 1920×1080 landed in the output. This is the path video has to take — see [Limitations](#limitations).
 
-All three were run and the outputs checked with `ffprobe` / `file` — the sizes and codecs above are read off the produced files.
+Reading and changing the dialog's settings (no hardcoded coordinates, each change read back from the UI):
+
+```
+studio_ui_export_set { control: "Kodierung", value: "ProRes 422 LT" }    -> H265 -> ProRes 422LT, changed
+studio_ui_export_set { control: "Kodierung", value: "H.265" }            -> ProRes 422LT -> H265, changed
+studio_ui_export_set { control: "Auflösung", value: "4K - 3840 x 2160" } -> Benutzerdefiniert -> 4K, changed
+```
+
+All of these were run and the outputs checked with `ffprobe` / `file` — the sizes, codecs and setting values above are read off the produced files and the live dialog.
 
 ---
 
 ## Tests
 
 ```bash
-npm test                # wire format, .insproj, camera matrix, OCR, export request — 40 tests
+npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR helpers — 53 tests
 npm run check           # syntax-check every module
 npm run test:nvap       # NVAP extractor self-test (hybrid headers, 44/44 containers)
 npm run probe           # live MCP handshake, tool list, gRPC port discovery
@@ -258,7 +299,10 @@ npm run probe:grpc-material # does ExportHeader.materialList carry the source?
 npm run probe:ui-export-dialog  # open the export dialog and OCR it
 npm run probe:ui-export-fields  # read the dialog's fields with coordinates
 npm run probe:ui-export-video   # SLOW: GUI video export, then ffprobe the result
+npm run probe:ui-export-settings  # read the dialog's settings, change one, read it back
 ```
+
+`node tests/mcp-call.mjs <tool> '<json args>'` calls any tool on this server over stdio — handy for exercising the live ones without an MCP client.
 
 `probe:export` is opt-in on purpose — it produces a real multi-hundred-MB file and takes minutes.
 

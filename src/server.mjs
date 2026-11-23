@@ -72,6 +72,7 @@ import {
 } from "./camera.mjs";
 import { studioDir, studioExe, studioInfo } from "./studio-path.mjs";
 import { findText, ocrImage } from "./ocr.mjs";
+import { openControl, readDialog, selectOption } from "./export-dialog.mjs";
 
 // The install directory is resolved at call time (see studio-path.mjs): Studio
 // 6.0.9 moved from Program Files to %LOCALAPPDATA%\Insta360\Apps, and the old
@@ -801,6 +802,68 @@ tool(
       click,
       screenshot: shot,
     };
+  },
+);
+
+tool(
+  "studio_ui_export_settings",
+  {
+    description:
+      "Read the settings in Studio's export dialog: file name, output path, preset, resolution, frame rate, " +
+      "bitrate, codec and colour space, plus the window coordinates to click each control. The dialog is CEF/HTML " +
+      "inside the main window, so there is no UI Automation tree and no debug port -- this is screenshot + OCR. " +
+      "Needs the dialog open: studio_ui_export with stage 'dialog' opens it, stage 'full' runs the whole export.",
+    inputSchema: {
+      title: z.string().optional(),
+      control: z.string().optional().describe("Read only this control, e.g. 'Kodierung'"),
+      listOptions: z
+        .boolean()
+        .optional()
+        .describe("Also open the control's list box and return the options it offers"),
+    },
+  },
+  async ({ title, control, listOptions = false }) => {
+    const windowTitle = title ?? "Insta360 Studio";
+    if (control) {
+      const opened = listOptions ? await openControl({ title: windowTitle, label: control }) : null;
+      const dialog = readDialog({ title: windowTitle });
+      const field = dialog.fields[control];
+      return {
+        control,
+        value: field?.value ?? null,
+        click: field?.click ?? null,
+        options: opened?.ok ? opened.options : undefined,
+        listBox: opened ? { ok: opened.ok, error: opened.error, box: opened.box } : undefined,
+      };
+    }
+    const dialog = readDialog({ title: windowTitle });
+    return {
+      window: dialog.window,
+      settings: Object.fromEntries(Object.entries(dialog.fields).map(([k, v]) => [k, v.value])),
+      controls: dialog.fields,
+      screenshot: dialog.screenshot,
+    };
+  },
+);
+
+tool(
+  "studio_ui_export_set",
+  {
+    description:
+      "Change one setting in Studio's export dialog by picking an option, e.g. codec 'ProRes 422 LT', resolution " +
+      "'4K', colour space 'Rec.709'. Opens the control's list box, clicks the matching entry and reads the field " +
+      "back, so the reply states whether the value actually changed. Use studio_ui_export_settings first to see " +
+      "what the controls are called and what they currently hold.",
+    inputSchema: {
+      control: z.string().describe("Control label, e.g. 'Kodierung', 'Auflösung', 'Farbraum'"),
+      value: z.string().describe("Option to pick (case-insensitive substring), e.g. 'ProRes 422 LT'"),
+      title: z.string().optional(),
+      showOptions: z.boolean().optional().describe("Include the available options in the reply (default true)"),
+    },
+  },
+  async ({ control, value, title, showOptions = true }) => {
+    const res = await selectOption({ title: title ?? "Insta360 Studio", label: control, text: value });
+    return showOptions ? res : { ...res, options: undefined };
   },
 );
 

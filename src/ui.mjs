@@ -180,7 +180,7 @@ export function uiState({ title = DEFAULT_WINDOW_TITLE, mode = "print" } = {}) {
 // Export orchestration
 // ---------------------------------------------------------------------------
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function listVideos(dir) {
   if (!existsSync(dir)) return [];
