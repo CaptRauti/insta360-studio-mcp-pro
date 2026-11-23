@@ -18,7 +18,10 @@
     "probe:grpc-export": "node tests/grpc-export-once.mjs",
     "probe:grpc-types": "node tests/grpc-export-image.mjs",
     "probe:grpc-material": "node tests/grpc-export-material.mjs",
-    "test:nvap": "python research/nvap_selftest.py"
+    "test:nvap": "python research/nvap_selftest.py",
+    "probe:ui-export-dialog": "node tests/ui-export-dialog.mjs",
+    "probe:ui-export-fields": "node tests/ui-export-fields.mjs",
+    "probe:ui-export-video": "node tests/ui-export-video.mjs"
   },
   "keywords": [
     "mcp",

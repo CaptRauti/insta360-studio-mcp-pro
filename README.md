@@ -108,7 +108,7 @@ Studio's Qt canvas exposes **no** UI Automation tree — `uia.ps1` returns nothi
 2. **Screenshot with `PrintWindow`**, not BitBlt — so it works while the window is occluded or behind another app.
 3. **Decode the PNG in pure JS** (`src/png.mjs`, zlib only, no dependencies) and find Studio's primary action colour (`#FFD200`) by pixel mask. Connected components give the button's bounding box.
 4. **Click by window-relative coordinates**, so the same code works at any window position.
-5. **Watch the output folder** until the file stops growing, then report its path and size.
+5. **Watch the output folder** until a new file stops growing **and** passes a minimum size, then report its path and size. The size guard matters: Studio creates the output as a stub of a few dozen bytes while the encoder starts, so a file that merely stops changing for a few seconds is not proof the export finished. Without the guard you get a confident "done" and a 44-byte MP4 with no `moov` atom.
 
 No hardcoded coordinates and no vision model. `studio_ui_state` also reports whether the player has content, using a variance test on the player region — that's how you tell "no video loaded" from "video loaded" without a screenshot in your face.
 
@@ -121,7 +121,9 @@ Colour detection finds the accent-coloured button. It cannot tell you that a dia
 | `studio_ui_ocr` | Screenshot the window (or read an existing `.png`) and return the text with window-relative boxes |
 | `studio_ui_click_text` | Find text by name and click it — e.g. `"Exportieren"` — so the click lands wherever that control currently sits |
 
-Matching is case-insensitive substring, which matters because OCR mangles small text and umlauts (`Menü` comes back as `Menÿ`); asking for `Export` still hits `Exportieren`.
+Matching is case-insensitive substring, which matters because OCR mangles small text (`Menü` comes back as `Menÿ`); asking for `Export` still hits `Exportieren`.
+
+`ocr.ps1` forces `[Console]::OutputEncoding` to UTF-8. PowerShell otherwise writes stdout in the OEM code page (`ibm850` here), and any character outside it is best-fit mapped to an ASCII lookalike — a curly quote read off the UI becomes a bare `"`, which lands unescaped in the JSON and breaks the string. The symptom is every call failing with `unparsable OCR output` the moment the UI contains a typographic quote or a CJK caption.
 
 Live, against Studio 6.0.9:
 
@@ -226,15 +228,26 @@ Nightsky Luna.jpg   18,266,497 bytes
 JPEG 7680×4320, Insta360 Luna Ultra, v1.2.7
 ```
 
-Both were run and the outputs checked with `ffprobe` / `file` — the sizes and codecs above are read off the produced files.
+The same dialog path on Studio 6.0.9, exporting a 360° clip to a flat file:
+
+```
+VID_20260917_193416_00_002.mp4   98,349 bytes
+HEVC 1920×1080 @ 50 fps, 1.82 s, 91 frames + AAC audio
+source: VID_20260917_193416_00_002.insv — 3840×3840 360°, 1.813 s
+```
+
+The export is complete, not truncated: the 3840×3840 dual-fisheye source is 1.813 s, and stitching and reframing to 1920×1080 landed in the output. This is the path video has to take — see [Limitations](#limitations).
+
+All three were run and the outputs checked with `ffprobe` / `file` — the sizes and codecs above are read off the produced files.
 
 ---
 
 ## Tests
 
 ```bash
-npm test                # wire format, .insproj, camera matrix, OCR, export request — 39 tests
+npm test                # wire format, .insproj, camera matrix, OCR, export request — 40 tests
 npm run check           # syntax-check every module
+npm run test:nvap       # NVAP extractor self-test (hybrid headers, 44/44 containers)
 npm run probe           # live MCP handshake, tool list, gRPC port discovery
 npm run probe:ui        # live GUI probe: window, screenshot, button detection
 npm run probe:ocr       # live OCR probe: read the running window, look up controls by name
@@ -242,6 +255,9 @@ npm run probe:export    # SLOW: drives a real GUI export (minutes, writes a big 
 npm run probe:grpc-export   # live gRPC photo export, verified on disk (seconds)
 npm run probe:grpc-types    # sweep every ExportType against one source
 npm run probe:grpc-material # does ExportHeader.materialList carry the source?
+npm run probe:ui-export-dialog  # open the export dialog and OCR it
+npm run probe:ui-export-fields  # read the dialog's fields with coordinates
+npm run probe:ui-export-video   # SLOW: GUI video export, then ffprobe the result
 ```
 
 `probe:export` is opt-in on purpose — it produces a real multi-hundred-MB file and takes minutes.

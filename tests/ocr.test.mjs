@@ -127,6 +127,39 @@ test("ocrImage reads real text out of a generated image", () => {
   assert.ok(hits[0].y > 20 && hits[0].y < 80, `y out of range: ${hits[0].y}`);
 });
 
+test("ocrImage survives characters outside the console code page", () => {
+  // Regression: PowerShell's stdout defaulted to the OEM code page (ibm850), so
+  // a curly quote read off the UI was best-fit mapped to a bare 0x22 and
+  // silently broke the JSON string -- every word came back as "unparsable OCR
+  // output". The wrapper must force UTF-8 so non-ASCII survives the pipe.
+  const dir = mkdtempSync(path.join(os.tmpdir(), "insta360-ocr-"));
+  const png = path.join(dir, "quote.png").replace(/\\/g, "/");
+
+  const draw = [
+    "Add-Type -AssemblyName System.Drawing",
+    "$bmp = New-Object System.Drawing.Bitmap 900,140",
+    "$g = [System.Drawing.Graphics]::FromImage($bmp)",
+    "$g.Clear([System.Drawing.Color]::FromArgb(32,32,34))",
+    "$f = New-Object System.Drawing.Font 'Segoe UI',28",
+    "$g.DrawString(([char]0x201E + 'Projekt-Manager'), $f, [System.Drawing.Brushes]::White, 40, 40)",
+    `$bmp.Save('${png}',[System.Drawing.Imaging.ImageFormat]::Png)`,
+    "$g.Dispose(); $bmp.Dispose()",
+  ].join("; ");
+
+  execFileSync("powershell", ["-NoProfile", "-Command", draw], { timeout: 60000, windowsHide: true });
+  assert.ok(existsSync(png), "test image was not written");
+
+  const result = ocrImage(png);
+  assert.equal(result.ok, true, `JSON must stay parseable, got: ${result.error}`);
+
+  const text = result.words.map((w) => w.text).join(" ");
+  assert.ok(text.includes("Projekt"), `expected the drawn text, got ${JSON.stringify(text)}`);
+  assert.ok(
+    result.words.some((w) => [...w.text].some((c) => c.codePointAt(0) > 127)),
+    `expected a non-ASCII character to survive the pipe, got ${JSON.stringify(text)}`,
+  );
+});
+
 test("ocrImage reports a missing file instead of throwing", () => {
   const result = ocrImage("C:/definitely/not/here.png");
   assert.equal(result.ok, false);

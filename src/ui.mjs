@@ -210,6 +210,11 @@ function listVideos(dir) {
  * the dialog's primary button, and wait for a new file to appear in `outDir`.
  *
  * stage: "dialog" opens the dialog and stops; "full" also starts the export.
+ *
+ * `minBytes` guards against a false finish: Studio creates the output file as a
+ * stub (a few dozen bytes) while the encoder spins up, and a size that merely
+ * stops changing for a few seconds is not proof the export is done. Only a file
+ * that is stable AND at least this large counts as finished.
  */
 export async function runExport({
   title = DEFAULT_WINDOW_TITLE,
@@ -218,7 +223,8 @@ export async function runExport({
   settleMs = 1200,
   timeoutMs = 15 * 60 * 1000,
   pollMs = 2000,
-  stableFor = 3,
+  stableFor = 5,
+  minBytes = 64 * 1024,
 } = {}) {
   const before = new Map(listVideos(outDir).map((v) => [v.name, v.size]));
   const log = [];
@@ -266,9 +272,12 @@ export async function runExport({
         else stable = 0;
         lastSize = newest.size;
         candidate = newest;
-        if (stable >= stableFor) {
+        if (stable >= stableFor && newest.size >= minBytes) {
           log.push({ step: "done", file: newest.file, size: newest.size });
           return { ok: true, stage, dialogOpen: false, file: newest.file, size: newest.size, log };
+        }
+        if (stable === stableFor) {
+          log.push({ step: "too-small", file: newest.file, size: newest.size });
         }
       } else {
         candidate = newest;
@@ -280,7 +289,8 @@ export async function runExport({
   }
 
   throw new Error(
-    `export did not produce a file in ${outDir} within ${Math.round(timeoutMs / 1000)}s` +
+    `export did not produce a file of at least ${minBytes} bytes in ${outDir} ` +
+      `within ${Math.round(timeoutMs / 1000)}s` +
       (candidate ? ` (last seen: ${candidate.file} @ ${candidate.size} bytes)` : ""),
   );
 }

@@ -22,6 +22,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# The console defaults to the OEM code page (ibm850 here). Any character outside
+# it -- a curly quote the OCR read off the UI, a CJK sticker caption -- is then
+# best-fit mapped to an ASCII lookalike, which silently corrupts the JSON (a
+# U+201C becomes a bare 0x22 and breaks the string). Force UTF-8 so every
+# character survives the pipe.
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 # WinRT's StorageFile API only accepts backslash paths.
 if ($Image) { $Image = $Image.Replace('/', '\') }
 
