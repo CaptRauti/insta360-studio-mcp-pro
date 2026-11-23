@@ -481,7 +481,7 @@ kann unterbrochen und fortgesetzt werden.
 
 ## 14. Offene Punkte
 
-**Erledigt (siehe `APPS_AND_ASSETS.md`):**
+**Erledigt (siehe `APPS_AND_ASSETS.md`, `AI_MODELS.md`):**
 - `.rcc`-Ressourcen vollständig ausgepackt (951 Dateien, 37 MB) — enthält
   **keine QML-Quellen**, nur Assets. JSON-Tabellen sind zlib-komprimiert und
   wurden dekodiert; daraus die Kamera-/FOV-Fähigkeitsmatrix gebaut.
@@ -489,16 +489,32 @@ kann unterbrochen und fortgesetzt werden.
 - Die Hilfsprogramme identifiziert: `studio_utility.exe` (HW-Beschleunigungs-Prober),
   `app_detector.exe` (GPU-Treiber-Detektor), `quick-look.exe` + `-daemon.exe` (Player).
 - Öffentliche Config-Endpunkte abgerufen (Feature-Gates, GPU-Treiber-Matrix).
+- **NVAP-Format** entschlüsselt: 16-Byte-Header (`NVAP`, Version 2, headerLen 16,
+  count = Anzahl ZIP-Einträge) + Chunk-Tabelle + eingebettetes ZIP mit nur
+  lokalen File-Headern. Inhalt: Storyboard-XML je Seitenverhältnis (die
+  eingebrannte Filter-Namenskarte) + PNG-Hintergrund. 16 von 44 Containern
+  auslesbar, 77 valide Einträge.
+- **`data/*.xml` SVM-Zweck** aufgelöst: alle 12 Dateien sind lineare
+  Regressionsmodelle (`EPS_SVR`/`LINEAR`/`sv_total=1`). Die in der DLL
+  eingebettete Modell-Registry nennt Klarnamen: Tauchgehäuse-Erkennung
+  (`diveClassifyModel_*`), Objektivschutz-Erkennung (`heat*Bare`/`heat*Protector`),
+  Floaty/Stick (`floatyStickModel`), Batterietyp (`ONERBatteryClassifyModel`).
+- **`heatX5_d1790022.xml`** = `heatX5`, id 8009 — X5-Variante der
+  Objektivschutz-Erkennung.
+- **KI-Modell-Registry vollständig extrahiert**: 256 Einträge, 188 mit
+  Klartextnamen — die komplette KI-Funktionsfläche (40 Detektoren, 17 Tracking-,
+  14 Klassifikations-, 7 Re-ID-, 6 Defringe-Modelle u. a.).
 
 **Weiter offen:**
 1. **QML-UI-Quellcode** — kompiliert in `Insta360 Studio.exe`, nicht als Quelle
    rekonstruierbar; nur die Asset-Ebene ist zugänglich.
-2. **NVAP-Format** — Header verstanden (`NVAP` + Version 2 + 16-Byte-Header),
-   Index-Struktur noch nicht vollständig dekodiert.
-3. **`data/*.xml` SVM-Zweck** — Dimensionen und Kernel bekannt, semantische
-   Zuordnung (welche Datei welche Bewegung erkennt) noch offen.
-4. **`heatX5_d1790022.xml`** — vermutlich X5-spezifisches Wärmemodell.
-5. **`data/b56efdaa/*.ins`** — 9 Modelle mit anderem Header als `data/models/`
-   (`01 00 00 00` + Float-Block) — vermutlich Farb-/Optik-Modelle.
-6. **Sport-Dashboard-Steuerung** — 69 Widgets/25 Themes bekannt, aber nur über
+2. **NVAP-Offset-Patchlogik** — bei 28 der 44 Container (alle Sticker, plus die
+   `.compoundcaption` von X6, Ace Pro3, B2, DE, Z03, Z05) lassen sich die
+   Central-Directory-Offsets nicht auflösen; ein Offset-Brute-Force über die
+   ersten 1200 Bytes findet ebenfalls keinen gültigen Archivstart.
+3. **`data/b56efdaa/*.ins`** — 9 Blobs, Kopf `u32` + `float32` (z. B. 4992.0 /
+   2700.0 = Bildmaße), kein NVAP. Vier Dateien sind byte-identisch
+   (824027 B), zwei weitere (3296096 B) ebenfalls — Varianten unter
+   verschiedenen Hashes. Zweck noch nicht bestimmt.
+4. **Sport-Dashboard-Steuerung** — 69 Widgets/25 Themes bekannt, aber nur über
    GUI/CEF ansteuerbar, keine API.
