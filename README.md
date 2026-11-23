@@ -14,10 +14,24 @@ The only other Insta360 Studio MCP server does UI automation and nothing else. S
 |---|---|---|
 | `.insproj` projects | Plain JSON — tracks, clips, transforms, stitching | **works, fully read/write** |
 | `studio-thumbnail-service.exe` | gRPC on a dynamic port: thumbnails + scene detection | **works, verified** |
-| `studio-exporter-service.exe` | gRPC on a dynamic port: export/stitching | **accepts jobs, never writes a file** |
-| The GUI export dialog | Qt canvas | **works — this is the export path that produces files** |
+| `studio-exporter-service.exe` | gRPC on a dynamic port: export/stitching | **works for photo/image types; video types need the project loaded** |
+| The GUI export dialog | Qt canvas | **works — the path for video, and for anything needing the loaded project** |
 
-The gRPC exporter is the interesting part and the disappointing part. Its full protobuf schema was recovered from the embedded descriptors in `studio_worker.dll` (see `src/proto/export2.proto`), and requests are accepted and parsed correctly — but `StartExporting` returns "running" and produces nothing. The GUI path is what actually exports. So this server exposes both, and the GUI path is the one to use.
+The gRPC exporter was long written off as "accepts jobs, never writes a file". That
+verdict was wrong, and the reason is instructive: the test scripts passed the whole
+object returned by `discoverExporter()` (`{pid, port, ports}`) as the port, so every
+call died with `Invalid URL` before it reached the service. With `port` unwrapped,
+`StartExporting` does exactly what it says. A single call with
+`exportType = JPG_SEQUENCE` and the source named in
+`LocalImageExportParam.sourceGroup.sourceFile` writes a real 7680×4320 JPEG —
+verified on disk, not inferred from a status code.
+
+What is genuinely true: `ExportParams` carries **no media path for video**. Its
+`LocalVideoExportParam` has only a `clipIndex`, and `CloudExportData` is the project
+model (render settings, no file). The one source-file field in the whole request is
+`SourceGroup.sourceFile`, and it hangs off `LocalImageExportParam`. So photo and
+image export types can be driven from a cold start, while `VIDEO` and `VIDEO_CLIP`
+fail with `EXPORTER_START_FAILURE` until the project is open in the app.
 
 ---
 
@@ -202,19 +216,29 @@ VID_20261112_051426_001.mp4   295,752,399 bytes
 HEVC 3840×2160, 30.2 s, 78.4 Mbit/s, 905 frames
 ```
 
-Both the module-level flow and the MCP tool call were run and checked with `ffprobe`.
+Export through the **gRPC service** on Studio 6.0.9, with no project loaded and no GUI interaction:
+
+```
+Nightsky Luna.jpg   18,266,497 bytes
+JPEG 7680×4320, Insta360 Luna Ultra, v1.2.7
+```
+
+Both were run and the outputs checked with `ffprobe` / `file` — the sizes and codecs above are read off the produced files.
 
 ---
 
 ## Tests
 
 ```bash
-npm test              # wire format, .insproj, camera matrix, OCR — 32 tests
-npm run check         # syntax-check every module
-npm run probe         # live MCP handshake, tool list, gRPC port discovery
-npm run probe:ui      # live GUI probe: window, screenshot, button detection
-npm run probe:ocr     # live OCR probe: read the running window, look up controls by name
-npm run probe:export  # SLOW: drives a real export (minutes, writes a big file)
+npm test                # wire format, .insproj, camera matrix, OCR, export request — 39 tests
+npm run check           # syntax-check every module
+npm run probe           # live MCP handshake, tool list, gRPC port discovery
+npm run probe:ui        # live GUI probe: window, screenshot, button detection
+npm run probe:ocr       # live OCR probe: read the running window, look up controls by name
+npm run probe:export    # SLOW: drives a real GUI export (minutes, writes a big file)
+npm run probe:grpc-export   # live gRPC photo export, verified on disk (seconds)
+npm run probe:grpc-types    # sweep every ExportType against one source
+npm run probe:grpc-material # does ExportHeader.materialList carry the source?
 ```
 
 `probe:export` is opt-in on purpose — it produces a real multi-hundred-MB file and takes minutes.
@@ -228,8 +252,31 @@ Kept here because it's hard to find anywhere else:
 - Two helper services run as separate processes: `studio-exporter-service.exe` and `studio-thumbnail-service.exe`, each on a dynamically assigned localhost port, bound to the parent Studio PID with `--pid=` and `--enable_heartbeat`.
 - gRPC reflection is **not** enabled (`UNIMPLEMENTED`).
 - The protobuf descriptors are compiled into `studio_worker.dll` as plain-text `FileDescriptorProto` blobs — recoverable by scanning for the `.proto` name strings and walking the varint length prefix. `src/proto/export2.proto` is reconstructed from those.
+- Measure a recovered descriptor by **round-tripping** it: parse, re-serialize, and require byte equality. A length that only looks plausible (a hand-rolled scan reported `ExportModule2.proto` as 12,675 bytes when the live blob is 219) silently merges neighbouring descriptors and invents field numbers. `research/protocat.py` does this properly.
 - The live service is `service.Export2.Export2`, not `service.Export.Export` — the older descriptor in the same DLL is a decoy.
-- `StartExporting` parses the request correctly (the echoed task id proves it) and returns `RUNNING`, but never writes output. Status codes seen: `0` OK, `2` exporter start failure, `1026` no source file.
+- `discoverExporter()` returns an object (`{pid, port, ports}`), not a port number. Passing it straight through yields `Invalid URL` from the gRPC layer, which looks like a protocol problem and is not one.
+- `StartExporting` returns immediately with `stateCode 1` (`RUNNING`) and drives its loop off `SendHeartBeatPackage`, so a client must keep heartbeating while the work happens. Status codes seen: `0` OK, `1` running, `2` exporter start failure, `1026` no source file.
+- **A working photo export over gRPC**, no project loaded, no GUI:
+
+  ```js
+  const { port } = await discoverExporter();
+  const payload = buildExportParams({
+    exportHeader: buildExportHeader({ taskId, exportName: "out.jpg", savePath: outDir }),
+    localExtraParams: buildLocalExtraParams({
+      exportType: EXPORT_TYPE.JPG_SEQUENCE,          // 5
+      imageExportParam: buildLocalImageExportParam({
+        sourceGroup: buildSourceGroup({ sourceFiles: ["C:/path/photo.jpg"] }),
+      }),
+    }),
+  });
+  await unaryCall({ port, path: "/service.Export2.Export2/StartExporting", payload });
+  // then SendHeartBeatPackage in a loop until the file appears
+  ```
+
+  `npm run probe:grpc-export` runs exactly this and verifies the output on disk.
+- `savePath` in `ExportHeader` is an **output directory**, not a file path. The exporter creates it and writes the file inside, named after the source unless `SourceGroup.dest_file_name` is set.
+- The photo/image export types (`PHOTO` 0 through `DEMO…` 8, `DEMUX_TO_JPEG` 11) accept a source named directly. `VIDEO` (9) and `VIDEO_CLIP` (10) answer `EXPORTER_START_FAILURE` — they resolve footage from the project loaded in the app, because the request cannot carry a video path at all.
+- The exporter dies if you fire a long burst of requests at it; it then needs Studio restarted to come back. Space the calls out.
 - Most Studio logs are encrypted (a `bf08ac29` frame header plus a counter), but the CEF and detector logs in the same tree are plain text — check both before giving up on a log.
 
 The probe scripts that got us there are in `research/grpc-probes/`.
@@ -239,7 +286,7 @@ The probe scripts that got us there are in `research/grpc-probes/`.
 ## Limitations
 
 - **Windows only.** The GUI layer is Win32 + PowerShell.
-- **gRPC export does not produce files.** Use `studio_ui_export`.
+- **gRPC video export needs the project open.** The request format has no video path field, so `VIDEO`/`VIDEO_CLIP` only work with the project loaded; photo and image types export standalone. For video from a cold start, use `studio_ui_export`.
 - **GUI export needs a loaded clip.** An empty player means nothing to export — `studio_ui_state` tells you.
 - The GUI layer assumes Studio's accent colour is `#FFD200`. If a future version changes its theme, the button detector needs the new colour.
 - `.insproj` writes are structural JSON edits; Studio must reload the project to see them.

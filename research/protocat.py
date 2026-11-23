@@ -1,188 +1,175 @@
-"""Extract every FileDescriptorProto from studio_worker.dll and dump the full
-schema catalogue (messages, fields, enums, services) as JSON + Markdown.
+"""Catalogue every FileDescriptorProto in studio_worker.dll, parsed properly.
 
-Method: scan the DLL for the protobuf serialized FileDescriptorProto blobs.
-Each blob starts with 0x0a <len> "<name>.proto" and carries a package name.
-We walk the whole file, attempt a parse at every candidate start, and keep the
-largest valid descriptor per file name.
+Earlier attempts walked the wire format by hand and mis-measured the length of
+one descriptor (a 219-byte ExportModule2.proto was reported as 12675 bytes,
+swallowing the neighbouring descriptors). This tool lets the protobuf library do
+the parsing:
+
+  * a descriptor is located by its own ``name`` field, i.e. the literal pattern
+    ``tag(1, LEN) + length + "Name.proto"``, so no guessing backwards;
+  * the end is found by walking the wire format field by field until the bytes
+    stop looking like a field, then confirmed by requiring a round trip
+    (``ParseFromString`` then ``SerializeToString`` reproducing the slice) —
+    only the exact length satisfies that;
+  * duplicates (the DLL embeds several copies) collapse on a content hash.
+
+Run:  python research/protocat.py [--dump Export2] [--json]
 """
 
-from studioroot import ROOT  # noqa: E402  (install dir, resolved at import)
+import hashlib
 import json
+import os
 import re
 import sys
 
-from google.protobuf import descriptor_pb2
+from google.protobuf.descriptor_pb2 import FileDescriptorProto
+from google.protobuf.message import DecodeError
 
-DLL = ROOT + r'\studio_worker.dll'
-OUT_JSON = 'research/proto_catalog.json'
-OUT_MD = 'research/PROTO_CATALOG.md'
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from studioroot import ROOT  # noqa: E402
 
-data = open(DLL, 'rb').read()
-N = len(data)
-print(f'loaded {N} bytes', flush=True)
+DLL = os.path.join(ROOT, 'studio_worker.dll')
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'proto_catalog.json')
 
 
-def rv(b, i):
-    """Read a base-128 varint."""
-    shift = 0
-    val = 0
-    while True:
-        if i >= len(b):
-            raise ValueError('eof')
-        c = b[i]
-        i += 1
-        val |= (c & 0x7F) << shift
-        if not c & 0x80:
-            return val, i
+def read_varint(data, pos):
+    value = shift = 0
+    while pos < len(data) and shift < 64:
+        byte = data[pos]
+        value |= (byte & 0x7F) << shift
+        pos += 1
+        if not byte & 0x80:
+            return value, pos
         shift += 7
-        if shift > 63:
-            raise ValueError('varint too long')
+    return None, pos
 
 
-def walk_end(b, start):
-    """Walk top-level wire fields from start; return the end offset.
-
-    FileDescriptorProto only uses length-delimited (wt=2) and varint (wt=0)
-    top-level fields. Stop as soon as a tag is not a plausible field tag.
-    """
-    i = start
-    while i < len(b):
-        tag = b[i]
-        wt = tag & 7
-        fn = tag >> 3
-        if fn == 0 or fn > 200 or wt not in (0, 2):
-            return i
-        j = i + 1
-        try:
-            ln, j = rv(b, j)
-        except ValueError:
-            return i
-        if wt == 2:
-            if j + ln > len(b):
-                return i
-            i = j + ln
+def walk_end(data, start, limit=200000):
+    """End of the message at `start`, found by walking its fields."""
+    pos = start
+    stop = min(len(data), start + limit)
+    while pos < stop:
+        tag, after_tag = read_varint(data, pos)
+        if tag is None or tag == 0:
+            break
+        field, wire = tag >> 3, tag & 7
+        if field > 512 or wire not in (0, 1, 2, 5):
+            break
+        if wire == 0:
+            _, pos = read_varint(data, after_tag)
+        elif wire == 1:
+            pos = after_tag + 8
+        elif wire == 5:
+            pos = after_tag + 4
         else:
-            i = j
-    return i
+            length, after_len = read_varint(data, after_tag)
+            if length is None or length > stop - after_len:
+                break
+            pos = after_len + length
+        if pos > stop:
+            break
+    return pos
 
 
-def try_parse(start):
-    """Try to parse a FileDescriptorProto at start. Return (fd, end) or None."""
-    end = walk_end(data, start)
-    if end <= start:
-        return None
-    blob = data[start:end]
-    fd = descriptor_pb2.FileDescriptorProto()
-    try:
-        fd.ParseFromString(blob)
-    except Exception:
-        return None
-    if not fd.name.endswith('.proto'):
-        return None
-    return fd, end
+def pattern_for(name):
+    raw = name.encode()
+    if len(raw) < 128:
+        return bytes([0x0A, len(raw)]) + raw
+    varint = b''
+    value = len(raw)
+    while True:
+        byte = value & 0x7F
+        value >>= 7
+        varint += bytes([byte | (0x80 if value else 0)])
+        if not value:
+            break
+    return b'\x0A' + varint + raw
+
+
+def collect(data):
+    names = sorted({m.decode() for m in
+                    re.findall(rb'[A-Za-z0-9_./-]{2,60}\.proto', data)})
+    seen = {}
+    for name in names:
+        needle = pattern_for(name)
+        at = data.find(needle)
+        while at >= 0:
+            end = walk_end(data, at)
+            slice_ = data[at:end]
+            fd = FileDescriptorProto()
+            try:
+                fd.ParseFromString(slice_)
+                ok = fd.name == name and fd.SerializeToString() == slice_
+            except DecodeError:
+                ok = False
+            if ok:
+                key = hashlib.sha1(slice_).hexdigest()
+                if key not in seen:
+                    seen[key] = (at, len(slice_), fd)
+            at = data.find(needle, at + 1)
+    return seen
+
+
+def describe(fd):
+    out = ['Datei: %s  (Paket: %s)' % (fd.name, fd.package or '-')]
+    for dep in fd.dependency:
+        out.append('   import %s' % dep)
+    for service in fd.service:
+        out.append('   service %s' % service.name)
+        for method in service.method:
+            out.append('      rpc %s(%s) -> %s' % (
+                method.name, method.input_type, method.output_type))
+    for enum in fd.enum_type:
+        out.append('   enum %s: %s' % (enum.name, ', '.join(
+            '%s=%d' % (v.name, v.number) for v in enum.value)))
+    for message in fd.message_type:
+        out.append('   message %s' % message.name)
+        for field in message.field:
+            label = 'repeated ' if field.label == 3 else ''
+            kind = field.type_name or str(field.type)
+            out.append('      %-4d %s%-30s %s' % (
+                field.number, label, field.name, kind))
+    return '\n'.join(out)
 
 
 def main():
-    # Candidate starts: every occurrence of a plausible name field.
-    cands = set()
-    for m in re.finditer(rb'\x0a[\x10-\x50][A-Za-z0-9_./\-]{3,60}\.proto', data):
-        cands.add(m.start())
-    print(f'candidates: {len(cands)}', flush=True)
+    data = open(DLL, 'rb').read()
+    print('DLL: %s (%d Bytes)\n' % (DLL, len(data)))
+    found = collect(data)
+    print('%d eindeutige FileDescriptorProtos\n' % len(found))
 
-    best = {}
-    for k, st in enumerate(sorted(cands)):
-        r = try_parse(st)
-        if not r:
-            continue
-        fd, end = r
-        prev = best.get(fd.name)
-        if prev is None or len(fd.SerializeToString()) > len(prev.SerializeToString()):
-            best[fd.name] = fd
-    print(f'parsed unique descriptors: {len(best)}', flush=True)
+    total_messages = total_fields = total_services = total_enums = 0
+    for _key, (at, length, fd) in sorted(found.items(), key=lambda kv: kv[1][2].name):
+        total_messages += len(fd.message_type)
+        total_fields += sum(len(m.field) for m in fd.message_type)
+        total_services += len(fd.service)
+        total_enums += len(fd.enum_type)
+        svc = ', '.join('%s(%d rpc)' % (s.name, len(s.method)) for s in fd.service)
+        print('%-46s %6d B @ %-10d %2d msg %2d enum  %s' % (
+            fd.name, length, at, len(fd.message_type), len(fd.enum_type), svc))
 
-    # ---- build catalogue ----
-    cat = {}
-    for name, fd in sorted(best.items()):
-        entry = {
-            'file': name,
-            'package': fd.package,
-            'deps': list(fd.dependency),
-            'syntax': fd.syntax,
-            'messages': [],
-            'enums': [],
-            'services': [],
-        }
-        for mt in fd.message_type:
-            msg = {'name': mt.name, 'fields': [], 'nested': []}
-            for f in mt.field:
-                msg['fields'].append({
-                    'no': f.number,
-                    'name': f.name,
-                    'type': descriptor_pb2.FieldDescriptorProto.Type.Name(f.type),
-                    'type_name': f.type_name.lstrip('.') if f.type_name else '',
-                    'label': descriptor_pb2.FieldDescriptorProto.Label.Name(f.label),
-                })
-            for nt in mt.nested_type:
-                msg['nested'].append(nt.name)
-            entry['messages'].append(msg)
-        for en in fd.enum_type:
-            entry['enums'].append({
-                'name': en.name,
-                'values': [{'no': v.number, 'name': v.name} for v in en.value],
-            })
-        for sv in fd.service:
-            svc = {'name': sv.name, 'methods': []}
-            for m in sv.method:
-                svc['methods'].append({
-                    'name': m.name,
-                    'input': m.input_type.lstrip('.'),
-                    'output': m.output_type.lstrip('.'),
-                })
-            entry['services'].append(svc)
-        cat[name] = entry
+    print('\nSumme: %d Dateien, %d Messages, %d Felder, %d Enums, %d Services' % (
+        len(found), total_messages, total_fields, total_enums, total_services))
 
-    with open(OUT_JSON, 'w', encoding='utf-8') as fh:
-        json.dump(cat, fh, indent=1, ensure_ascii=False)
-    print(f'wrote {OUT_JSON}', flush=True)
+    if '--json' in sys.argv:
+        blob = {}
+        for _key, (_at, _length, fd) in found.items():
+            blob[fd.name] = json.loads(
+                __import__('google.protobuf.json_format', fromlist=['x'])
+                .MessageToJson(fd))
+        with open(OUT, 'w', encoding='utf-8') as fh:
+            json.dump(blob, fh, indent=1, sort_keys=True)
+        print('geschrieben:', OUT)
 
-    # ---- markdown ----
-    lines = ['# Protobuf-Schema-Katalog (aus studio_worker.dll)', '']
-    lines.append(f'{len(cat)} Descriptor-Dateien, extrahiert aus den eingebetteten '
-                 'FileDescriptorProto-Blobs.')
-    lines.append('')
-    tot_msg = sum(len(v['messages']) for v in cat.values())
-    tot_enum = sum(len(v['enums']) for v in cat.values())
-    tot_svc = sum(len(v['services']) for v in cat.values())
-    lines.append(f'**Summe:** {tot_msg} Messages, {tot_enum} Enums, {tot_svc} Services')
-    lines.append('')
-    for name, e in cat.items():
-        lines.append(f'## `{name}`')
-        lines.append(f'package `{e["package"]}` · syntax `{e["syntax"] or "proto2"}`')
-        if e['deps']:
-            lines.append('deps: ' + ', '.join(f'`{d}`' for d in e['deps']))
-        lines.append('')
-        for sv in e['services']:
-            lines.append(f'### Service `{sv["name"]}`')
-            for m in sv['methods']:
-                lines.append(f'- `{m["name"]}`({m["input"]}) → {m["output"]}')
-            lines.append('')
-        for msg in e['messages']:
-            lines.append(f'### Message `{msg["name"]}`')
-            for f in msg['fields']:
-                tn = f' ({f["type_name"]})' if f['type_name'] else ''
-                lines.append(f'- {f["no"]}: `{f["name"]}` {f["type"]}{tn} [{f["label"]}]')
-            if msg['nested']:
-                lines.append(f'- nested: {", ".join(msg["nested"])}')
-            lines.append('')
-        for en in e['enums']:
-            lines.append(f'### Enum `{en["name"]}`')
-            for v in en['values']:
-                lines.append(f'- {v["no"]} = `{v["name"]}`')
-            lines.append('')
-    with open(OUT_MD, 'w', encoding='utf-8') as fh:
-        fh.write('\n'.join(lines))
-    print(f'wrote {OUT_MD}', flush=True)
+    if '--dump' in sys.argv:
+        want = sys.argv[sys.argv.index('--dump') + 1]
+        print()
+        for _key, (_at, _length, fd) in sorted(
+                found.items(), key=lambda kv: kv[1][2].name):
+            if want in fd.name or any(want in s.name for s in fd.service):
+                print('=' * 78)
+                print(describe(fd))
+                print()
 
 
 if __name__ == '__main__':

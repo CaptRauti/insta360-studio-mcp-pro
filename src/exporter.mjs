@@ -156,6 +156,8 @@ export function buildExportHeader({
   bitrate = "",
   width = 0,
   height = 0,
+  extraDataReqList = [],
+  materialList = [],
 } = {}) {
   const parts = [];
   if (taskId) parts.push(fieldString(1, taskId));
@@ -168,6 +170,55 @@ export function buildExportHeader({
   if (bitrate) parts.push(fieldString(8, bitrate));
   if (width) parts.push(fieldInt(9, width));
   if (height) parts.push(fieldInt(10, height));
+  for (const item of extraDataReqList) {
+    parts.push(fieldBytes(11, buildExtraDataReqItem(item)));
+  }
+  for (const item of materialList) {
+    parts.push(fieldBytes(12, buildMaterialItem(item)));
+  }
+  return Buffer.concat(parts);
+}
+
+/**
+ * ExtraDataReqItem — extraType=1, valueType=2, value=3, fileName=4,
+ * businessSource=5, source=6, transitionType=7, localFilePath=8.
+ * This is where auxiliary inputs (LUTs, dashboard data, GPX tracks) are named.
+ */
+export function buildExtraDataReqItem({
+  extraType = "",
+  valueType = "",
+  value = "",
+  fileName = "",
+  businessSource = "",
+  source = "",
+  transitionType = "",
+  localFilePath = "",
+} = {}) {
+  const parts = [];
+  if (extraType) parts.push(fieldString(1, extraType));
+  if (valueType) parts.push(fieldString(2, valueType));
+  if (value) parts.push(fieldString(3, value));
+  if (fileName) parts.push(fieldString(4, fileName));
+  if (businessSource) parts.push(fieldString(5, businessSource));
+  if (source) parts.push(fieldString(6, source));
+  if (transitionType) parts.push(fieldString(7, transitionType));
+  if (localFilePath) parts.push(fieldString(8, localFilePath));
+  return Buffer.concat(parts);
+}
+
+/**
+ * MaterialItem — index=1, type=2, value=3.
+ *
+ * ExportParams carries no media path anywhere else: LocalVideoExportParam has
+ * only a clipIndex, and CloudExportData is the project model. So this list is
+ * the one place a source file can be named, which is what the service needs to
+ * find the footage it is asked to export.
+ */
+export function buildMaterialItem({ index = 0, type = "", value = "" } = {}) {
+  const parts = [];
+  if (index) parts.push(fieldInt(1, index));
+  if (type) parts.push(fieldString(2, type));
+  if (value) parts.push(fieldString(3, value));
   return Buffer.concat(parts);
 }
 

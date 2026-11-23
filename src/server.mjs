@@ -342,17 +342,29 @@ tool(
     description:
       "Start an export through Studio's Exporter2 gRPC service. Builds the verified ExportParams tree " +
       "(exportHeader + localExtraParams{exportType, videoExportParam[], imageExportParam{sourceGroup}}) " +
-      "and returns the decoded ExportReply (state, errCode, message, logPath). Studio must be running.",
+      "and returns the decoded ExportReply (state, errCode, message, logPath). Studio must be running. " +
+      "Photo/image types name their source directly and work with nothing loaded; VIDEO and VIDEO_CLIP " +
+      "resolve footage from the project open in Studio, so they fail with EXPORTER_START_FAILURE otherwise.",
     inputSchema: {
       sources: z.array(z.string()).describe("Absolute source file paths to export"),
-      savePath: z.string().describe("Destination directory"),
+      savePath: z.string().describe("Destination directory — the exporter writes the file inside it"),
       exportName: z.string().optional().describe("Name for the export job"),
       taskId: z.string().optional().describe("Task id (generated when omitted)"),
       exportType: z
         .number()
         .int()
         .optional()
-        .describe("ExportType enum: 1=PHOTO, 2=VIDEO, 3=DNG_TO_DNG, 4=PANO_ANIMATION, 5=STAR_TRAIL, 6=TIMELAPSE, 7=BULLET_TIME, 9=VIDEO2, 10=VIDEO_CLIP, 31=PANO_VIDEO"),
+        .describe(
+          "ExportType: 0=PHOTO, 1=DNG_TO_DNG, 2=DNG_TO_JPG, 3=DNG_WITH_JPG, 4=NO_EXTRA_INFO_DNG_EXPORT, " +
+            "5=JPG_SEQUENCE, 6=DNG_SEQUENCE_DNG, 7=DNG_SEQUENCE_JPG, 8=DNG_SEQUENCE_DNG_WITH_JPG, " +
+            "9=VIDEO, 10=VIDEO_CLIP, 11=DEMUX_TO_JPEG, 12=SEQUENCE, 13=MUX_TO_VIDEO, " +
+            "14=MUX_TO_PURESHOT_VIDEO, 15=MERGED_MIX, 16=MERGED_ONLY, 17=DNG_MERGED_JPG, " +
+            "18=DNG_MERGED_DNG, 19=DNG_MERGED_EXR, 20=JPG_MERGED, 21=JPG_MERGED_GROUP, " +
+            "22=DNG_MERGED_GROUP, 23=DNG_MERGED_GROUP_DNG, 24=SOURCE_CLIP, 25=PANO_PIC_ANIMATION, " +
+            "26=PANO_PIC_ANIMATION_PRESET, 27=STAR_TRAIL_VIDEO, 28=STAR_TRAIL_PHOTO, " +
+            "29=VIDEO_TO_JPEG_SEQUENCE, 30=PROJECT_COVER_PHOTO, 31=PANO_VIDEO. " +
+            "Types 0-8 and 11 accept a source named here; 9 and 10 need the project loaded",
+        ),
       stitchType: z.number().int().optional().describe("StitchType: 0=TEMPLATE, 1=DYNAMIC, 2=OPTICAL, 3=AI"),
       stabType: z.number().int().optional().describe("StabilizationType: 0=NONE, 1=FLOWSTATE, 2=FPV"),
       stabLevel: z.number().int().optional().describe("Stabilization strength 0-100"),

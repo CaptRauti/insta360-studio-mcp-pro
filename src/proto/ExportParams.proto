@@ -1,0 +1,240 @@
+syntax = "proto3";
+
+package service.Export2;
+
+import "ins_cloud_export_data.proto";
+import "ins_export_information.proto";
+import "google/protobuf/wrappers.proto";
+
+enum ExportType {
+  PHOTO = 0;
+  DNG_TO_DNG = 1;
+  DNG_TO_JPG = 2;
+  DNG_WITH_JPG = 3;
+  NO_EXTRA_INFO_DNG_EXPORT = 4;
+  JPG_SEQUENCE = 5;
+  DNG_SEQUENCE_DNG = 6;
+  DNG_SEQUENCE_JPG = 7;
+  DNG_SEQUENCE_DNG_WITH_JPG = 8;
+  VIDEO = 9;
+  VIDEO_CLIP = 10;
+  DEMUX_TO_JPEG = 11;
+  SEQUENCE = 12;
+  MUX_TO_VIDEO = 13;
+  MUX_TO_PURESHOT_VIDEO = 14;
+  MERGED_MIX = 15;
+  MERGED_ONLY = 16;
+  DNG_MERGED_JPG = 17;
+  DNG_MERGED_DNG = 18;
+  DNG_MERGED_EXR = 19;
+  JPG_MERGED = 20;
+  JPG_MERGED_GROUP = 21;
+  DNG_MERGED_GROUP = 22;
+  DNG_MERGED_GROUP_DNG = 23;
+  SOURCE_CLIP = 24;
+  PANO_PIC_ANIMATION = 25;
+  PANO_PIC_ANIMATION_PRESET = 26;
+  STAR_TRAIL_VIDEO = 27;
+  STAR_TRAIL_PHOTO = 28;
+  VIDEO_TO_JPEG_SEQUENCE = 29;
+  PROJECT_COVER_PHOTO = 30;
+  PANO_VIDEO = 31;
+  INVALID_EXPORT_TYPE = 32;
+  PLACE_HOLDER_TYPE = 33;
+}
+
+enum StarTrailType {
+  LONG = 0;
+  MEDIUM = 1;
+  SHORT = 2;
+}
+
+enum DewarpTypeMode {
+  kDistortionReserved = 0;
+  kDistortionRemoved = 1;
+}
+
+enum StabilizationType {
+  kFlowState = 0;
+  kFPV = 1;
+}
+
+enum StitchType {
+  STITCH_TEMPLATE = 0;
+  STITCH_DYNAMIC = 1;
+  STITCH_OPTICAL = 2;
+  STITCH_AI = 3;
+}
+
+message LocalVideoExportParam {
+  bool enableDeflicker = 1;
+  bool enableApmp = 2;
+  string timeCode = 3;
+  bool isCloudFootage = 4;
+  string cloudMediaInfoJson = 5;
+  string cloudPreviewUrl = 6;
+  int32 clipIndex = 7;
+  repeated string loopVideoJsonContent = 8;
+  double srcTotalDurationMs = 9;
+  StitchType stitch_type = 10;
+  bool enable_image_fusion = 11;
+  bool enable_gpx_export = 12;
+  ExportInfoLogoInfo logo_info = 13;
+  Int32Value dewarp_type = 14;
+  Int32Value stab_level = 15;
+  StabilizationType stab_type = 16;
+  bool enable_direction_lock = 17;
+  bool enable_pano_fpv = 18;
+  bool enable_immersion = 19;
+  bool enable_head_track = 20;
+  bool enable_camera_move = 21;
+  bool enable_stab = 22;
+  DashboardExtra dashboard_extra = 23;
+  bool enable_flat_logo = 24;
+  FlatLogoInfo flat_logo_info = 25;
+  int32 real_userrotationdegree = 26;
+  int32 propeller_guard_status = 27;
+  bool enable_cold_shoe = 28;
+  bool enable_cooling_shell = 29;
+  string cloud_still_quat_path = 30;
+  string cloud_immersion_quat_path = 31;
+  double screenshot_target_time_ms = 32;
+  int32 photo_group_type = 33;
+  bool enable_bottom_stitching_optimize = 34;
+  int32 accessory_type = 35;
+  float custom_blend_angle = 36;
+}
+
+message SourceGroup {
+  repeated string sourceFile = 1;
+  int32 source_group_type = 2;
+  string group_identifier = 3;
+  int32 group_start_index = 4;
+  repeated string dest_file_name = 5;
+}
+
+message LogoInfo {
+  string logo_path = 1;
+  float logo_size = 2;
+  int32 logo_location = 3;
+  int32 logo_corner_radius = 4;
+  int32 logo_feather = 5;
+  int32 logo_rotate = 6;
+}
+
+message FlatLogoInfo {
+  string flat_logo_path = 1;
+  int32 flat_logo_transparency = 2;
+  int32 flat_logo_location = 3;
+  bool is_cn = 4;
+}
+
+message DashboardExtraFrame {
+  double timestampMs = 1;
+  double horizontalSpeed = 2;
+  double aboveGroundHeight = 3;
+}
+
+message DashboardExtra {
+  repeated DashboardExtraFrame frames = 1;
+  double accelerationMin = 2;
+  double verticalSpeedMin = 3;
+  double horizontalSpeedMax = 4;
+  double horizontalSpeedMin = 5;
+  double aboveGroundHeightMax = 6;
+}
+
+message Quaternion {
+  float w = 1;
+  float x = 2;
+  float y = 3;
+  float z = 4;
+}
+
+message StitchingSetting {
+  int32 stabilization_level = 1;
+  int32 shelltype = 2;
+  string optimizedoffset = 3;
+  bool enableimagefusion = 4;
+  bool enable_ai_stitching = 5;
+  bool enable_dynamic_stitching = 6;
+  bool enable_optical_flowstitching = 7;
+  bool enable_coldshoe = 8;
+  bool enable_cooling_shell = 9;
+  float custom_blend_angle = 10;
+  string de_version = 11;
+  bool enable_logo = 12;
+  bool enable_remove_grain = 13;
+  int32 stab_input_data_type = 14;
+  uint32 projection_layout = 15;
+  LogoInfo logo_info = 16;
+  StabilizationType stabilizationType = 17;
+  bool enable_bottom_stitching_optimize = 18;
+  bool enable_ai_stitching_3_0 = 19;
+}
+
+message LocalImageExportParam {
+  enum IntervalMergeStabType {
+    kStationary = 0;
+    kMotion = 1;
+  }
+  StarTrailType starTrailType = 1;
+  SourceGroup sourceGroup = 2;
+  int32 view_mode = 3;
+  IntervalMergeStabType interval_merge_stab_type = 4;
+  StitchingSetting stitching = 5;
+  double start_in_second = 6;
+  int64 video_clip_id = 7;
+  repeated Quaternion quaternions = 8;
+  bool ai_raw_enable = 9;
+  repeated int32 pano_animation_transitions = 10;
+}
+
+message LocalVideoFxZOrder {
+  int32 positionZ = 1;
+}
+
+message LocalExtraParams {
+  ExportType exportType = 1;
+  repeated LocalVideoExportParam videoExportParam = 2;
+  LocalImageExportParam imageExportParam = 3;
+  repeated LocalVideoFxZOrder videoFxZOrder = 4;
+}
+
+message ExtraDataReqItem {
+  string extraType = 1;
+  string valueType = 2;
+  string value = 3;
+  string fileName = 4;
+  string businessSource = 5;
+  string source = 6;
+  string transitionType = 7;
+  string localFilePath = 8;
+}
+
+message MaterialItem {
+  int32 index = 1;
+  string type = 2;
+  string value = 3;
+}
+
+message ExportHeader {
+  string taskId = 1;
+  string exportName = 2;
+  string savePath = 3;
+  string protoMd5 = 4;
+  string protoName = 5;
+  int64 videoDuration = 6;
+  string framerate = 7;
+  string bitrate = 8;
+  int32 width = 9;
+  int32 height = 10;
+  repeated ExtraDataReqItem extraDataReqList = 11;
+  repeated MaterialItem materialList = 12;
+}
+
+message ExportParams {
+  ExportHeader exportHeader = 1;
+  CloudExportData mainParams = 2;
+  LocalExtraParams localExtraParams = 3;
+}

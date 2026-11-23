@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package service.Export2;
+
+import "ExportParams.proto";
+
+message HeartBeat {
+  int64 count = 1;
+  bool exit_app = 2;
+}
+
+message ExportReplyInfo {
+  repeated float defringe_rate_list = 1;
+  string export_perf_et = 2;
+  int32 clip_index = 3;
+  string thumbnail_path = 4;
+}
+
+message ExportReply {
+  string uuid = 1;
+  float export_progress = 2;
+  int32 state_code = 3;
+  int32 err_code = 4;
+  string err_info = 5;
+  string log_path = 6;
+  ExportReplyInfo reply_info = 7;
+}
+
+message CancelInfo {
+  string uuid = 1;
+}
+
+service Export2 {
+  rpc StartExporting(ExportParams) returns (ExportReply);
+  rpc ExporterCancel(CancelInfo) returns (CancelInfo);
+  rpc SendHeartBeatPackage(HeartBeat) returns (HeartBeat);
+}

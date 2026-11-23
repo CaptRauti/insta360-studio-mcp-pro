@@ -10,11 +10,14 @@
   "scripts": {
     "start": "node src/server.mjs",
     "check": "node --check src/server.mjs && node --check src/ui.mjs && node --check src/png.mjs && node --check src/exporter.mjs && node --check src/project.mjs && node --check src/camera.mjs && node --check src/studio-path.mjs && node --check src/ocr.mjs",
-    "test": "node --test tests/wire.test.mjs tests/camera.test.mjs tests/ocr.test.mjs",
+    "test": "node --test tests/wire.test.mjs tests/camera.test.mjs tests/ocr.test.mjs tests/export-request.test.mjs",
     "probe": "node tests/probe.mjs",
     "probe:ui": "node tests/ui-probe.mjs",
     "probe:export": "node tests/ui-export-probe.mjs",
-    "probe:ocr": "node tests/ui-ocr-probe.mjs"
+    "probe:ocr": "node tests/ui-ocr-probe.mjs",
+    "probe:grpc-export": "node tests/grpc-export-once.mjs",
+    "probe:grpc-types": "node tests/grpc-export-image.mjs",
+    "probe:grpc-material": "node tests/grpc-export-material.mjs"
   },
   "keywords": [
     "mcp",

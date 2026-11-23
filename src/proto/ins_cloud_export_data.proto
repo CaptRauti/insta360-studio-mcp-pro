@@ -1,13 +1,295 @@
-// ins_cloud_export_data.proto — NOT shipped as its own descriptor in the DLL.
-// Shape reconstructed from the plain-text schema strings in the binary.
-// Field numbers are best-effort; the service only reads it on the
-// "project exporter" path (mainParams != null).
 syntax = "proto3";
 
 package insta360.cloud.message;
 
+import "ins_cloud_export_filter.proto";
+import "ins_player_edit_data.proto";
+import "ins_export_information.proto";
+import "ins_cloud_special_effect.proto";
+import "google/protobuf/wrappers.proto";
+
+enum CutsceneType {
+  CUTSCENE_NONE = 0;
+  CUTSCENE_LOTTIE = 1;
+  CUTSCENE_PANO = 2;
+  CUTSCENE_MEISHE = 3;
+  CUTSCENE_OTHERS = 4;
+}
+
+enum ExporterTimeScaleType {
+  kDefaultValue = 0;
+  kInterpolateFinalFrame = 1;
+  kInterpolateFinalFrameAI = 2;
+  kInterpolateSourceFrame = 3;
+  kRepeatSingleSourceFrame = 4;
+}
+
+enum ClipAudioMode {
+  kNone = 0;
+  kDirectionFocus = 1;
+  kSpatialAudio360 = 3;
+  kInsDirectionFocus = 7;
+}
+
+enum RenderModelType {
+  AUTO = 0;
+  SPHERE_AUTO = 1;
+  SPHERE_STITCH = 2;
+  SPHERE_EQUIRECTANGULAR = 3;
+  SPHERE_FISHEYE_DEWARP = 4;
+  CUBE_TILE_PROJECTION = 5;
+  SPHERE_CUBEMAP = 6;
+  PLANE_CUBEMAP2EQUI = 7;
+  PLANE_AUTO = 10;
+  PLANE_STITCH = 11;
+  PLANE_EQUIRECTANGULAR = 12;
+  PLANE_FISHEYE_DEWARP = 13;
+  PLANE_STITCH_MERCATOR = 14;
+  PLANE_MERCATOR = 15;
+  PLANE = 20;
+  PLANE_REMAP_UV = 21;
+  MONO_SINGLE_FISHEYE = 34;
+}
+
+enum ProjectionType {
+  OMNI = 0;
+  PANINI = 1;
+}
+
+message CutsceneInfo {
+  double startTimeMs = 1;
+  double durationMs = 2;
+  CutsceneType cutsceneType = 3;
+  string uuid = 4;
+}
+
+message ExporterTimeScale {
+  double factor = 1;
+  double startTimeMs = 2;
+  double endTimeMs = 3;
+  double clipCutsceneDurationMediaMs = 4;
+  int32 motionBlurNum = 5;
+  double repeatToFps = 6;
+  bool videoKeyframeOnly = 7;
+  ExporterTimeScaleType scaleType = 8;
+  DoubleValue beginFactor = 9;
+  DoubleValue endFactor = 10;
+}
+
+message CaptureBeautyInfo {
+  float skinCareStrength = 1;
+  float blemishRemovalStrength = 2;
+}
+
+message SourceFileClipsInfo {
+  int32 clipindex = 1;
+  double startTimeMs = 2;
+  double endTimeMs = 3;
+  double endCutDurationMs = 4;
+  bool videoSilent = 5;
+  double useFrameCount = 6;
+  double audioVolume = 7;
+  ClipAudioMode clipAudioMode = 8;
+  repeated ExporterTimeScale exporterTimeScales = 9;
+  BoolValue enableAudioDenoise = 10;
+  DoubleValue audioDenoiseBgmWeight = 11;
+  DoubleValue audioDenoiseVoiceWeight = 12;
+  CutsceneInfo cutsceneInfo = 13;
+  DoubleValue videoDurationMs = 14;
+  int32 audioTrackCount = 15;
+  DoubleValue firstAudioMixWeight = 16;
+  Int32Value firstAudioTrackDelay = 17;
+  bool isAmbisonicOn = 18;
+  int32 audioAmbisonicNum = 19;
+  bool enableAiDenoiseWind = 20;
+  bool enableVoiceEnhance = 21;
+  bool enableAEFilter = 22;
+  bool enablePostSharpenFilter = 23;
+  double originAudioAfadeInMs = 24;
+  double originAudioAfadeOutMs = 25;
+  bool enableCaptureBeautyMode = 26;
+  CaptureBeautyInfo captureBeautyInfo = 27;
+}
+
+message SourceImageClipsInfo {
+  int32 clipindex = 1;
+  string resouceid = 2;
+  double durationMs = 3;
+  double endCutDurationMs = 4;
+  int32 useFrameCount = 5;
+}
+
+message SourceAudioEffectClipInfo {
+  string resouceid = 1;
+  double positionInMediaTimeMs = 2;
+  double startSrcTimeMs = 3;
+  double endSrcTimeMs = 4;
+  double totalSrcDurationMs = 5;
+  double volume = 6;
+  double afadeInDurationMs = 7;
+  double afadeOutDurationMs = 8;
+  double weight = 9;
+}
+
+message SourceBGMClipsInfo {
+  string resouceid = 1;
+  double positionInMediaTimeMs = 2;
+  double startSrcTimeMs = 3;
+  double endSrcTimeMs = 4;
+  double totalSrcDurationMs = 5;
+  double volume = 6;
+  double afadeInDurationMs = 7;
+  double afadeOutDurationMs = 8;
+  bool loop = 9;
+}
+
+message HorizontalCorrectorInfo {
+  int32 srcWidth = 1;
+  int32 srcHeight = 2;
+  float maxCorrectAngle = 3;
+  float dstAspectRatio = 4;
+  double rollAngle = 5;
+  double scaleRate = 6;
+}
+
+message ClipRenderInfo {
+  int32 clipindex = 1;
+  Int32Value stabType = 2;
+  RenderModelType renderModelType = 3;
+  DoubleValue autoFovRange = 4;
+  BoolValue useMianOrientationWhileStabOff = 5;
+  StringValue offset = 6;
+  BoolValue useGravityCalib = 7;
+  Int32Value povMode = 8;
+  Int32Value userRotationDegree = 9;
+  HorizontalCorrectorInfo horizontalCorrectorInfo = 10;
+  Int32Value contentMode = 11;
+  Int32Value cameraFacing = 12;
+  Int32Value stabProjectType = 13;
+  DoubleValue stabBoundaryRedundancyRate = 14;
+  DoubleValue relativeHorizonThreshold = 15;
+}
+
+message ClipDefaultViewData {
+  int32 clipindex = 1;
+  ViewData defaultViewData = 2;
+  AspectRatio defaultAspect = 3;
+}
+
+message MultiViewInfo {
+  message RectInfo {
+    float x = 1;
+    float y = 2;
+    float width = 3;
+    float height = 4;
+  }
+  message SubViewInfo {
+    RectInfo subViewRectInfo = 1;
+    repeated ViewData subViewData = 2;
+    repeated float radiusRatio = 3;
+    double featherRatio = 4;
+  }
+  RectInfo mainView = 1;
+  RectInfo subView = 2;
+  double startTimeMs = 3;
+  double endTimeMs = 4;
+  repeated ViewData subViewData = 5;
+  Int32Value smoothWinLen = 6;
+  repeated SubViewInfo subViewInfo = 7;
+  Int32Value mode = 8;
+  repeated float radiusRatio = 9;
+  double featherRatio = 10;
+}
+
+message MultiViewData {
+  int32 clipIndex = 1;
+  repeated MultiViewInfo multiViewInfo = 2;
+  ViewData defaultSubView = 3;
+}
+
+message BigBoomInfo {
+  int32 clipIndex = 1;
+  string jsonfilm = 2;
+  string jsonadj = 3;
+}
+
+message ShareExtraInfo {
+  string viewData = 1;
+}
+
+message BaseSegment {
+  repeated ClipDefaultViewData clipDefaultViewData = 1;
+  repeated ProjectSegment projectSegment = 2;
+  repeated ClipRenderInfo clipRenderInfo = 3;
+  repeated FilterInfoList filterInfoList = 4;
+  repeated MultiViewData multiViewData = 5;
+  repeated BigBoomInfo bigboominfo = 6;
+  repeated bool forceSrcAnimationClips = 7;
+  repeated ClipProjectiveInfo clipProjectiveInfo = 8;
+  ShareExtraInfo shareExtraInfo = 9;
+  repeated ClipProjectiveInfoV2 clipProjectiveInfoV2 = 10;
+}
+
+message SourceBGMConfig {
+  repeated SourceBGMClipsInfo bgmclipsinfo = 1;
+  DoubleValue bgmWeight = 2;
+}
+
+message ProjectiveReqParam {
+  ProjectionType type = 1;
+  bool useCustomParam = 2;
+  float startXFovDeg = 3;
+  float startDistance = 4;
+  float endXFovDeg = 5;
+  float endDistance = 6;
+}
+
+message ClipProjectiveInfo {
+  int32 clipindex = 1;
+  ProjectiveReqParam param = 2;
+}
+
+message EyePointInfo {
+  float fov = 1;
+  float distance = 2;
+  float ratio = 3;
+  float modelAlpha = 4;
+}
+
+message EyePointfovType {
+  int32 type = 1;
+}
+
+message ProjectiveReqParamV2 {
+  bool useInterpCurve = 1;
+  float aspect = 2;
+  double startRealYFovDegree = 3;
+  double endRealYFovDegree = 4;
+  repeated EyePointInfo eyePoints = 5;
+  bool isDewarp = 6;
+  EyePointfovType fovtype = 7;
+}
+
+message ClipProjectiveInfoV2 {
+  int32 clipindex = 1;
+  ProjectiveReqParamV2 param = 2;
+}
+
+message TemplateInfo {
+  int32 templateId = 1;
+}
+
 message CloudExportData {
-  string projectName = 1;
-  string projectPath = 2;
-  repeated string materialList = 3;
+  int32 version = 1;
+  DataSource source = 2;
+  string projectName = 3;
+  ExportInformation exportinfo = 4;
+  repeated SourceFileClipsInfo fileclipinfo = 5;
+  repeated SourceImageClipsInfo imageclipinfo = 6;
+  repeated SourceAudioEffectClipInfo audioclipinfo = 7;
+  SourceBGMConfig bgmclipsconfig = 8;
+  BaseSegment baseSegment = 9;
+  SpecialEffectList specialEffectList = 10;
+  TemplateInfo templateInfo = 11;
+  string clientVersion = 12;
 }

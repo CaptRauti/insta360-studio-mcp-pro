@@ -1,0 +1,167 @@
+syntax = "proto3";
+
+package insta360.cloud.message;
+
+import "google/protobuf/wrappers.proto";
+import "ins_cloud_export_dashboard.proto";
+
+enum VideoType {
+  NORMALMP4 = 0;
+  FRAGMENTMP4 = 1;
+}
+
+enum CodecId {
+  NONECODEC = 0;
+  H264 = 27;
+  H265 = 173;
+  PRORES = 147;
+}
+
+enum ChannelLayout {
+  NONE = 0;
+  MONO = 1;
+  STEREO = 2;
+  SURROUND4POINT0 = 3;
+}
+
+enum ExMatColorType {
+  RGBA = 0;
+  YUV_I420 = 1;
+}
+
+message ExportInfox264EncodeOption {
+  string x264Preset = 1;
+  string videoEncoderProfile = 2;
+  string videoEncodeTune = 3;
+  int32 videoLevel = 4;
+}
+
+message EnumCodecIdValue {
+  CodecId value = 1;
+}
+
+message ExportInfoVideoEncodeOption {
+  Int32Value encFormat = 1;
+  int32 width = 2;
+  int32 height = 3;
+  int32 bitrate = 4;
+  bool is3DLeftRight = 5;
+  bool isSpherical = 6;
+  VideoType videoType = 7;
+  int32 videoGopSize = 8;
+  double fps = 9;
+  string metadataMake = 10;
+  string metadataModel = 11;
+  string metadataComment = 12;
+  ExportInfox264EncodeOption exportInfox264EncodeOption = 13;
+  EnumCodecIdValue codecid = 14;
+  BoolValue enableSdrToHdr10 = 15;
+  string creationTime = 16;
+  string metadataAIGC = 17;
+  BoolValue bitDepth10Export = 18;
+  BoolValue enableHLG = 19;
+  BoolValue enableDolbyVision = 20;
+  Int32Value colorRange = 21;
+  Int32Value colorSpace = 22;
+}
+
+message ExportInfoAudioEncodeOption {
+  int32 audioBitrate = 1;
+  int32 sampleRate = 2;
+  int32 nbSample = 3;
+  ChannelLayout channelLayout = 4;
+}
+
+message BlockDenoiseParamMapping {
+  double iso = 1;
+  int32 refCount = 2;
+  int32 thresholdLum = 3;
+  int32 limit = 4;
+}
+
+message ChromaDenoiseParam {
+  float applyISOValue = 1;
+  float exitISOValue = 2;
+}
+
+message BlockDenoiseParam {
+  int32 clipindex = 1;
+  repeated BlockDenoiseParamMapping isoMaps = 2;
+  ChromaDenoiseParam chromaDenoiseParam = 3;
+}
+
+message BlockDenoiseParamV2 {
+  int32 clipindex = 1;
+  string denoiseTableType = 2;
+  BoolValue isFast = 3;
+  Int32Value overlap = 4;
+}
+
+message ExportInfoDenoiseSettings {
+  bool enableDenoise = 1;
+  Int32Value denosieType = 2;
+  repeated BlockDenoiseParam blockDenoiseParam = 3;
+  repeated BlockDenoiseParamV2 blockDenoiseParamV2 = 4;
+  BoolValue autoDenoise = 5;
+}
+
+message ExportInfoWaterMark {
+  int32 x = 1;
+  int32 y = 2;
+  int32 w = 3;
+  int32 h = 4;
+  double waterMarkEndTime = 5;
+  string resouceid = 6;
+}
+
+message ExportInfoLogoInfo {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+  float size = 4;
+  bool enableLogoFeature = 5;
+  string resouceid = 6;
+  float cornerRadius = 7;
+  float feather = 8;
+  float rotate = 9;
+}
+
+message ExportInfoEdgeInfo {
+  int32 edgeLeft = 1;
+  int32 edgeTop = 2;
+  int32 edgeRight = 3;
+  int32 edgeBottom = 4;
+}
+
+message ExportInfoClearColor {
+  float r = 1;
+  float g = 2;
+  float b = 3;
+  float a = 4;
+}
+
+message ExportInfoOtherInfoOption {
+  bool tailClear = 1;
+  bool enableStarrySky = 2;
+  bool enableDashboard = 3;
+  Int32Value renderFormat = 4;
+  repeated DashboardInfo dashBoardInfo = 5;
+}
+
+message ExportInformation {
+  bool isTurnBack = 1;
+  bool enableX264Decoder = 2;
+  ExMatColorType convertType = 3;
+  bool isProject = 4;
+  double outputAudioAfadeOutDuration = 5;
+  ExportInfoVideoEncodeOption videoEncodeOption = 6;
+  ExportInfoAudioEncodeOption audioEncodeOption = 7;
+  ExportInfoDenoiseSettings denoiseSettings = 8;
+  ExportInfoWaterMark waterMark = 9;
+  ExportInfoLogoInfo logo = 10;
+  ExportInfoEdgeInfo edgeInfo = 11;
+  ExportInfoClearColor clearColor = 12;
+  ExportInfoOtherInfoOption otherInfoOption = 13;
+  bool isUserChangeAspect = 14;
+  repeated ExportInfoWaterMark waterMarks = 15;
+}
