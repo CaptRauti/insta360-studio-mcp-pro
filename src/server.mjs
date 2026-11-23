@@ -72,7 +72,7 @@ import {
 } from "./camera.mjs";
 import { studioDir, studioExe, studioInfo } from "./studio-path.mjs";
 import { findText, ocrImage } from "./ocr.mjs";
-import { closeControl, isTextBox, openControl, readDialog, selectOption, setText } from "./export-dialog.mjs";
+import { closeControl, isPickerField, isTextBox, openControl, readDialog, selectOption, setText } from "./export-dialog.mjs";
 
 // The install directory is resolved at call time (see studio-path.mjs): Studio
 // 6.0.9 moved from Program Files to %LOCALAPPDATA%\Insta360\Apps, and the old
@@ -849,7 +849,11 @@ tool(
           value: dialog.fields[control]?.value ?? null,
           click: dialog.fields[control]?.click ?? null,
           isTextBox: true,
-          note: "text field -- set it with studio_ui_export_set, which types into it",
+          picker: isPickerField(control),
+          note: isPickerField(control)
+            ? `chosen in a modal folder picker ("Ordner öffnen"), which is not driven yet -- and which, while ` +
+              `open, swallows every click and keystroke, so it must be cancelled before anything else is touched`
+            : "text field -- set it with studio_ui_export_set, which types into it",
         };
       }
       const opened = listOptions ? await openControl({ title: windowTitle, label: control }) : null;

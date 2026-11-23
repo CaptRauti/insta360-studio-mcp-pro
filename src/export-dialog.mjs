@@ -161,16 +161,31 @@ export function rowFor(ocr, label) {
 /**
  * The controls that are not list boxes, so they take a different code path.
  *
- * `Pfad` is measured, not assumed: clicking it changes not a single pixel of the
- * window (no caret, no selection), and no key ever reaches it — with plain
- * SendKeys or with the thread-attached `keysAt`. It is chosen through its folder
- * picker, so `setText` says exactly that instead of reporting a quiet no-change.
  * `Dateiname` is listed for the dialog variants that have the field at all; the
  * video dialog on 6.0.9 does not.
  */
 export const TEXT_FIELDS = ["Dateiname", "Pfad"];
 
 export const isTextBox = (label) => TEXT_FIELDS.includes(label);
+
+/**
+ * Controls that open a modal window instead of taking a value in place.
+ *
+ * Measured on 6.0.9: a click on `Pfad` opens a folder picker called
+ * "Ordner öffnen" — a native shell dialog owned by Studio. While it is up it
+ * swallows **every** click and keystroke, so the export dialog looks dead: its
+ * list boxes stop opening ("did not open in 4 clicks"), and pixel-diffing the
+ * dialog shows nothing, because PrintWindow of the parent does not include the
+ * picker. That is worth knowing before concluding a control ignores input —
+ * check for modal windows of the same process first.
+ *
+ * So this one is never clicked by the automation: the picker is where the value
+ * is chosen, and its own "Ordner:" field rejects a typed path with "Der
+ * Ordnername ist ungültig." Driving its list is not built yet.
+ */
+export const PICKER_FIELDS = ["Pfad"];
+
+export const isPickerField = (label) => PICKER_FIELDS.includes(label);
 
 /** Read every control in the dialog, plus the window rect. */
 export function readDialog({ title = "Insta360 Studio" } = {}) {
@@ -415,6 +430,19 @@ export async function selectOption({ title = "Insta360 Studio", label, text } = 
  * leaves them.
  */
 export async function setText({ title = "Insta360 Studio", label, text } = {}) {
+  if (isPickerField(label)) {
+    // Deliberately no click: this control opens a modal picker, and leaving one
+    // open is worse than not trying at all.
+    return {
+      ok: false,
+      label,
+      error: `"${label}" is chosen in a window of its own, not typed into`,
+      note:
+        "clicking it opens the modal folder picker \"Ordner öffnen\", which then swallows every click and " +
+        "keystroke until it is cancelled",
+    };
+  }
+
   const before = readDialog({ title });
   const row = before.fields[label];
   if (!row) {
@@ -447,9 +475,7 @@ export async function setText({ title = "Insta360 Studio", label, text } = {}) {
       after: now,
       changed: false,
       error: "the field did not take typed input",
-      note:
-        "measured on Studio 6.0.9: clicking this field changes nothing on screen either, so it is not " +
-        "keyboard-editable — Pfad is chosen with its folder picker",
+      note: "measured on Studio 6.0.9: this dialog's remaining text fields are not keyboard-editable",
     };
   }
   return { ok: true, label, requested: want, before: row.value, after: now, changed: true };
