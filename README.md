@@ -213,6 +213,72 @@ studio_ui_export { settings: { Voreinstellung: "4K", Kodierung: "H.264" } }
 
 ---
 
+---
+
+## Quiet mode — the operator keeps their machine (default)
+
+The GUI automation above is safest, and most reliable, when it touches nothing. The
+naive version of it fights whoever is sitting at the machine: it raises the window,
+puts the pointer on the button it is about to press, and drags the window back to a
+known position. Quiet mode is **on by default**; set `INSTA360_QUIET=0` to get the
+old behaviour back.
+
+| operation | loud (`INSTA360_QUIET=0`) | quiet (default) |
+| --- | --- | --- |
+| read the UI, wait for state | `SetForegroundWindow`, then capture | `PrintWindow` of a background window, pointer untouched |
+| click, double-click | `SetCursorPos` + `mouse_event` | `WM_LBUTTONDOWN`/`WM_LBUTTONUP` to the window under the point |
+| `studio_ui_click` with `text`, `studio_ui_type` | `SendKeys` on the system queue | `WM_CHAR` messages, addressed to the window |
+| `studio_ui_move` | moves the window | refuses (exit 3) and says how to allow it |
+| `studio_ui_keys` (chords) | `SendKeys` | refuses (exit 4) |
+| `studio_ui_focus` | raises the window | no-op unless `force: true` |
+
+Why chords are refused instead of translated: `SendKeys` pushes through the system
+keyboard queue, and the OS routes that to the focus of the *foreground* window. In
+quiet mode the foreground is the operator's own application, so a `Ctrl+E` on the
+way to the export dialog would be typed into their mail. `WM_CHAR` is addressed to
+the target window and cannot leak, so text is fine and chords are not. A caller
+that needs a chord — the export dialog's path field clears itself with `Ctrl+A` —
+has to avoid it (leave the dialog's folder alone and read back what it holds) or
+set `INSTA360_QUIET=0`.
+
+Measured while the operator was working in another application, with Studio on a
+second monitor (`research/quiet_probe.mjs` and `research/click_reach.mjs`, both
+checked in):
+
+```
+quiet=true
+window 1384x900 @ 2945,138 monitor=secondary foreground=false
+start                words= 56
+message-click "Musik" at 114,82
+  click result: {"child":1442140,"cx":114,"cy":82}
+after click          words= 99   <- the media library became the music library
+  diff start->after: 54852px
+clicking back on "Medien" at 53,82
+after back           words= 56
+  diff start->end: 0px  (0 = as found)
+
+start                 cursor=484,1439 fg="Outlook (PWA) - Gesendete Elemente"
+after windowInfo      cursor=484,1439 fg="Outlook (PWA) - Gesendete Elemente"
+  pointer+foreground unchanged: true
+readScreen            ok=true words=56
+  pointer+foreground unchanged: true
+```
+
+- **The click arrives by message, not through the pointer.** The panel really did
+  switch (54 852 pixels changed) and the click back restored the window exactly
+  (0 pixels), while the pointer never moved and the foreground stayed with the
+  operator's application. The message is addressed to the child window under the
+  point, and `Resolve-Child` refuses if that window belongs to another process, so
+  a race (the operator moved the window, something covers it) fails loudly instead
+  of clicking into somebody else's application.
+- **A background window's frame can lag one interaction behind**, because a window
+  that is not in the foreground is not composited. Reads are fine, but after an
+  interaction that changes the window, call `redraw()` (the `redraw` action) before
+  believing the capture; it forces an invalidate + update of the whole window.
+- **Studio exposes no UI Automation tree** — `uia.ps1` walking the RawView from the
+  window returns `COUNT=0` — so screenshots + OCR remain the only way to read it.
+  That is a property of the app, not a gap in this automation.
+
 ## Install
 
 ```bash

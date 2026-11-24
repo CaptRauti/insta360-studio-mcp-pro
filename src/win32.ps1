@@ -6,6 +6,11 @@
 #   ... -Action type -Text "abc"
 #   ... -Action focus
 #   ... -Action capture -Out C:\path\shot.png
+# -Quiet: never disturb the machine the user is working on. No cursor movement,
+# no foreground change, no restore of a minimised window, no move. Clicks are
+# delivered as WM_* messages to the window under the point, keys go to the
+# focused child through the attached input queue instead of the system queue.
+# ui.mjs sets this from INSTA360_QUIET, so the policy lives in one place.
 param(
   [Parameter(Mandatory=$true)][string]$Action,
   [string]$Title = "Insta360 Studio",
@@ -16,7 +21,8 @@ param(
   [string]$Text = "",
   [string]$Out = "",
   [int]$SleepMs = 120,
-  [switch]$Pin
+  [switch]$Pin,
+  [switch]$Quiet
 )
 
 $ErrorActionPreference = "Stop"
@@ -34,10 +40,12 @@ public class W32 {
   [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr h);
   [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RECT r);
   [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
   [DllImport("user32.dll")] public static extern void mouse_event(uint f, int dx, int dy, uint d, IntPtr e);
   [DllImport("user32.dll")] public static extern IntPtr FindWindowEx(IntPtr p, IntPtr c, string cls, string title);
   [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern IntPtr FindWindow(string cls, string title);
   [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
+  [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr h, uint msg, IntPtr w, IntPtr l);
   [DllImport("user32.dll")] public static extern bool PrintWindow(IntPtr h, IntPtr hdc, uint flags);
   [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, IntPtr extra);
   [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr h);
@@ -50,11 +58,18 @@ public class W32 {
   [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
   [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
   [DllImport("user32.dll")] public static extern IntPtr SetFocus(IntPtr h);
+  [DllImport("user32.dll")] public static extern IntPtr MonitorFromWindow(IntPtr h, uint flags);
+  [DllImport("user32.dll")] public static extern bool RedrawWindow(IntPtr h, IntPtr r, IntPtr hrgn, uint flags);
+  [DllImport("user32.dll")] public static extern bool UpdateWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool GetMonitorInfo(IntPtr m, ref MONITORINFO mi);
   [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool attach);
   [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
   public delegate bool EnumProc(IntPtr h, IntPtr l);
   [StructLayout(LayoutKind.Sequential)] public struct RECT { public int Left, Top, Right, Bottom; }
   [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
+  [StructLayout(LayoutKind.Sequential)] public struct MONITORINFO {
+    public int cbSize; public RECT rcMonitor; public RECT rcWork; public uint dwFlags;
+  }
 }
 "@
 if (-not ("W32" -as [type])) { Add-Type -TypeDefinition $sig }
@@ -63,6 +78,19 @@ function Get-WinRect([IntPtr]$h) {
   $r = New-Object W32+RECT
   [void][W32]::GetWindowRect($h, [ref]$r)
   return $r
+}
+
+function Get-MonitorInfo([IntPtr]$h) {
+  $mi = New-Object W32+MONITORINFO
+  $mi.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($mi)
+  $mon = [W32]::MonitorFromWindow($h, 2)   # MONITOR_DEFAULTTONEAREST
+  [void][W32]::GetMonitorInfo($mon, [ref]$mi)
+  return @{
+    handle = [int64]$mon
+    primary = (($mi.dwFlags -band 1) -eq 1)
+    left = $mi.rcMonitor.Left; top = $mi.rcMonitor.Top
+    right = $mi.rcMonitor.Right; bottom = $mi.rcMonitor.Bottom
+  }
 }
 
 function Find-Target {
@@ -94,7 +122,9 @@ if ($h -eq [IntPtr]::Zero) {
   exit 1
 }
 
-if ([W32]::IsIconic($h)) { [void][W32]::ShowWindow($h, 9) }
+# Restoring a minimised window would push it in front of the user's work, so in
+# quiet mode a minimised Studio is reported as such and the caller decides.
+if ([W32]::IsIconic($h)) { if (-not $Quiet) { [void][W32]::ShowWindow($h, 9) } }
 
 function Set-Foreground($hwnd) {
   # Bringing a window to the front from a background process is blocked two ways:
@@ -128,7 +158,73 @@ function Clear-Topmost($hwnd) {
   [void][W32]::SetWindowPos($hwnd, $HWND_NOTOPMOST, 0, 0, 0, 0, ($SWP_NOMOVE -bor $SWP_NOSIZE))
 }
 
+# The window under a point, with a guard: it must belong to the same process as
+# the target, so a race (the user moved the window, another app covers it) can
+# never click into somebody else's application.
+function Resolve-Child([IntPtr]$top, [int]$relX, [int]$relY) {
+  $rect = Get-WinRect $top
+  $pt = New-Object W32+POINT
+  $pt.X = $rect.Left + $relX
+  $pt.Y = $rect.Top + $relY
+  $child = [W32]::WindowFromPoint($pt)
+  if ($child -eq [IntPtr]::Zero) { throw "no window at screen $($pt.X),$($pt.Y)" }
+  $pidTop = 0; $pidChild = 0
+  [void][W32]::GetWindowThreadProcessId($top, [ref]$pidTop)
+  [void][W32]::GetWindowThreadProcessId($child, [ref]$pidChild)
+  if ($pidTop -ne $pidChild) { throw "window at screen $($pt.X),$($pt.Y) belongs to another process (pid $pidChild), refusing" }
+  return @{ child = $child; screenX = $pt.X; screenY = $pt.Y }
+}
+
+# Click by message instead of by cursor. The user keeps their mouse: nothing
+# moves the pointer, nothing takes the foreground, and the click still lands
+# because the messages are delivered to the window under the point.
+function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double) {
+  $WM_MOUSEMOVE = 0x0200
+  $WM_LBUTTONDOWN = 0x0201
+  $WM_LBUTTONUP = 0x0202
+  $MK_LBUTTON = [IntPtr]1
+  $found = Resolve-Child $top $relX $relY
+  $child = $found.child
+  $cr = Get-WinRect $child
+  $cx = $found.screenX - $cr.Left
+  $cy = $found.screenY - $cr.Top
+  $lp = [IntPtr]((($cy -band 0xFFFF) -shl 16) -bor ($cx -band 0xFFFF))
+  [void][W32]::SendMessage($child, $WM_MOUSEMOVE, [IntPtr]::Zero, $lp)
+  Start-Sleep -Milliseconds 30
+  [void][W32]::SendMessage($child, $WM_LBUTTONDOWN, $MK_LBUTTON, $lp)
+  Start-Sleep -Milliseconds 45
+  [void][W32]::SendMessage($child, $WM_LBUTTONUP, [IntPtr]::Zero, $lp)
+  if ($double) {
+    Start-Sleep -Milliseconds 60
+    [void][W32]::SendMessage($child, $WM_LBUTTONDOWN, $MK_LBUTTON, $lp)
+    Start-Sleep -Milliseconds 45
+    [void][W32]::SendMessage($child, $WM_LBUTTONUP, [IntPtr]::Zero, $lp)
+  }
+  return @{ mode = "message"; child = [int64]$child; cx = $cx; cy = $cy; screenX = $found.screenX; screenY = $found.screenY }
+}
+
+# Type text into the window under a point as WM_CHAR messages.
+#
+# SendKeys is NOT usable here. It pushes through the system keyboard queue, which
+# the OS routes to the focus of the *foreground* window -- and in quiet mode the
+# foreground is the user's own application, so their next sentence would arrive
+# as our file path. WM_CHAR is addressed to the target window instead, so it
+# cannot leak anywhere, and it needs neither the front nor a cursor.
+function Send-TextMessage([IntPtr]$top, [int]$relX, [int]$relY, [string]$text) {
+  $child = $top
+  if ($relX -ge 0 -and $relY -ge 0) { $child = (Resolve-Child $top $relX $relY).child }
+  $WM_CHAR = 0x0102
+  foreach ($ch in $text.ToCharArray()) {
+    [void][W32]::SendMessage($child, $WM_CHAR, [IntPtr][int]$ch, [IntPtr]::Zero)
+    Start-Sleep -Milliseconds 15
+  }
+  Start-Sleep -Milliseconds $SleepMs
+  return @{ child = [int64]$child; chars = $text.Length }
+}
+
 $rect = Get-WinRect $h
+$cursor = New-Object W32+POINT
+[void][W32]::GetCursorPos([ref]$cursor)
 $info = @{
   ok = $true
   hwnd = [int64]$h
@@ -136,11 +232,16 @@ $info = @{
   right = $rect.Right; bottom = $rect.Bottom
   width = $rect.Right - $rect.Left
   height = $rect.Bottom - $rect.Top
+  quiet = [bool]$Quiet
+  iconic = [bool][W32]::IsIconic($h)
+  foreground = ([W32]::GetForegroundWindow() -eq $h)
+  monitor = (Get-MonitorInfo $h)
+  cursor = @{ x = $cursor.X; y = $cursor.Y }
 }
 
 switch ($Action) {
   "find" {
-    Set-Foreground $h
+    if (-not $Quiet) { Set-Foreground $h }
     Write-Output ($info | ConvertTo-Json -Compress)
   }
   "focus" {
@@ -150,6 +251,15 @@ switch ($Action) {
     Write-Output ($info | ConvertTo-Json -Compress)
   }
   "click" {
+    if ($Quiet) {
+      $res = Send-MessageClick $h $X $Y $false
+      Start-Sleep -Milliseconds $SleepMs
+      $info.action = "click"
+      $info.clicked = @{ relx = $X; rely = $Y; child = $res.child; cx = $res.cx; cy = $res.cy }
+      $info.style = $res.mode
+      Write-Output ($info | ConvertTo-Json -Compress)
+      break
+    }
     Set-Foreground $h
     Start-Sleep -Milliseconds 120
     $ax = $rect.Left + $X
@@ -166,6 +276,15 @@ switch ($Action) {
     Write-Output ($info | ConvertTo-Json -Compress)
   }
   "dblclick" {
+    if ($Quiet) {
+      $res = Send-MessageClick $h $X $Y $true
+      Start-Sleep -Milliseconds $SleepMs
+      $info.action = "dblclick"
+      $info.clicked = @{ relx = $X; rely = $Y; child = $res.child; cx = $res.cx; cy = $res.cy }
+      $info.style = $res.mode
+      Write-Output ($info | ConvertTo-Json -Compress)
+      break
+    }
     Set-Foreground $h
     Start-Sleep -Milliseconds 120
     $ax = $rect.Left + $X
@@ -183,6 +302,21 @@ switch ($Action) {
     if (-not $Pin) { Clear-Topmost $h }
     Write-Output ($info | ConvertTo-Json -Compress)
   }
+  "redraw" {
+    # Force a repaint of a window that is not in the foreground. A background
+    # Chromium window is not composited, so its last presented frame can lag
+    # behind an interaction; invalidating + updating flushes it.
+    $RDW_INVALIDATE = 0x1
+    $RDW_UPDATENOW = 0x100
+    $RDW_ALLCHILDREN = 0x80
+    $RDW_FRAME = 0x400
+    $flags = ($RDW_INVALIDATE -bor $RDW_UPDATENOW -bor $RDW_ALLCHILDREN -bor $RDW_FRAME)
+    [void][W32]::RedrawWindow($h, [IntPtr]::Zero, [IntPtr]::Zero, $flags)
+    [void][W32]::UpdateWindow($h)
+    Start-Sleep -Milliseconds 250
+    $info.action = "redraw"
+    Write-Output ($info | ConvertTo-Json -Compress)
+  }
   "unpin" {
     Clear-Topmost $h
     $info.action = "unpin"
@@ -196,6 +330,20 @@ switch ($Action) {
     # enough either -- it only works inside the calling thread's input queue, so
     # the two threads are attached first. Doing both here keeps any other
     # SetForegroundWindow from taking the focus back in between.
+    if ($Quiet) {
+      if ($Keys) {
+        Write-Output (@{ ok = $false; quiet = $true; error = "quiet mode cannot send the key chord '$Keys': SendKeys goes to the system keyboard queue and would be typed into whatever window has the user's focus. Send text as -Text (WM_CHAR), click instead, or set INSTA360_QUIET=0." } | ConvertTo-Json -Compress)
+        exit 4
+      }
+      $res = Send-TextMessage $h $X $Y $Text
+      $info.action = "atkeys"
+      $info.child = $res.child
+      $info.chars = $res.chars
+      $info.text = $Text
+      $info.style = "message"
+      Write-Output ($info | ConvertTo-Json -Compress)
+      break
+    }
     $rect = Get-WinRect $h
     $pt = New-Object W32+POINT
     $pt.X = $rect.Left + $X
@@ -221,6 +369,30 @@ switch ($Action) {
     Write-Output ($info | ConvertTo-Json -Compress)
   }
   "keys" {
+    if ($Quiet) {
+      Write-Output (@{ ok = $false; quiet = $true; error = "quiet mode cannot send the key chord '$Keys': SendKeys goes to the system keyboard queue and would be typed into whatever window has the user's focus. Set INSTA360_QUIET=0 for chords, or use -Action atkeys/-Action type which deliver characters as WM_CHAR." } | ConvertTo-Json -Compress)
+      exit 4
+    }
+    if ($false) {
+      $pidT = 0
+      $tid = [W32]::GetWindowThreadProcessId($h, [ref]$pidT)
+      $me = [W32]::GetCurrentThreadId()
+      $attached = $false
+      if ($tid -ne 0 -and $tid -ne $me) { $attached = [W32]::AttachThreadInput($me, $tid, $true) }
+      try {
+        [void][W32]::SetFocus($h)
+        Start-Sleep -Milliseconds 200
+        [System.Windows.Forms.SendKeys]::SendWait($Keys)
+      } finally {
+        if ($attached) { [void][W32]::AttachThreadInput($me, $tid, $false) }
+      }
+      Start-Sleep -Milliseconds $SleepMs
+      $info.action = "keys"
+      $info.keys = $Keys
+      $info.style = "quiet-focus"
+      Write-Output ($info | ConvertTo-Json -Compress)
+      break
+    }
     Set-Foreground $h
     Start-Sleep -Milliseconds 200
     [System.Windows.Forms.SendKeys]::SendWait($Keys)
@@ -230,6 +402,16 @@ switch ($Action) {
     Write-Output ($info | ConvertTo-Json -Compress)
   }
   "type" {
+    if ($Quiet) {
+      $res = Send-TextMessage $h -1 -1 $Text
+      $info.action = "type"
+      $info.child = $res.child
+      $info.chars = $res.chars
+      $info.text = $Text
+      $info.style = "message"
+      Write-Output ($info | ConvertTo-Json -Compress)
+      break
+    }
     Set-Foreground $h
     Start-Sleep -Milliseconds 200
     [System.Windows.Forms.SendKeys]::SendWait($Text)
@@ -245,7 +427,7 @@ switch ($Action) {
     $bmp = New-Object System.Drawing.Bitmap $w, $hh
     $g = [System.Drawing.Graphics]::FromImage($bmp)
     $mode = "screen"
-    if ($Text -eq "print") {
+    if ($Text -eq "print" -or $Quiet) {
       # PrintWindow with PW_RENDERFULLCONTENT works even when the window is occluded
       $hdc = $g.GetHdc()
       $ok = [W32]::PrintWindow($h, $hdc, 2)
@@ -265,6 +447,12 @@ switch ($Action) {
     Write-Output ($info | ConvertTo-Json -Compress)
   }
   "move" {
+    if ($Quiet) {
+      # Moving the window is the one thing that visibly fights the user for the
+      # desktop. Refuse, and say how to get the old behaviour back.
+      Write-Output (@{ ok = $false; quiet = $true; error = "quiet mode does not move the Studio window; set INSTA360_QUIET=0 for that" } | ConvertTo-Json -Compress)
+      exit 3
+    }
     # deterministically place the window: -X -Y = top-left, -Keys = "WxH" size
     $ww = $w; $hhh = $rect.Bottom - $rect.Top
     if ($Keys -match '^(\d+)x(\d+)$') { $ww = [int]$Matches[1]; $hhh = [int]$Matches[2] }

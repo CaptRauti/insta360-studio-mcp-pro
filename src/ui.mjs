@@ -26,6 +26,26 @@ const UIA_PS1 = path.join(HERE, "uia.ps1");
 export const DEFAULT_WINDOW_TITLE = "Insta360 Studio";
 export const DEFAULT_OUT_DIR = path.join(os.homedir(), "Desktop");
 
+/**
+ * Quiet mode — on by default, because somebody is usually working on this machine.
+ *
+ * Off (INSTA360_QUIET=0) the primitives below behave like a person at the
+ * keyboard: the window is raised and focused, the pointer is moved to the click
+ * point and a real button press is injected. That fights whoever else is using
+ * the machine — the cursor jumps away mid-drag and the window takes the front
+ * from whatever they were typing in — and it is also *unreliable* while they
+ * work: the window can move between the screenshot the coordinates came from
+ * and the moment of the click.
+ *
+ * On, the same primitives stay out of the way: nothing is moved, nothing is
+ * raised, the pointer is untouched, and a click is delivered as WM_* messages to
+ * the window under the point. Read as a policy question, not a debugging one:
+ * see win32.ps1 for the mechanism.
+ */
+export function quiet() {
+  return process.env.INSTA360_QUIET !== "0";
+}
+
 function shotDir() {
   const dir = process.env.INSTA360_SHOT_DIR ?? path.join(os.tmpdir(), "insta360-studio-mcp");
   mkdirSync(dir, { recursive: true });
@@ -33,9 +53,11 @@ function shotDir() {
 }
 
 function runPs(script, args, { timeout = 30000 } = {}) {
+  // Only win32.ps1 knows the flag; uia.ps1 would fail on an unknown parameter.
+  const argv = script === WIN32_PS1 && quiet() ? [...args, "-Quiet"] : args;
   const out = execFileSync(
     "powershell",
-    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, ...args],
+    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, ...argv],
     { encoding: "utf8", timeout, windowsHide: true },
   );
   const text = out.trim();
@@ -68,7 +90,27 @@ export function windowInfo(title = DEFAULT_WINDOW_TITLE) {
  * this is the difference between "Studio did not render" and "Studio was simply
  * behind something".
  */
-export function focusWindow({ title = DEFAULT_WINDOW_TITLE } = {}) {
+/**
+ * Force the window to repaint. A window that is not in the foreground is not
+ * composited, so its last presented frame can lag one interaction behind —
+ * measured: a message click switches the panel, but the capture only shows it
+ * after something else nudges the window. Call this before reading the UI back.
+ */
+export function redraw({ title = DEFAULT_WINDOW_TITLE } = {}) {
+  const r = runPs(WIN32_PS1, ["-Action", "redraw", "-Title", title], { timeout: 30000 });
+  return typeof r === "string" ? JSON.parse(r.trim().split("\n").pop()) : r;
+}
+
+export function focusWindow({ title = DEFAULT_WINDOW_TITLE, force = false } = {}) {
+  // Raising the window is exactly what quiet mode exists to avoid, and it is not
+  // needed for reading: PrintWindow renders a window that is merely behind others
+  // (measured — see README, "Quiet mode"). Pass force:true when a human has to
+  // see it. The window state still has to be reported, because a *minimised*
+  // window cannot be captured at all — "find" reads the state without touching it.
+  if (quiet() && !force) {
+    const info = runPs(WIN32_PS1, ["-Action", "find", "-Title", title], { timeout: 30000 });
+    return { ...(typeof info === "string" ? JSON.parse(info.trim().split("\n").pop()) : info), quiet: true, skipped: "focus" };
+  }
   const r = runPs(WIN32_PS1, ["-Action", "focus", "-Title", title], { timeout: 30000 });
   if (!r || r.ok === false) throw new Error(`could not focus "${title}"`);
   return r;
@@ -76,6 +118,12 @@ export function focusWindow({ title = DEFAULT_WINDOW_TITLE } = {}) {
 
 /** Move/resize the window so click coordinates are stable across runs. */
 export function moveWindow({ title = DEFAULT_WINDOW_TITLE, x = 100, y = 40, width = 1384, height = 900 } = {}) {
+  if (quiet()) {
+    throw new Error(
+      "quiet mode does not move the Studio window (it would drag it onto the user's primary monitor); " +
+        "set INSTA360_QUIET=0 if you really want the old behaviour",
+    );
+  }
   const r = runPs(WIN32_PS1, ["-Action", "move", "-Title", title, "-X", String(x), "-Y", String(y), "-Keys", `${width}x${height}`]);
   if (!r || r.ok === false) throw new Error(`could not move Studio window`);
   return windowInfo(title);

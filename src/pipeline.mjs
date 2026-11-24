@@ -121,9 +121,17 @@ export async function waitForLibrary({ title = DEFAULT_WINDOW_TITLE, timeoutMs =
   let last = null;
   while (Date.now() < deadline) {
     try {
-      // Without this the capture can come back blank even though the window is
-      // painted — a non-foreground Studio reads as an empty image.
-      focusWindow({ title });
+      // The window state has to be read before the capture: a *minimised* Studio
+      // cannot be captured at all (its frame is not composited), and quiet mode
+      // will not restore it. Merely being behind other windows is fine.
+      const state = focusWindow({ title });
+      if (state?.iconic) {
+        return {
+          ok: false,
+          error: "Studio is minimised — restore its window, then run again (quiet mode does not raise or move windows)",
+          words: 0,
+        };
+      }
     } catch {
       // Window may not exist yet; the capture below will report it.
     }
@@ -163,9 +171,9 @@ export async function startStudio({ timeoutMs = 90000 } = {}) {
   spawn(STUDIO_EXE, [], { detached: true, stdio: "ignore" }).unref();
   const p = await waitForWindow({ timeoutMs });
   if (!p) return { ok: false, error: "Studio window did not appear" };
-  // A window started from here is behind whatever is on screen, and a capture of
-  // a non-foreground Studio comes back blank (see focusWindow). Focus it once the
-  // handle exists; the renderer keeps painting behind us either way.
+  // Studio reads pro.insproj at start-up, so a project switch means a restart, and
+  // the fresh window is placed in front by Windows itself — not by us. Do not
+  // raise it as well; a background Studio captures fine (see focusWindow).
   try {
     focusWindow({ title: DEFAULT_WINDOW_TITLE });
   } catch {
