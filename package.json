@@ -9,8 +9,8 @@
   "main": "src/server.mjs",
   "scripts": {
     "start": "node src/server.mjs",
-    "check": "node --check src/server.mjs && node --check src/ui.mjs && node --check src/png.mjs && node --check src/exporter.mjs && node --check src/project.mjs && node --check src/camera.mjs && node --check src/studio-path.mjs && node --check src/ocr.mjs && node --check src/export-dialog.mjs && node --check src/thumbnail.mjs",
-    "test": "node --test tests/wire.test.mjs tests/camera.test.mjs tests/ocr.test.mjs tests/export-request.test.mjs tests/export-dialog.test.mjs tests/thumbnail.test.mjs && node tests/clip-metadata.test.mjs",
+    "check": "node --check src/server.mjs && node --check src/ui.mjs && node --check src/png.mjs && node --check src/exporter.mjs && node --check src/project.mjs && node --check src/camera.mjs && node --check src/studio-path.mjs && node --check src/ocr.mjs && node --check src/export-dialog.mjs && node --check src/thumbnail.mjs && node --check src/pipeline.mjs",
+    "test": "node --test tests/wire.test.mjs tests/camera.test.mjs tests/ocr.test.mjs tests/export-request.test.mjs tests/export-dialog.test.mjs tests/thumbnail.test.mjs tests/template-and-paths.test.mjs && node tests/clip-metadata.test.mjs",
     "probe": "node tests/probe.mjs",
     "probe:ui": "node tests/ui-probe.mjs",
     "probe:export": "node tests/ui-export-probe.mjs",

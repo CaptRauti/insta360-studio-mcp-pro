@@ -247,6 +247,33 @@ export function assetCatalog() {
 /* ------------------------------------------------------------------- builder */
 
 /**
+ * Marker file written into a project directory this tooling created.
+ *
+ * `findTemplate` must never pick a project this tooling wrote. It did: it
+ * returned `mcpE2E`, an earlier output of the builder, so the builder was
+ * modelling itself on its own output — a template has to be a project *Studio*
+ * authored. The marker is a file beside the project rather than a key inside it,
+ * because the project JSON has to stay comparable with what Studio writes.
+ *
+ * A directory is only treated as ours when the marker is there, so a project the
+ * user created in the GUI is never skipped by mistake.
+ */
+export const BUILD_MARKER = ".mcp-built";
+
+/** Record that this tooling wrote (or owns) the project in `dir`. */
+export function markBuilt(dir, extra = {}) {
+  const file = path.join(dir, BUILD_MARKER);
+  const payload = { tool: "insta360-studio-mcp-pro", at: new Date().toISOString(), ...extra };
+  fs.writeFileSync(file, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  return file;
+}
+
+/** Was the project in this directory written by this tooling? */
+export function isBuiltProject(dir) {
+  return fs.existsSync(path.join(dir, BUILD_MARKER));
+}
+
+/**
  * Pick a project file to clone as a template.
  *
  * A clip is a large, interdependent settings block (56-field `media_process`,
@@ -259,8 +286,11 @@ export function assetCatalog() {
  * enough — measured, the largest project on this machine is audio-only and
  * `newProjectFrom` rejects it.
  */
-export function findTemplate({ exclude = [] } = {}) {
-  const root = projectsRoot();
+export function findTemplate({ exclude = [], root = projectsRoot() } = {}) {
+  // An explicit template beats discovery: the newest project on disk is only a
+  // guess at what is representative footage.
+  const forced = process.env.INSTA360_TEMPLATE;
+  if (forced) return fs.existsSync(forced) ? forced : null;
   if (!fs.existsSync(root)) return null;
   const skip = new Set(exclude);
   const candidates = [];
@@ -274,6 +304,7 @@ export function findTemplate({ exclude = [] } = {}) {
       continue;
     }
     if (!stat.isDirectory()) continue;
+    if (isBuiltProject(full)) continue; // our own output is not a template
     for (const f of fs.readdirSync(full)) {
       if (!f.endsWith(".insproj") || f.includes("_backup")) continue;
       const p = path.join(full, f);
@@ -390,6 +421,9 @@ export async function writeAndRegister({ name, project, overwrite = true }) {
   const file = path.join(dir, `${project.id}.insproj`);
   if (!overwrite && fs.existsSync(file)) return { ok: false, error: `${file} exists` };
   fs.mkdirSync(dir, { recursive: true });
+  // Mark before writing the project: from here on the directory is our output and
+  // must never be picked as a template, however the write ends.
+  markBuilt(dir, { project: name });
   const w = await writeProject(file, project, { backup: false });
   const reg = registerProject({
     adsorbable: true,
@@ -466,6 +500,7 @@ export async function runPipeline({
   stage("write-project", {
     file: written.file,
     bytes: written.bytes,
+    template,
     frames: built.summary.frames,
     clips: built.report,
   });

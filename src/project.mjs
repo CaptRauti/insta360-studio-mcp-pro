@@ -236,7 +236,7 @@ export function repointClip(data, { track = 0, clip = 0 } = {}, newUrl, { rename
   const c = data.tracks?.[track]?.clips?.[clip];
   if (!c) throw new Error(`No clip at track ${track} index ${clip}`);
   const previous = c.url;
-  c.url = newUrl;
+  c.url = projectPath(newUrl);
   if (renameTo) c.name = renameTo;
   return { previous, current: c.url, name: c.name };
 }
@@ -347,6 +347,19 @@ export function cloneClip(template, patch = {}) {
   return copy;
 }
 
+/**
+ * A path the way Studio writes it into a project file.
+ *
+ * Studio writes forward slashes throughout — including for paths it built with
+ * Windows path joining. Measured: a filter attached through `setEffect` landed as
+ * `D:\Dokumente\...\HD Fireworks.cube.binary` while every other path field in the
+ * same clip used forward slashes, because the path came from `path.join` on
+ * Windows. Normalising here means a new caller cannot reintroduce it.
+ */
+export function projectPath(p) {
+  return typeof p === "string" ? p.replace(/\\/g, "/") : p;
+}
+
 /** Give a clip (and nothing else) a fresh id, so Studio treats it as new. */
 export function reId(clip, id) {
   const next = JSON.parse(JSON.stringify(clip));
@@ -361,7 +374,7 @@ export function setEffect(clip, { id, name, resourcePath, opacity = 70 } = {}) {
     externfilterId: id ?? "",
     externfilterName: name ?? "",
     externfilterOpacity: opacity,
-    externfilterResourcePath: resourcePath ?? "",
+    externfilterResourcePath: projectPath(resourcePath ?? ""),
   };
   return clip;
 }
@@ -397,7 +410,7 @@ export function makeTransition({
   return {
     id: id ?? crypto.randomUUID().toUpperCase(),
     resourceId: resourceId ?? null,
-    path: resourcePath ?? null,
+    path: resourcePath == null ? null : projectPath(resourcePath),
     prevClip: prevClip ?? null,
     nextClip: nextClip ?? null,
     frames,
@@ -460,7 +473,9 @@ export function sourceMetaFor(url, model, models = new Map()) {
   );
 }
 
-export function newProjectFrom(template, { name, projectPath, sources = [], fps, aspectRatio, clipModels = new Map() } = {}) {
+// `projectDir` is destructured from the `projectPath` key: the parameter would
+// otherwise shadow the `projectPath()` normaliser this function calls.
+export function newProjectFrom(template, { name, projectPath: projectDir, sources = [], fps, aspectRatio, clipModels = new Map() } = {}) {
   const base = JSON.parse(JSON.stringify(template));
   const video = (base.tracks ?? []).find((t) => t.type === 0) ?? (base.tracks ?? [])[0];
   if (!video) throw new Error("template has no video track");
@@ -475,7 +490,7 @@ export function newProjectFrom(template, { name, projectPath, sources = [], fps,
 
   base.id = id;
   base.name = name ?? "Unbenannt";
-  base.projectPath = projectPath ?? base.projectPath ?? "";
+  base.projectPath = projectPath(projectDir ?? base.projectPath ?? "");
   base.creationTime = stamp(now);
   base.lastModifiedTime = stamp(now);
   base.enableEffects = true;
@@ -494,7 +509,7 @@ export function newProjectFrom(template, { name, projectPath, sources = [], fps,
     return {
       clip: reId(
         cloneClip(sourceModel, {
-          url,
+          url: projectPath(url),
           name: meta.name,
           sourceFrames: meta.frames,
           source_total_frames: meta.frames,
