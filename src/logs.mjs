@@ -5,24 +5,26 @@
 //
 //   %LOCALAPPDATA%\Insta360\Insta360 Studio\log\
 //     studio\<YYYY_MM_DD_HH_MM_SS_pid>\   one directory per Studio start
-//         <ts>_<pid>.log            main log          ENCRYPTED
+//         <ts>_<pid>.log            main log          ENCRYPTED (decrypted)
 //         <ts>_launcher_<pid>.log   launch line, paths PLAIN
 //         <ts>_cef_<pid>.log        Chromium/GL errors PLAIN (tiny)
-//         <ts>_export_<pid>.log     exporter           ENCRYPTED
-//         <ts>_thumbnail_<pid>.log  thumbnail service  ENCRYPTED
+//         <ts>_export_<pid>.log     exporter           ENCRYPTED (decrypted)
+//         <ts>_thumbnail_<pid>.log  thumbnail service  ENCRYPTED (decrypted)
 //     detector\<...>\...main_<pid>.log  detector config/GPU state   PLAIN
-//     quick_look\<...>            ENCRYPTED
+//     quick_look\<...>            ENCRYPTED (decrypted)
 //     setup\Setup Log <date> #NNN\  Inno Setup install history     PLAIN
 //
 // The encrypted files share a constant 16-byte container header
-// (cd013a985f5beca1bcc1ca036aa5d1a0) and carry 0xbf08ac29 frame magic; the
-// payload is high-entropy (not a plain XOR), so it needs a key out of the
-// binary — that is a reverse-engineering job, not a parser. This module
-// therefore *reports* encryption instead of returning mojibake: a tool that
-// silently prints garbage from a log is worse than one that says it cannot
-// read it. The readable siblings still carry real signal — which install ran,
-// what the detector decided, which GPU path was refused, and the update
-// history that tells you whether Studio moved under you.
+// (cd013a985f5beca1bcc1ca036aa5d1a0) and carry 0xbf08ac29 frame magic. They are
+// readable again: the payload is a file-offset XOR keystream, recovered and
+// verified against the file name on every read — see src/log-decrypt.mjs for
+// the format and the provenance of the key. Read tools decrypt transparently
+// and fall back to reporting encryption if the keystream stops matching (a
+// Studio update would do that); they never return mojibake.
+//
+// The plain siblings still matter — which install ran, what the detector
+// decided, which GPU path was refused, whether the update moved Studio under
+// you — and now the main log speaks too.
 //
 // Crash dumps (Windows minidumps) sit next to the logs:
 //   Insta360 Studio\crashes\lag_reports\*.dmp   written when Studio *hangs* —
@@ -34,6 +36,7 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { open, readdir, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { KEYSTREAM_SOURCE, decryptLog, verifyKeystream } from "./log-decrypt.mjs";
 
 /** Encrypted-container header shared by every opaque Studio log. */
 export const ENCRYPTED_HEADER = Buffer.from("cd013a985f5beca1bcc1ca036aa5d1a0", "hex");
@@ -124,11 +127,57 @@ async function readHead(file, bytes = SNIFF_BYTES) {
   }
 }
 
+/** How much of a container we will verify a keystream against (a few dozen frames). */
+const VERIFY_BYTES = 8192;
+/** Largest container we will decrypt whole. */
+export const MAX_CONTAINER_BYTES = 64 * 1024 * 1024;
+
+/**
+ * Read a file whole.
+ *
+ * The stream restarts with every frame payload, so any frame boundary is a
+ * valid decryption entry point and a windowed read *would* work. Whole files
+ * are read anyway: they are small (a heavy session is a few MB) and one code
+ * path is worth more than the saved bytes.
+ */
+async function readWhole(file, maxBytes = MAX_CONTAINER_BYTES) {
+  const st = await stat(file);
+  if (st.size > maxBytes) return { buf: null, bytes: st.size, tooLarge: true };
+  const fh = await open(file, "r");
+  try {
+    const buf = Buffer.alloc(st.size);
+    if (buf.length) await fh.read(buf, 0, buf.length, 0);
+    return { buf, bytes: st.size, tooLarge: false };
+  } finally {
+    await fh.close();
+  }
+}
+
+/**
+ * Decrypt a container file into plain lines, or say why not.
+ * Never returns mojibake: if the keystream does not reproduce the log format
+ * and the file name's pid/timestamp, the answer is `ok: false` with a reason.
+ */
+export async function readDecryptedLog(file, { maxBytes = MAX_CONTAINER_BYTES } = {}) {
+  const { buf, bytes, tooLarge } = await readWhole(file, maxBytes);
+  if (tooLarge) {
+    return {
+      file,
+      bytes,
+      ok: false,
+      reason: `container exceeds the ${maxBytes} byte decrypt budget`,
+      lines: [],
+      frames: 0,
+    };
+  }
+  const r = decryptLog(buf, { file: path.basename(file) });
+  return { file, bytes, ok: r.ok, reason: r.reason, lines: r.lines, frames: r.frames, keystream: KEYSTREAM_SOURCE.studioVersion };
+}
+
 /** Everything worth knowing about one log file, without reading it whole. */
 export async function describeLogFile(file) {
   const st = await stat(file);
   const kind = classifyBuffer(await readHead(file));
-  const readable = kind === "plain";
   const entry = {
     file: path.basename(file),
     path: file,
@@ -136,14 +185,30 @@ export async function describeLogFile(file) {
     mtime: st.mtime.toISOString(),
     role: logRole(path.basename(file)),
     kind,
-    readable,
+    readable: kind === "plain",
   };
-  if (readable) entry.preview = await firstLine(file);
-  if (!readable && kind !== "empty") {
-    entry.note =
-      "encrypted Studio container (magic bf08ac29) — Insta360 writes this log opaque; " +
-      "the readable siblings in the same session are launcher/cef, and detector/setup live in their own areas";
+  if (kind === "plain") {
+    entry.preview = await firstLine(file);
+    return entry;
   }
+  if (kind === "encrypted") {
+    // Decrypted, and the keystream is checked against ground truth that does
+    // not come from the cipher: the file name carries the pid and the start
+    // time, and the first log lines must repeat both.
+    const check = verifyKeystream(await readHead(file, VERIFY_BYTES), path.basename(file));
+    entry.decryptable = check.ok;
+    entry.readable = check.ok;
+    if (check.ok) {
+      entry.decrypted = true;
+      entry.keystream = KEYSTREAM_SOURCE.studioVersion;
+      const first = check.lines.find((l) => l.trim());
+      entry.preview = first ? first.slice(0, 160) : null;
+    } else {
+      entry.note = `encrypted Studio container (magic bf08ac29) — ${check.reason}`;
+    }
+    return entry;
+  }
+  if (kind !== "empty") entry.note = `not a text log (${kind})`;
   return entry;
 }
 
@@ -216,6 +281,7 @@ export async function listSessions({ env = process.env, area = "studio", limit =
       files,
       readable: files.filter((f) => f.readable).map((f) => f.file),
       encrypted: files.filter((f) => f.kind === "encrypted").map((f) => f.file),
+      decryptable: files.filter((f) => f.decryptable).map((f) => f.file),
     });
   }
   return { area, root, found: true, total: withTime.length, sessions };
@@ -234,6 +300,7 @@ export async function listLogAreas({ env = process.env } = {}) {
     const files = await listFiles(dir);
     let plain = 0;
     let encrypted = 0;
+    let decryptable = 0;
     let binary = 0;
     let bytes = 0;
     let newest = null;
@@ -241,10 +308,13 @@ export async function listLogAreas({ env = process.env } = {}) {
       const st = await stat(f);
       bytes += st.size;
       if (!newest || st.mtime > newest) newest = st.mtime;
-      const kind = classifyBuffer(await readHead(f));
+      const head = await readHead(f, VERIFY_BYTES);
+      const kind = classifyBuffer(head);
       if (kind === "plain") plain += 1;
-      else if (kind === "encrypted") encrypted += 1;
-      else if (kind === "binary") binary += 1;
+      else if (kind === "encrypted") {
+        encrypted += 1;
+        if (verifyKeystream(head, path.basename(f)).ok) decryptable += 1;
+      } else if (kind === "binary") binary += 1;
     }
     areas.push({
       area,
@@ -253,12 +323,13 @@ export async function listLogAreas({ env = process.env } = {}) {
       files: files.length,
       readable: plain,
       encrypted,
+      decryptable,
       binary,
       bytes,
       newest: newest ? newest.toISOString() : null,
     });
   }
-  return { root, rootExists: existsSync(root), areas };
+  return { root, rootExists: existsSync(root), keystream: KEYSTREAM_SOURCE, areas };
 }
 
 /**
@@ -276,28 +347,57 @@ export function assertInsideInsta360(file, env = process.env) {
   return resolved;
 }
 
-/** Read the tail of a log file. Refuses encrypted/binary files by design. */
+/**
+ * Read the tail of a log file.
+ *
+ * Encrypted containers are decrypted and the tail of the decrypted lines is
+ * returned. If the keystream no longer matches this install, the refusal is
+ * explicit rather than mojibake.
+ */
 export async function readLogTail({ file, lines = 200, maxBytes = 262144, env = process.env } = {}) {
   if (!file) throw new Error("file is required");
   file = assertInsideInsta360(file, env);
   if (!existsSync(file)) throw new Error(`no such log file: ${file}`);
   const st = await stat(file);
+  const kind = classifyBuffer(await readHead(file));
+  if (kind === "encrypted") {
+    const r = await readDecryptedLog(file);
+    if (!r.ok) {
+      return {
+        file,
+        bytes: st.size,
+        kind,
+        readable: false,
+        decrypted: false,
+        reason: r.reason,
+      };
+    }
+    return {
+      file,
+      bytes: st.size,
+      kind,
+      readable: true,
+      decrypted: true,
+      frames: r.frames,
+      keystream: r.keystream,
+      returnedLines: Math.min(lines, r.lines.length),
+      totalLines: r.lines.length,
+      truncatedHead: r.lines.length > lines,
+      lines: r.lines.slice(-lines),
+    };
+  }
   const fh = await open(file, "r");
   try {
     const start = Math.max(0, st.size - maxBytes);
     const buf = Buffer.alloc(st.size - start);
     if (buf.length) await fh.read(buf, 0, buf.length, start);
-    const kind = classifyBuffer(await readHead(file));
     if (kind !== "plain") {
       return {
         file,
         bytes: st.size,
         kind,
         readable: false,
-        reason:
-          kind === "encrypted"
-            ? "encrypted Studio container — this file cannot be read as text (see studio_logs action=list for the readable siblings)"
-            : `not a text log (${kind})`,
+        reason: `not a text log (${kind})`,
         truncatedHead: start > 0,
       };
     }
@@ -318,8 +418,15 @@ export async function readLogTail({ file, lines = 200, maxBytes = 262144, env = 
   }
 }
 
-/** Grep the readable logs only, newest files first. */
-export async function grepLogs({ env = process.env, pattern, days = 7, areas, limit = 100 } = {}) {
+/**
+ * Grep the logs, newest files first.
+ *
+ * Both kinds are searched: plain files as they lie on disk, encrypted
+ * containers by decrypting them first (verified against the file name, skipped
+ * if the keystream no longer matches). Pass `decrypt: false` to search only
+ * what is readable without the keystream.
+ */
+export async function grepLogs({ env = process.env, pattern, days = 7, areas, limit = 100, decrypt = true, decryptBudgetBytes = 32 * 1024 * 1024 } = {}) {
   if (!pattern) throw new Error("pattern is required");
   let re;
   try {
@@ -332,6 +439,7 @@ export async function grepLogs({ env = process.env, pattern, days = 7, areas, li
   const matches = [];
   let scanned = 0;
   let skippedEncrypted = 0;
+  let decryptedFiles = 0;
   for (const area of wanted) {
     const dir = path.join(studioLogRoot(env), area);
     if (!existsSync(dir)) continue;
@@ -339,15 +447,27 @@ export async function grepLogs({ env = process.env, pattern, days = 7, areas, li
       const st = await stat(file);
       if (st.mtimeMs < since) continue;
       const kind = classifyBuffer(await readHead(file));
-      if (kind !== "plain") {
+      let lines;
+      let viaDecrypt = false;
+      if (kind === "plain") {
+        lines = (await readWholeText(file)).split(/\r?\n/);
+      } else if (kind === "encrypted" && decrypt) {
+        const r = await readDecryptedLog(file, { maxBytes: decryptBudgetBytes });
+        if (!r.ok) {
+          skippedEncrypted += 1;
+          continue;
+        }
+        decryptedFiles += 1;
+        viaDecrypt = true;
+        lines = r.lines;
+      } else {
         skippedEncrypted += 1;
         continue;
       }
       scanned += 1;
-      const text = await readWholeText(file);
-      text.split(/\r?\n/).forEach((line, i) => {
+      lines.forEach((line, i) => {
         if (matches.length < limit && re.test(line)) {
-          matches.push({ area, file, line: i + 1, text: line.trim().slice(0, 400) });
+          matches.push({ area, file, line: i + 1, text: line.trim().slice(0, 400), ...(viaDecrypt ? { decrypted: true } : {}) });
         }
       });
     }
@@ -357,7 +477,9 @@ export async function grepLogs({ env = process.env, pattern, days = 7, areas, li
     days,
     areas: wanted,
     scannedFiles: scanned,
+    decryptedFiles,
     skippedEncryptedFiles: skippedEncrypted,
+    keystream: decrypt ? KEYSTREAM_SOURCE : null,
     matches,
     truncated: matches.length >= limit,
   };

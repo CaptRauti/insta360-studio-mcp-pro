@@ -146,7 +146,7 @@ tool(
   "studio_logs",
   {
     description:
-      "Read Insta360 Studio's own logs. action=list summarises each log area (studio, detector, quick_look, setup) and says how much of it is readable text; action=sessions lists recent Studio starts with their files; action=read returns the tail of one file; action=grep searches the readable logs. Studio encrypts its main/export/thumbnail/quick_look logs — those are reported as encrypted instead of being decoded, so a caller can tell 'nothing wrong' apart from 'cannot see'. Use studio_dumps for hang/crash minidumps.",
+      "Read Insta360 Studio's own logs. action=list summarises each log area (studio, detector, quick_look, setup) and says how much of it is readable, including how many of the encrypted containers the recovered keystream still opens; action=sessions lists recent Studio starts with their files; action=read returns the tail of one file; action=grep searches the logs. Studio writes its main/export/thumbnail/quick_look logs as an XOR container — those are decrypted transparently (the keystream is verified against pid and start time from the file name on every read) and reported as encrypted only when that verification fails, so a caller can tell 'nothing wrong' apart from 'cannot see'. Use studio_dumps for hang/crash minidumps.",
     inputSchema: {
       action: z
         .enum(["list", "sessions", "read", "grep"])
@@ -158,13 +158,17 @@ tool(
       days: z.number().optional().describe("grep: only files modified within N days (default 7)"),
       lines: z.number().optional().describe("read: how many trailing lines (default 200)"),
       limit: z.number().optional().describe("sessions: how many recent starts (default 5); grep: max matches (default 100)"),
+      decrypt: z
+        .boolean()
+        .optional()
+        .describe("grep: also search the encrypted containers, decrypting them (default true); false searches only plain-text logs"),
       root: z
         .string()
         .optional()
         .describe("Override the Insta360 data root (e.g. a copied log tree from another machine)"),
     },
   },
-  async ({ action = "list", area, file, pattern, days = 7, lines = 200, limit, root } = {}) => {
+  async ({ action = "list", area, file, pattern, days = 7, lines = 200, limit, decrypt, root } = {}) => {
     const env = root ? { ...process.env, INSTA360_LOCAL_ROOT: root } : process.env;
     switch (action) {
       case "list":
@@ -174,7 +178,7 @@ tool(
       case "read":
         return readLogTail({ file, lines, env });
       case "grep":
-        return grepLogs({ env, pattern, days, areas: area ? [area] : undefined, limit: limit ?? 100 });
+        return grepLogs({ env, pattern, days, areas: area ? [area] : undefined, limit: limit ?? 100, decrypt: decrypt ?? true });
       default:
         throw new Error(`unknown action: ${action}`);
     }
