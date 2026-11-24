@@ -38,9 +38,39 @@ containers, 423 702 lines on this install. First measurements:
   `studio_logs action=window at=<ISO time>` answers "what was Studio doing when it stalled?" — this is
   the instrument the differential comparison below should be built on.
 
-What is left as the instrument is a **differential comparison**: one project written by Studio itself vs.
-one this server builds, field by field, plus the three path hypotheses. See E3 for the
-`Project File Save Path` preference, which is both a hypothesis and a lever.
+The **differential comparison has now been run** (`research/proj_diff.mjs`), against the projects on
+this machine, and it came back narrow:
+
+- **Our clip structure is already Studio's.** A clip from a project Studio saved itself
+  (`TimelineProject/Unbenannt1`, saved 17:18 by Studio during the run that stalled) and one this server
+  built (`MCP_Tests/mcpFlat`) have **exactly the same 55 fields — zero structural difference**. The
+  output of `research/proj_diff.mjs` between a Studio-written project and ours is
+  "only in reference: 0, only in candidate: 0". The schema work is done; what differed was convention.
+- **The one real deviation was the clip's `name`** — Studio shows the camera's own short name
+  (`VID_049.mp4`), we wrote the ingested name (`VID_20260822_190557_049.mp4`). Every album node Studio
+  has ever written (24/24 across four projects) maps the full path to that short form. Fixed in
+  `clipDisplayName()` (`src/project.mjs`), used as the fallback wherever a clip is not in the harvest
+  library. Note this is *naming*, not loading: media is resolved by `url` (the log shows the loader
+  opening FrameReaders from the clip url), which we were already writing correctly.
+- **`project_album_info.data` is Studio's own save artefact, not a requirement.** It is absent from
+  every project this server writes and present in every project Studio saved; the log shows Studio
+  writing it (`album_tree_view_model.cpp: begin serialize album info`) *because* it saved. It is
+  therefore evidence that a project was saved by Studio, not a cause of a loading failure — `mcpFlat`
+  loads its media without it.
+- **Studio did load that project's clips.** In the log around the 17:17 dump, both clips
+  (`F:/Luna/VID_20261112_051426_001.mp4`, `D:/Videos/Lamspringe26/VID_20260822_190557_049.mp4`) open
+  FrameReaders and their decoders and print `VideoSampleGroup` dumps — so "Lade Dateien…" was not a
+  permanent state in that session, and the open question is the **export** path, not the load path.
+- **The paths were never hidden.** §0's three path hypotheses are all answered by
+  `%LOCALAPPDATA%\Insta360\Insta360 Studio\startup.ini`, `[preference]`:
+  `project_location=D:/Dokumente/Insta360/Studio/Project`,
+  `workspace_location=…/TimelineProject`, `footage_project_location=…/FootageProject`,
+  `last_visit_dir=D:/Videos/Lamspringe26`, `export_location=C:/Users/stefa/Desktop`. E3 is a small
+  read/set tool, not research. (Studio is configured with `cuda_accel=true`,
+  `hardware_decoding_preview=true` — relevant to the render-thread stalls above.)
+
+What remains is the export itself: build a project from real media and attempt the export live — that
+is the one measurement §0 still needs.
 
 ---
 
@@ -125,7 +155,7 @@ Stats, Remove Grain and the batch operations all live there.
 |---|---|---|---|
 | E1 | `studio_pref_codec` | S | Manual: `preference-settings/codec-settings` and `export-slow` — Exporter Codec selection, Image Processing Acceleration (Auto), player codec |
 | E2 | `studio_pref_audio` | S | Manual: `preference-settings/audio-settings` |
-| E3 | `studio_pref_paths` | S | Project file save path — **the variable behind the §0 lead**; also the install tree |
+| E3 | `studio_pref_paths` | S | Project file save path — no longer a research question: `%LOCALAPPDATA%\Insta360\Insta360 Studio\startup.ini` keeps it in plain text under `[preference]` (`project_location`, `workspace_location`, `footage_project_location`, `last_visit_dir`, `export_location`), together with the flags that matter for rendering (`cuda_accel`, `hardware_decoding_preview`). Read/set tool, S. |
 | E4 | `studio_pref_language` | S | Manual: `preference-settings/language-settings`; also explains OCR surprises (`Menü` → `Menÿ`) |
 
 ### F. AI features — high user value, GUI-only, long-running
@@ -170,8 +200,8 @@ lost export into an immediate answer.
 
 ## 3. Suggested order
 
-1. ~~**D1 + D2** (log/dump reader)~~ — **done 2026-11-24**: `src/logs.mjs`, `studio_logs` + `studio_dumps`, 8 tests, 93 total. Result: dumps are readable evidence, Studio's main log is not (encrypted).
-2. **§0 investigation**: differential comparison (Studio-written project vs. ours, field by field) + the three path hypotheses + E3 (`Project File Save Path`). The dump timestamps from step 1 scope it to the runs that actually hung.
+1. ~~**D1 + D2** (log/dump reader)~~ — **done 2026-11-24**: `src/logs.mjs`, `studio_logs` + `studio_dumps`, 8 tests, 93 total. Later expanded: Studio's main log **does** decode now (keystream recovered from the ciphertext, verified per file) and dumps are correlated with it, so a dump says *why* it exists — see §0.
+2. ~~**§0 investigation**~~ — **differential run 2026-11-24** (`research/proj_diff.mjs`): our clip structure is identical to Studio's own save (55/55 fields, 0 structural differences); the one convention that differed (clip `name`) is fixed; the three path hypotheses are answered by `startup.ini [preference]`; the album file is Studio's save artefact, not a load requirement. **Left: one live export attempt** from a built project — §0 is an export-path question now, not a load-path one.
 3. **A1, A2, A3** (keyframes, colour, transitions) — the reframing/editing core, file-based, no GUI risk.
 4. **G1–G8** (preflight) — cheap, and it stops every AI/export path from failing late.
 5. **C1, C3, C4** (finish the export matrix) + **B1/B2** (Media page + watermark).

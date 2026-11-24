@@ -424,6 +424,27 @@ export function makeTransition({
 }
 
 /**
+ * The name Studio shows for a clip: the camera's own short name, not the name
+ * the file was given when it was ingested. `VID_20260822_190557_049.mp4` is
+ * `VID_049.mp4` to Studio — every album node Studio has written (24 of 24, across
+ * four projects) maps the full path to that short form, and every clip in a
+ * Studio-saved project carries it too. Ingestion adds the date and time; the
+ * camera's own part is kept, including a lens index when the file has one
+ * (`VID_<date>_<time>_00_001.insv` -> `VID_00_001.insv`). Anything that does not
+ * match keeps the name it has on disk.
+ *
+ * Media is resolved by `url`, not by this name (measured: the loader opens
+ * FrameReaders from the clip url), so this is about matching Studio's own files
+ * rather than about loading — a name Studio did not write is a visible
+ * difference in any comparison between our project and one Studio saved.
+ */
+export function clipDisplayName(fileName) {
+  const base = path.basename(fileName);
+  const m = /^([A-Za-z]+)_\d{8}_\d{6}_(.+)$/.exec(base);
+  return m ? `${m[1]}_${m[2]}` : base;
+}
+
+/**
  * Per-file source metadata for a clip.
  *
  * The template clip is only a valid model for its own file. For any other file
@@ -442,6 +463,7 @@ export function makeTransition({
 export function sourceMetaFor(url, model, models = new Map()) {
   const candidates = models.get(url) ?? [];
   const probe = probeSource(url);
+  const fallbackName = clipDisplayName(url);
 
   if (probe?.frames) {
     let best = null;
@@ -454,18 +476,18 @@ export function sourceMetaFor(url, model, models = new Map()) {
       }
     }
     if (best && bestDelta <= 2) {
-      return { name: best.name ?? path.basename(url), frames: best.sourceFrames, fps: best.fps, from: "harvested", probe, candidates: candidates.length, clip: best };
+      return { name: best.name ?? fallbackName, frames: best.sourceFrames, fps: best.fps, from: "harvested", probe, candidates: candidates.length, clip: best };
     }
-    return { name: path.basename(url), frames: probe.frames, fps: Math.round(probe.fps) || model?.fps, from: "ffprobe", probe, candidates: candidates.length };
+    return { name: fallbackName, frames: probe.frames, fps: Math.round(probe.fps) || model?.fps, from: "ffprobe", probe, candidates: candidates.length };
   }
 
   // File unreadable: fall back to the template, then to a harvested clip.
   if (model?.url === url && model.sourceFrames) {
-    return { name: model.name ?? path.basename(url), frames: model.sourceFrames, fps: model.fps, from: "template", candidates: candidates.length };
+    return { name: model.name ?? fallbackName, frames: model.sourceFrames, fps: model.fps, from: "template", candidates: candidates.length };
   }
   if (candidates.length) {
     const best = candidates.reduce((a, b) => (b.sourceFrames > a.sourceFrames ? b : a));
-    return { name: best.name ?? path.basename(url), frames: best.sourceFrames, fps: best.fps, from: "harvested-offline", candidates: candidates.length };
+    return { name: best.name ?? fallbackName, frames: best.sourceFrames, fps: best.fps, from: "harvested-offline", candidates: candidates.length };
   }
   throw new Error(
     `cannot determine the length of ${url}: file missing and no project references it. ` +

@@ -12,7 +12,7 @@
 
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { probeSource, harvestClips, sourceMetaFor } from "../src/project.mjs";
+import { probeSource, harvestClips, sourceMetaFor, clipDisplayName } from "../src/project.mjs";
 import { buildProject, findTemplate, projectsRoot } from "../src/pipeline.mjs";
 
 const A = "F:/Luna/VID_20261112_051426_001.mp4";
@@ -109,6 +109,31 @@ check("project length is the sum of the real clip lengths", () => {
 });
 check("the project carries no stray bookkeeping key", () => {
   assert.ok(!("sources" in built.project), "base.sources leaked into the project JSON");
+});
+
+// Studio names a clip after the camera's own short name, not the name ingestion
+// gave the file. Every album node Studio has written (24/24) maps the full path
+// to that short form, so a fallback that keeps the ingested name writes a
+// project that differs from Studio's own for the same media.
+const LAM = "D:/Videos/Lamspringe26/VID_20260822_190557_049.mp4";
+check("the fallback name drops the ingested date and time", () => {
+  assert.equal(clipDisplayName(LAM), "VID_049.mp4");
+  assert.equal(clipDisplayName("F:/Luna/VID_20261112_051426_001.mp4"), "VID_001.mp4");
+});
+check("a lens index survives the short form", () => {
+  assert.equal(clipDisplayName("F:/Luna/VID_20261112_051426_00_001.insv"), "VID_00_001.insv");
+  assert.equal(clipDisplayName("F:/Luna/LRV_20261112_051426_001.lrv"), "LRV_001.lrv");
+});
+check("anything else keeps the name it has on disk", () => {
+  assert.equal(clipDisplayName("C:/out/mcp_render.mp4"), "mcp_render.mp4");
+  assert.equal(clipDisplayName("F:/Luna/VID_2026_049.mp4"), "VID_2026_049.mp4");
+});
+check("a file outside the harvest library still gets Studio's short name", () => {
+  if (!fs.existsSync(LAM)) return console.log("       (skipped: fixture media not on this machine)");
+  const m = sourceMetaFor(LAM, null, new Map());
+  assert.equal(m.from, "ffprobe");
+  assert.equal(m.name, "VID_049.mp4");
+  assert.ok(m.frames > 0, "no frame count from ffprobe");
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);
