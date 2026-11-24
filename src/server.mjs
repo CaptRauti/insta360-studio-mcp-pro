@@ -82,6 +82,7 @@ import {
 } from "./logs.mjs";
 import { findText, ocrImage } from "./ocr.mjs";
 import { closeControl, isPickerField, isTextBox, openControl, readDialog, selectOption, setText } from "./export-dialog.mjs";
+import { openProjectAt } from "./pipeline.mjs";
 
 // The install directory is resolved at call time (see studio-path.mjs): Studio
 // 6.0.9 moved from Program Files to %LOCALAPPDATA%\Insta360\Apps, and the old
@@ -850,6 +851,23 @@ tool(
     child.unref();
     return { launched: true, exe, file, pid: child.pid };
   },
+);
+
+tool(
+  "studio_project_open",
+  {
+    description:
+      "Open a project in the Studio GUI by path — works even when the project is not in Studio's library. " +
+      "The library only lists projects registered in pro.insproj; a project that was never registered or was " +
+      "moved between folders cannot be clicked there. This registers it (with Studio stopped, as Studio " +
+      "rewrites pro.insproj on exit), repairs a stale projectPath inside the file, restarts Studio and clicks " +
+      "the card. If the project is already registered and Studio is up, it degrades to a plain click.",
+    inputSchema: {
+      path: z.string().describe("Project directory or .insproj file"),
+      title: z.string().optional().describe("Window title (default 'Insta360 Studio')"),
+    },
+  },
+  async ({ path: target, title }) => openProjectAt(target, { title: title ?? "Insta360 Studio" }),
 );
 
 tool(

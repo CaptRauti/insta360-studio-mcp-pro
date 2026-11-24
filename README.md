@@ -62,6 +62,7 @@ anything the UI or an `.insproj` hands it.
 | Tool | What it does |
 |---|---|
 | `studio_list_projects` | Find projects under the Studio project root |
+| `studio_project_open` | Open a project by path in the GUI, registering it first if Studio's library does not list it |
 | `studio_project_read` | Read a project, summarised |
 | `studio_project_sources` | List the media a project references |
 | `studio_clip_transform` | Read a clip's transform |

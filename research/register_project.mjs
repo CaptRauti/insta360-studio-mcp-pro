@@ -18,6 +18,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { studioRoots } from "../src/assets.mjs";
+import { BUILD_MARKER } from "../src/pipeline.mjs";
 
 const [name, projectDir] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const unregister = process.argv.includes("--unregister");
@@ -57,9 +58,21 @@ if (!projFiles.length) {
 }
 const project = JSON.parse(fs.readFileSync(path.join(projectDir, projFiles[0]), "utf8"));
 
-// Copy the shape from a real entry, so no field is invented. The reference is a
-// project Studio created itself; fall back to a literal if the library is empty.
-const model = lib.projects.find((p) => p.name === "mcpTest") ?? lib.projects[0] ?? {};
+// Copy the shape from a real entry, so no field is invented. The reference must
+// be a project Studio created itself — never one of ours, or our own stale frame
+// counts and flags leak into the new entry. Ours are recognisable by the
+// `.mcp-built` marker in their project directory.
+const hasOwnMarker = (p) => {
+  try {
+    return fs.existsSync(path.join(p.projectPath.replace(/\//g, path.sep), BUILD_MARKER));
+  } catch {
+    return true;
+  }
+};
+const studioEntry = lib.projects.find(
+  (p) => !hasOwnMarker(p) && fs.existsSync(p.projectPath.replace(/\//g, path.sep))
+);
+const model = studioEntry ?? lib.projects[0] ?? {};
 const entry = JSON.parse(JSON.stringify(model));
 const now = new Date();
 const stamp = (d) =>

@@ -8,7 +8,12 @@ import { stopStudio, startStudio, waitForLibrary } from "../src/pipeline.mjs";
 import { readScreen, openProject } from "../src/editor.mjs";
 import { focusWindow } from "../src/ui.mjs";
 
-const NAME = process.argv[2] ?? "mcpE2E";
+const argv = process.argv.slice(2);
+const NAME = argv.find((a) => !a.startsWith("--")) ?? "mcpE2E";
+// How long to watch the timeline before calling it a hang. The failure the user
+// reported is a load that never resolves — so a slow-but-finite load must be
+// told apart from an endless one, and that needs a longer window than a minute.
+const POLLS = Number(argv[argv.indexOf("--polls") + 1]) || 5;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 console.log("stopStudio:", JSON.stringify(await stopStudio()));
@@ -25,7 +30,7 @@ if (!opened.ok) {
   process.exit(1);
 }
 
-for (let i = 1; i <= 5; i++) {
+for (let i = 1; i <= POLLS; i++) {
   await sleep(12000);
   focusWindow({});
   const s = readScreen();

@@ -177,6 +177,52 @@ function Resolve-Child([IntPtr]$top, [int]$relX, [int]$relY) {
   return @{ child = $child; screenX = $pt.X; screenY = $pt.Y }
 }
 
+# The window under a point, with a pin-and-retry fallback for occlusion.
+#
+# Quiet mode relies on WindowFromPoint, which resolves by z-order, so a window
+# that another application covers cannot be reached at all. Measured: with Teams
+# maximised on the primary monitor, Studio sat behind it and every card click in
+# the project library was refused ("belongs to another process") — the clicks
+# were delivered, nothing happened, and the caller saw a project that "did not
+# open". The same applies to a covering window of our own process, which resolves
+# to the wrong child.
+#
+# The fallback pins the target topmost for the length of the resolution, then
+# hands the front back with Clear-Topmost. The cursor and the keyboard focus are
+# still untouched, so quiet mode's promise — the user's mouse and typing are not
+# disturbed — holds; only the z-order changes, and only when the plain path
+# refuses outright.
+function Resolve-ChildPinned([IntPtr]$top, [int]$relX, [int]$relY) {
+  try {
+    $r = Resolve-Child $top $relX $relY
+    return @{ child = $r.child; screenX = $r.screenX; screenY = $r.screenY; pinned = $false }
+  } catch {
+    if ($_.Exception.Message -notmatch "belongs to another process|no window at screen") { throw }
+    Set-Topmost $top
+    try {
+      $r = Resolve-Child $top $relX $relY
+      return @{ child = $r.child; screenX = $r.screenX; screenY = $r.screenY; pinned = $true }
+    } catch {
+      # Distinguish the two stages in the message: a bare refusal is the point
+      # being empty of our window, "after pinning" means the pin did not lift it
+      # above the covering window.
+      throw ("after pinning the window topmost, " + $_.Exception.Message)
+    } finally {
+      Clear-Topmost $top
+    }
+  }
+}
+
+# Pin a window to the top of the z-order without moving or resizing it.
+function Set-Topmost($hwnd) {
+  $HWND_TOPMOST = [IntPtr](-1)
+  $SWP_NOSIZE = 0x1
+  $SWP_NOMOVE = 0x2
+  $SWP_SHOWWINDOW = 0x40
+  [void][W32]::SetWindowPos($hwnd, $HWND_TOPMOST, 0, 0, 0, 0, ($SWP_NOMOVE -bor $SWP_NOSIZE -bor $SWP_SHOWWINDOW))
+  Start-Sleep -Milliseconds 90
+}
+
 # Click by message instead of by cursor. The user keeps their mouse: nothing
 # moves the pointer, nothing takes the foreground, and the click still lands
 # because the messages are delivered to the window under the point.
@@ -185,7 +231,7 @@ function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double) 
   $WM_LBUTTONDOWN = 0x0201
   $WM_LBUTTONUP = 0x0202
   $MK_LBUTTON = [IntPtr]1
-  $found = Resolve-Child $top $relX $relY
+  $found = Resolve-ChildPinned $top $relX $relY
   $child = $found.child
   $cr = Get-WinRect $child
   $cx = $found.screenX - $cr.Left
@@ -202,7 +248,7 @@ function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double) 
     Start-Sleep -Milliseconds 45
     [void][W32]::SendMessage($child, $WM_LBUTTONUP, [IntPtr]::Zero, $lp)
   }
-  return @{ mode = "message"; child = [int64]$child; cx = $cx; cy = $cy; screenX = $found.screenX; screenY = $found.screenY }
+  return @{ mode = $(if ($found.pinned) { "message-pinned" } else { "message" }); child = [int64]$child; cx = $cx; cy = $cy; screenX = $found.screenX; screenY = $found.screenY; pinned = $found.pinned }
 }
 
 # Type text into the window under a point as WM_CHAR messages.
@@ -224,7 +270,7 @@ function Resolve-TargetChild([IntPtr]$top, [int]$relX, [int]$relY) {
     $relX = [int][Math]::Floor(($rect.Right - $rect.Left) / 2)
     $relY = [int][Math]::Floor(($rect.Bottom - $rect.Top) / 2)
   }
-  return (Resolve-Child $top $relX $relY).child
+  return (Resolve-ChildPinned $top $relX $relY).child
 }
 
 # Send one key, as a window message, to the child under (relX, relY).

@@ -223,6 +223,128 @@ export function listProjects() {
   return readProList().projects ?? [];
 }
 
+/** Turn a project directory or .insproj path into { dir, file }. */
+function resolveProjectPath(target) {
+  const p = path.resolve(target);
+  let stat;
+  try {
+    stat = fs.statSync(p);
+  } catch {
+    return null;
+  }
+  if (stat.isDirectory()) {
+    const files = fs.readdirSync(p).filter((f) => f.endsWith(".insproj") && !f.includes("_backup"));
+    if (!files.length) return null;
+    const file = path.join(p, files[0]);
+    return { dir: p, file };
+  }
+  if (!p.endsWith(".insproj")) return null;
+  return { dir: path.dirname(p), file: p };
+}
+
+/**
+ * Open a project in the Studio GUI, whether or not it is registered.
+ *
+ * `openProject` (editor.mjs) clicks a card in the library, and the library only
+ * shows projects listed in `pro.insproj`. A project that exists on disk but was
+ * never registered — or was moved between folders, so its `projectPath` is
+ * stale — therefore cannot be opened at all: the card is simply not there. That
+ * is the "project did not open" failure, and it is a registration gap, not a
+ * broken project.
+ *
+ * So: resolve the target on disk, read its own id/name, register it with Studio
+ * **down** (Studio rewrites pro.insproj from memory on exit, so a registration
+ * written while it runs is lost), then start Studio and click the card. When the
+ * project is already registered and Studio is already up, this degrades to a
+ * plain click without a restart.
+ *
+ * @param {string} target  project directory or .insproj file
+ */
+export async function openProjectAt(target, { title = DEFAULT_WINDOW_TITLE, settleMs = 12000 } = {}) {
+  const resolved = resolveProjectPath(target);
+  if (!resolved) return { ok: false, error: `no .insproj found at ${target}` };
+
+  let data;
+  try {
+    data = await readProject(resolved.file);
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+
+  const name = data.name ?? path.basename(resolved.dir);
+  const id = data.id ?? path.basename(resolved.file, ".insproj");
+  const projectPath = resolved.dir.replace(/\\/g, "/");
+
+  const key = (v) => String(v ?? "").toLowerCase();
+  const registered = listProjects().find((p) => key(p.name) === key(name) || key(p.id) === key(id));
+  const stale = registered && key(registered.projectPath) !== key(projectPath);
+
+  const already = Boolean(registered) && !stale;
+  if (already) {
+    const up = studioProcess();
+    if (!up) {
+      const started = await startStudio();
+      if (!started.ok) return { ok: false, error: started.error, registered: true };
+      const ready = await waitForLibrary({ title });
+      if (!ready.ok) return { ok: false, error: ready.error, registered: true };
+    }
+    const opened = await openProjectGui(name, { title, settleMs });
+    return { ...opened, registered: true, restarted: false, name };
+  }
+
+  // Register with Studio down, then bring it up on the fresh list.
+  const stop = await stopStudio();
+
+  // A moved project still carries its old `projectPath` inside the file. Studio
+  // trusts that field, so it must point at where the project actually lives.
+  // Only repair when the recorded path is gone — never when it still exists.
+  let repaired = false;
+  if (data.projectPath && !fs.existsSync(String(data.projectPath).replace(/\//g, path.sep))) {
+    data.projectPath = projectPath;
+    await writeProject(resolved.file, data, { backup: true });
+    repaired = true;
+  }
+
+  const entry = {
+    adsorbable: true,
+    aspectRatio: data.aspectRatio ?? "16:9",
+    autoFps: data.autoFps ?? false,
+    creationTime: data.creationTime ?? "",
+    enableEffects: data.enableEffects ?? true,
+    fps: data.fps ?? 30,
+    frames: data.frames ?? 0,
+    id,
+    isPanoramic: data.isPanoramic ?? false,
+    lastModifiedTime: data.lastModifiedTime ?? "",
+    lowQualityProxyType: -1,
+    mainMagnetizable: data.mainMagnetizable ?? true,
+    name,
+    previewable: false,
+    projectMediaType: "",
+    projectPath,
+  };
+  const reg = registerProject(entry);
+
+  const started = await startStudio();
+  if (!started.ok) {
+    return { ok: false, error: started.error, registered: true, name, registration: reg, stages: [{ stage: "stop-studio", wasRunning: stop.wasRunning }] };
+  }
+  const ready = await waitForLibrary({ title });
+  if (!ready.ok) return { ok: false, error: ready.error, registered: true, name, registration: reg };
+
+  const opened = await openProjectGui(name, { title, settleMs });
+  return {
+    ...opened,
+    registered: true,
+    restarted: true,
+    stalePath: stale || undefined,
+    repairedPath: repaired || undefined,
+    name,
+    project: resolved.file,
+    registration: reg,
+  };
+}
+
 /* -------------------------------------------------------------------- assets */
 
 /** Turn a user-supplied asset name into the id/path pair a clip needs. */

@@ -75,6 +75,84 @@ export function findAll(found, text, { exact = true } = {}) {
 }
 
 /**
+ * Find a caption that the OCR may have split across several words.
+ *
+ * Project cards are labelled with the project name, and the OCR breaks such a
+ * label up wherever the case changes: "mcpFLrv" comes back as "mcp" (y=400) plus
+ * "FLrv" (y=398) — two boxes, two pixels apart. Matching a single word therefore
+ * reports "not in library" for a project that is plainly on screen, and names
+ * with a space fail the same way.
+ *
+ * So consecutive words are joined and searched as a sequence, with two guards:
+ * a vertical tolerance (the split halves sit a hair apart while the next card
+ * row is ~135px away) and a horizontal gap limit (neighbouring cards sit close
+ * together, so a row must not be smeared into one string). An exact match beats
+ * a partial one, which keeps "Lamspringe" off the neighbouring "LamspringeKlon"
+ * card.
+ */
+export function findLabel(found, text, { yMin = 0, yTol = 8, maxGap = 60 } = {}) {
+  const wantTight = String(text).toLowerCase().replace(/\s+/g, "");
+  const tight = (g) => g.map((w) => String(w.text)).join("").toLowerCase();
+  const words = found
+    .filter((w) => (w.y ?? 0) >= yMin)
+    .slice()
+    .sort((a, b) => (a.y ?? 0) - (b.y ?? 0) || (a.x ?? 0) - (b.x ?? 0));
+
+  let best = null;
+  const consider = (group, score) => {
+    const first = group[0];
+    const last = group[group.length - 1];
+    const cand = {
+      text: group.map((w) => String(w.text)).join(" "),
+      x: Math.round((first.x + (last.x + (last.w ?? 0))) / 2),
+      y: Math.round((first.y ?? 0) + (first.h ?? 0) / 2),
+      raw: first,
+      score,
+    };
+    const better =
+      !best ||
+      score > best.score ||
+      (score === best.score && (cand.y < best.y || (cand.y === best.y && cand.x < best.x)));
+    if (better) best = cand;
+  };
+
+  // Sort into vertical bands first, then scan each band left to right: a split
+  // caption can put the left half a pixel *below* the right half, so a plain
+  // y-then-x ordering presents the halves in the wrong sequence.
+  const bands = [];
+  for (const w of words) {
+    const band = bands[bands.length - 1];
+    // Chain the tolerance off the band's lowest word so far, not its first one:
+    // a stray word 10px above the caption row must not push the caption's own
+    // halves into two different bands.
+    if (!band || (w.y ?? 0) - band.maxY > yTol) bands.push({ minY: w.y ?? 0, maxY: w.y ?? 0, words: [w] });
+    else {
+      band.words.push(w);
+      band.maxY = Math.max(band.maxY, w.y ?? 0);
+    }
+  }
+
+  for (const band of bands) {
+    const row = band.words.sort((a, b) => (a.x ?? 0) - (b.x ?? 0));
+    for (let i = 0; i < row.length; i++) {
+      let group = [row[i]];
+      for (let j = i; j < row.length && group.length < 6; j++) {
+        if (j > i) {
+          const prev = row[j - 1];
+          const cur = row[j];
+          if ((cur.x ?? 0) - ((prev.x ?? 0) + (prev.w ?? 0)) > maxGap) break;
+          group = group.concat([cur]);
+        }
+        const t = tight(group);
+        if (t === wantTight) consider(group, 3);
+        else if (t.includes(wantTight)) consider(group, 2);
+      }
+    }
+  }
+  return best;
+}
+
+/**
  * Open a project from the library by name.
  *
  * The card is clicked, not the label: the label sits in the card's lower part,
@@ -90,7 +168,9 @@ export async function openProject(name, { title = DEFAULT_WINDOW_TITLE, cardOffs
   if (!findWord(screen.words, "Projektbibliothek", { exact: false })) {
     return { ok: false, error: "project library not on screen" };
   }
-  const label = findWord(screen.words, name, { exact: false, yMin: 250 });
+  // A card caption can be split across words by the OCR, so try the spanning
+  // match first and keep the single-word lookup as a fallback.
+  const label = findLabel(screen.words, name, { yMin: 250 }) ?? findWord(screen.words, name, { exact: false, yMin: 250 });
   if (!label) {
     const names = screen.words.filter((w) => w.y > 250 && w.y < 500).map((w) => w.text);
     return { ok: false, error: `project "${name}" not in library`, visible: names };
@@ -106,12 +186,22 @@ export async function openProject(name, { title = DEFAULT_WINDOW_TITLE, cardOffs
   const tried = [];
   for (const dy of cardOffsets) {
     const cardY = Math.round(label.raw.y - dy);
-    click({ title, x: cardX, y: cardY, double: true });
+    const reply = click({ title, x: cardX, y: cardY, double: true });
     await sleep(settleMs);
     screen = readScreen({ title });
     if (!screen.ok) return { ok: false, error: screen.error };
     if (looksLikeEditor(screen.words)) {
-      return { ok: true, editor: true, clicked: { x: cardX, y: cardY }, offset: dy, text: screen.text.slice(0, 400) };
+      // `style` says how the click was delivered: "message" is the plain quiet
+      // path, "message-pinned" means another window covered the card and the
+      // window had to be pinned topmost for the click (see Resolve-ChildPinned).
+      return {
+        ok: true,
+        editor: true,
+        clicked: { x: cardX, y: cardY },
+        offset: dy,
+        style: reply?.style ?? null,
+        text: screen.text.slice(0, 400),
+      };
     }
     tried.push(cardY);
   }
