@@ -55,11 +55,31 @@ function shotDir() {
 function runPs(script, args, { timeout = 30000 } = {}) {
   // Only win32.ps1 knows the flag; uia.ps1 would fail on an unknown parameter.
   const argv = script === WIN32_PS1 && quiet() ? [...args, "-Quiet"] : args;
-  const out = execFileSync(
-    "powershell",
-    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, ...argv],
-    { encoding: "utf8", timeout, windowsHide: true },
-  );
+  let out;
+  try {
+    out = execFileSync(
+      "powershell",
+      ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", script, ...argv],
+      { encoding: "utf8", timeout, windowsHide: true },
+    );
+  } catch (err) {
+    // A refusal is a decision, not a crash: the script writes a JSON object to
+    // stdout and exits non-zero. Surface its `error`, not the command line --
+    // otherwise every quiet-mode refusal reaches the caller as an unreadable
+    // "Command failed: powershell -NoProfile ..." blob.
+    const raw = String(err.stdout ?? "").trim();
+    const last = raw.split(/\r?\n/).filter(Boolean).pop() ?? "";
+    let parsed = null;
+    try {
+      parsed = JSON.parse(last);
+    } catch {
+      /* not JSON: fall back to the raw text */
+    }
+    const e = new Error(parsed?.error ?? (raw || String(err.stderr ?? "").trim() || `powershell exited ${err.status}`));
+    e.status = err.status;
+    e.detail = parsed;
+    throw e;
+  }
   const text = out.trim();
   if (!text) return null;
   try {
@@ -152,7 +172,40 @@ export function click({ title = DEFAULT_WINDOW_TITLE, x, y, double = false } = {
 }
 
 /** Send a key chord to the window, e.g. "^{s}" or "{ESC}". */
+/**
+ * The keys the quiet path can deliver, by the names SendKeys uses for them.
+ * Every one of these is a single key with no modifier, which is the whole point:
+ * a modifier has to come from the real keyboard, so a chord cannot be faked.
+ */
+const PLAIN_KEYS = {
+  enter: "ENTER", return: "ENTER", tab: "TAB", esc: "ESCAPE", escape: "ESCAPE",
+  backspace: "BACKSPACE", back: "BACKSPACE", del: "DELETE", delete: "DELETE",
+  ins: "INSERT", insert: "INSERT", home: "HOME", end: "END", space: "SPACE",
+  up: "UP", down: "DOWN", left: "LEFT", right: "RIGHT",
+  pgup: "PAGEUP", pgdn: "PAGEDOWN", pageup: "PAGEUP", pagedown: "PAGEDOWN",
+};
+
+/**
+ * Read a SendKeys string that is exactly *one* plain key, or return null.
+ *
+ * Only whole single-token forms qualify: "{ENTER}", "{ESC}", "ENTER", "{TAB}".
+ * Anything with a modifier, a repeat count or a second key is a chord and does
+ * not qualify -- a partial reading of "^{a}" or "a{ENTER}b" is how a chord would
+ * silently turn into some other keystroke.
+ */
+export function plainKey(keys) {
+  const s = String(keys ?? "").trim();
+  const m = s.match(/^\{([A-Za-z]+)\}$/) ?? s.match(/^([A-Za-z]+)$/);
+  if (!m) return null;
+  return PLAIN_KEYS[m[1].toLowerCase()] ?? null;
+}
+
 export function sendKeys({ title = DEFAULT_WINDOW_TITLE, keys } = {}) {
+  // A single key with no modifier is not a chord, so the message path can carry
+  // it: {ESC} closes an overlay, {ENTER} presses a button. Everything else still
+  // needs the system keyboard queue, which quiet mode will not touch.
+  const single = quiet() ? plainKey(keys) : null;
+  if (single) return { ...keyMsg({ title, key: single }), translated: `{${single}}` };
   const r = runPs(WIN32_PS1, ["-Action", "keys", "-Title", title, "-Keys", keys]);
   if (!r || r.ok === false) throw new Error(`key "${keys}" failed`);
   return r;
@@ -185,9 +238,46 @@ export function keysAt({ title = DEFAULT_WINDOW_TITLE, x, y, keys } = {}) {
 
 /** Type literal text into the window under (x, y); see keysAt. */
 export function typeAt({ title = DEFAULT_WINDOW_TITLE, x, y, text } = {}) {
-  const r = runPs(WIN32_PS1, ["-Action", "atkeys", "-Title", title, "-X", String(x), "-Y", String(y), "-Text", text]);
+  // The two transports read characters differently: WM_CHAR (quiet) carries them
+  // literally, SendKeys (loud) treats "^", "+", "%", "{}" as syntax. Escape here,
+  // where the transport is known -- a call site that escaped its own text sent a
+  // path containing "^" to the quiet path as the literal "{^}".
+  const payload = quiet() ? String(text ?? "") : escapeSendKeys(String(text ?? ""));
+  const r = runPs(WIN32_PS1, ["-Action", "atkeys", "-Title", title, "-X", String(x), "-Y", String(y), "-Text", payload]);
   if (!r || r.ok === false) throw new Error("typeAt failed");
   return r;
+}
+
+/**
+ * Press one key, delivered as a window message to the child under (x, y).
+ *
+ * The quiet-mode counterpart of `sendKeys`, for the keys that carry no modifier:
+ * Enter, Tab, Escape, Backspace, Delete, Home, End, the arrows. A chord cannot
+ * be delivered this way -- Chromium builds the modifier state from the real
+ * keyboard, so a synthesised Ctrl+A arrives as a bare "a" -- which is why the
+ * dialog clears fields with End + Backspace instead of select-all.
+ */
+export function keyMsg({ title = DEFAULT_WINDOW_TITLE, x, y, key, repeat = 1 } = {}) {
+  const args = ["-Action", "keymsg", "-Title", title, "-Key", String(key), "-Repeat", String(repeat)];
+  // -1 is "no point given": the script then targets the content child under the
+  // window's centre. Omitting the arguments would mean (0,0), the frame corner.
+  const point = Number.isFinite(x) && Number.isFinite(y) ? [Math.round(x), Math.round(y)] : [-1, -1];
+  args.push("-X", String(point[0]), "-Y", String(point[1]));
+  const r = runPs(WIN32_PS1, args);
+  if (!r || r.ok === false) throw new Error(`key "${key}" failed: ${r?.error ?? "no output"}`);
+  return r;
+}
+
+/**
+ * Empty a text field without a chord: End, then Backspace once per character.
+ * `chars` must cover the current value; the extra presses land on an empty field
+ * and do nothing.
+ */
+export function clearField({ title = DEFAULT_WINDOW_TITLE, x, y, chars = 40 } = {}) {
+  const n = Math.max(1, Math.min(400, Math.round(chars)));
+  keyMsg({ title, x, y, key: "END" });
+  keyMsg({ title, x, y, key: "BACKSPACE", repeat: n });
+  return { cleared: n };
 }
 
 /** Escape the characters SendKeys reads as modifiers or grouping. */
@@ -384,7 +474,7 @@ function listVideos(dir) {
  */
 export async function runExport({
   title = DEFAULT_WINDOW_TITLE,
-  outDir = DEFAULT_OUT_DIR,
+  outDir = null,
   stage = "full",
   settings = null,
   settleMs = 1200,
@@ -393,7 +483,6 @@ export async function runExport({
   stableFor = 5,
   minBytes = 64 * 1024,
 } = {}) {
-  const before = new Map(listVideos(outDir).map((v) => [v.name, v.size]));
   const log = [];
 
   const state0 = uiState({ title });
@@ -412,6 +501,26 @@ export async function runExport({
   if (!state1.dialogOpen) {
     throw new Error("export dialog did not open after clicking the toolbar button");
   }
+  // Where the file lands is decided by the dialog, not by `outDir`: "Pfad" is a
+  // folder picker (quiet mode will not retype it), so the dialog is the only
+  // authority on the destination. Watching the folder the caller named instead
+  // is how a finished export read as no export at all -- and why the reply now
+  // says which folder was used and whether it was the one asked for.
+  const normal = (p) => String(p).replace(/\//g, "\\").replace(/\\+$/, "").toLowerCase();
+  const { dialogOutDir } = await import("./export-dialog.mjs");
+  const dialogDir = dialogOutDir({ title });
+  const watchDir = dialogDir ?? outDir ?? DEFAULT_OUT_DIR;
+  const asked = outDir ?? null;
+  const mismatch = asked !== null && normal(asked) !== normal(watchDir);
+  const before = new Map(listVideos(watchDir).map((v) => [v.name, v.size]));
+  log.push({
+    step: "outdir",
+    dir: watchDir,
+    source: dialogDir ? "dialog" : "argument",
+    asked,
+    mismatch,
+  });
+
   // Imported here rather than at the top: export-dialog.mjs already imports this
   // module, and a static import back would make the cycle load-order dependent.
   let applied = null;
@@ -424,7 +533,18 @@ export async function runExport({
   }
 
   if (stage === "dialog") {
-    return { ok: true, stage, dialogOpen: true, clicked: false, settings: applied, log };
+    return {
+      ok: true,
+      stage,
+      dialogOpen: true,
+      clicked: false,
+      outDir: watchDir,
+      outDirAsked: asked,
+      outDirSource: dialogDir ? "dialog" : "argument",
+      outDirMismatch: mismatch,
+      settings: applied,
+      log,
+    };
   }
 
   const btn = state1.dialogExport;
@@ -438,7 +558,7 @@ export async function runExport({
   let stable = 0;
   while (Date.now() < deadline) {
     await sleep(pollMs);
-    const now = listVideos(outDir);
+    const now = listVideos(watchDir);
     const fresh = now.filter((v) => {
       const prev = before.get(v.name);
       return prev === undefined || v.size !== prev;
@@ -452,7 +572,19 @@ export async function runExport({
         candidate = newest;
         if (stable >= stableFor && newest.size >= minBytes) {
           log.push({ step: "done", file: newest.file, size: newest.size });
-          return { ok: true, stage, dialogOpen: false, file: newest.file, size: newest.size, settings: applied, log };
+          return {
+            ok: true,
+            stage,
+            dialogOpen: false,
+            file: newest.file,
+            size: newest.size,
+            outDir: watchDir,
+            outDirAsked: asked,
+            outDirSource: dialogDir ? "dialog" : "argument",
+            outDirMismatch: mismatch,
+            settings: applied,
+            log,
+          };
         }
         if (stable === stableFor) {
           log.push({ step: "too-small", file: newest.file, size: newest.size });
@@ -467,7 +599,7 @@ export async function runExport({
   }
 
   throw new Error(
-    `export did not produce a file of at least ${minBytes} bytes in ${outDir} ` +
+    `export did not produce a file of at least ${minBytes} bytes in ${watchDir} ` +
       `within ${Math.round(timeoutMs / 1000)}s` +
       (candidate ? ` (last seen: ${candidate.file} @ ${candidate.size} bytes)` : ""),
   );

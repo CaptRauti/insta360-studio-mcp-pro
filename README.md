@@ -50,7 +50,7 @@ anything the UI or an `.insproj` hands it.
 | `studio_ui_export` | Full GUI export: click the toolbar export button, click the dialog's export button, wait for the file to stop growing |
 | `studio_ui_wait_export` | Wait for a specific export to finish |
 | `studio_ui_open_media` | Open a `.insv` / `.mp4` / `.insproj` in Studio |
-| `studio_ui_send_keys` | Send a SendKeys chord to the window |
+| `studio_ui_send_keys` | Send a key to the window: one plain key (`{ESC}`, `{TAB}`, …) works in quiet mode, a chord only in loud mode |
 | `studio_ui_analyze_shot` | Analyse an existing screenshot for buttons and player content |
 | `studio_ui_ocr` | Read the text on screen (Windows OCR) with window-relative boxes |
 | `studio_ui_click_text` | Find on-screen text by name and click it |
@@ -167,7 +167,8 @@ Which controls are which, read off Studio 6.0.9 (the set depends on the preset �
 | `Kodierung` | list | `H.264`, `H.265`, `ProRes 422`, `ProRes 422LT` |
 | `Farbraum` | list | `Rec.709 8bit`, `Rec.709 10bit` (`IObit` is how OCR reads the ten) |
 
-`Dateiname` is not in the video dialog on 6.0.9 at all; the field name is kept for the variants that have it.
+`Dateiname` **is** in the 6.0.9 video dialog (read back as `mcpTest(2).mp4`, typed into, see the quiet-mode
+measurements below); it was reported missing here earlier and that was wrong.
 
 Traps in that table:
 
@@ -183,8 +184,9 @@ Traps in that table:
   The picker's own `Ordner:` field takes a name, not a path — a typed path is rejected with `Der Ordnername ist
   ungültig.` — so the folder is picked by navigating its list, and driving that is not built yet.
   `studio_ui_export_set { control: "Pfad" }` therefore answers `ok: false` **without clicking**, since leaving a
-  modal picker open is worse than not trying, and `studio_ui_export`'s `outDir` has to match whatever the dialog
-  already holds.
+  modal picker open is worse than not trying. `studio_ui_export`'s own `outDir` is only a *wish*: the dialog's
+  folder is what the file lands in, and the reply states which folder that was (`outDir`, `outDirSource`,
+  `outDirMismatch`), what was asked for (`outDirAsked`) and watches *that* folder for the file to stop growing.
 - **Check for modal windows before believing a control is inert.** Two controls here looked like they ignored
   input until `list_windows` showed a window of the *same process* sitting on top. The parent's capture cannot
   show it, so a screenshot-based check reports "nothing happened" either way.
@@ -227,19 +229,33 @@ old behaviour back.
 | --- | --- | --- |
 | read the UI, wait for state | `SetForegroundWindow`, then capture | `PrintWindow` of a background window, pointer untouched |
 | click, double-click | `SetCursorPos` + `mouse_event` | `WM_LBUTTONDOWN`/`WM_LBUTTONUP` to the window under the point |
-| `studio_ui_click` with `text`, `studio_ui_type` | `SendKeys` on the system queue | `WM_CHAR` messages, addressed to the window |
+| typing text (`WM_CHAR`), e.g. into the export dialog's `Dateiname` | `SendKeys` on the system queue | `WM_CHAR` messages, addressed to the content window |
+| `studio_ui_send_keys` with **one** plain key (`{ESC}`, `{TAB}`, `{ENTER}`, `{BACKSPACE}`, arrows) | `SendKeys` | `WM_KEYDOWN`/`WM_KEYUP` for that key, addressed to the content window |
+| `studio_ui_send_keys` with a **chord** (`^s`, `%{F4}`, `a{ENTER}b`) | `SendKeys` | refuses (exit 4) |
 | `studio_ui_move` | moves the window | refuses (exit 3) and says how to allow it |
-| `studio_ui_keys` (chords) | `SendKeys` | refuses (exit 4) |
 | `studio_ui_focus` | raises the window | no-op unless `force: true` |
+| any action on a **minimised** window | restores the window, then acts | refuses (exit 3): a window that is not composited has no frame |
 
 Why chords are refused instead of translated: `SendKeys` pushes through the system
 keyboard queue, and the OS routes that to the focus of the *foreground* window. In
 quiet mode the foreground is the operator's own application, so a `Ctrl+E` on the
-way to the export dialog would be typed into their mail. `WM_CHAR` is addressed to
-the target window and cannot leak, so text is fine and chords are not. A caller
-that needs a chord — the export dialog's path field clears itself with `Ctrl+A` —
-has to avoid it (leave the dialog's folder alone and read back what it holds) or
-set `INSTA360_QUIET=0`.
+way to the export dialog would be typed into their mail. Messages are addressed to
+the target window and cannot leak, so text and plain keys are fine and chords are
+not.
+
+A key with no modifier is not a chord, so `studio_ui_send_keys` accepts exactly one
+of those — `{ESC}`, `{TAB}`, `{ENTER}`, `{BACKSPACE}`, `{DEL}`, `{HOME}`, `{END}`,
+arrows, `{PGUP}`/`{PGDN}`, `{SPACE}` — and delivers it as `WM_KEYDOWN`/`WM_KEYUP`
+to the content window. Measured: `sendKeys({ keys: "{ESC}" })` closed the export
+dialog while the operator's focus was in another application. Anything with a
+modifier, a repeat or a second key is refused (exit 4) rather than guessed at.
+
+Nothing in this tool needs `Ctrl+A` any more: the export dialog's `Dateiname` is
+cleared with `End` plus `Backspace` (`clearField`) and committed with no key at
+all, because the field and its display update as the characters arrive. `ENTER` is
+deliberately never sent to that dialog — it would press the default button, which
+is `Export`. The dialog's `Pfad` is a folder *picker*, not a text field: leave the
+folder alone and read back what it holds.
 
 Measured while the operator was working in another application, with Studio on a
 second monitor (`research/quiet_probe.mjs` and `research/click_reach.mjs`, both
@@ -278,6 +294,53 @@ readScreen            ok=true words=56
 - **Studio exposes no UI Automation tree** — `uia.ps1` walking the RawView from the
   window returns `COUNT=0` — so screenshots + OCR remain the only way to read it.
   That is a property of the app, not a gap in this automation.
+
+### Measurements, 24.11.2026 (Studio 6.0.9, operator working in another application)
+
+```
+# a wrong outDir cannot redirect the export to a folder nobody is watching
+runExport({ outDir: "C:\Users\stefa\AppData\Local\Temp" })
+  -> ok true, file C:\Users\stefa\Desktop\mcpTest(1).mp4 (356 793 785 bytes, 55 s)
+     outDir "C:\Users\stefa\Desktop", outDirSource "dialog",
+     outDirAsked "...\Temp", outDirMismatch true
+     window 2945,138 1384x900 before and after -- nothing moved, no file in Temp
+
+# the dialog's Dateiname does take typed text (the older note said it did not)
+click row "Dateiname" -> keyMsg END, typeAt "X"
+  -> read back "mcpTest(2).mp4X"        the field and its display update live
+setText({ label: "Dateiname", text: "mcpTest(1).mp4" })
+  -> ok true, changed true  "mcpTest(2).mp4" -> "mcpTest(1).mp4"
+setText({ label: "Dateiname", text: "mcpTest(2).mp4" })
+  -> ok true, changed true  back to "mcpTest(2).mp4"
+  -> uiState().dialogOpen true   no ENTER was sent, so nothing pressed Export
+```
+
+- **A keyboard message with no point used to go nowhere, and still report `ok`.** With no `X`/`Y` the script sent
+  the characters to the window at its *top-left corner* — the frame, not the content — so typing landed nowhere
+  while the reply said `ok: true`. That is why the dialog's fields looked inert. Now the point-less case targets
+  the content window under the window's centre, and it is measured: with CEF's focus on `Dateiname`, a
+  `typeText({ text: "Z" })` with no coordinates came back in the field (`mcpTest(2).mpZ4`). Note the *caret*: the
+  text goes wherever the focus sits, so a caller that wants a specific field clicks it first (`typeAt`).
+- **Studio's CEF renders into the top-level window** — `WindowFromPoint` at any point inside it returns the window
+  itself, not a child. Messages still reach it (that is why click and typing work by message), and `Resolve-Child`'s
+  process check still matters for the windows where a child *does* exist.
+- **A single key is deliverable by message.** `sendKeys({ keys: "{ESC}" })` returned `{ESCAPE, vk 27}` and
+  `uiState().dialogOpen` went `true -> false`: the dialog closed without the window ever coming forward. Chords
+  stay refused with the reason.
+
+```
+# a minimised window is refused instead of reported as empty UI
+capture({ hwnd: <minimised window> })
+  -> exit 3, ok false, iconic true:
+     "the window is minimised: a minimised window has no composited frame, so it cannot be captured.
+      Restore it and run again (quiet mode does not raise or move windows);
+      INSTA360_QUIET=0 would let the tool restore it itself."
+```
+
+A minimised window has no composited frame, so `PrintWindow` hands back a blank or a stale picture — which reads
+as "the UI is empty" rather than as an error. Quiet mode now says so and exits 3; loud mode restores the window
+first, which is what loud mode is for. (Verified with a window of our own that was minimised on purpose; Studio
+was left untouched.)
 
 ## Install
 

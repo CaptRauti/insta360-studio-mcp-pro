@@ -19,11 +19,12 @@
 //     (Measured for reference: x 566, width 340, top = label y + 2.)
 
 import { execFileSync } from "node:child_process";
+import { statSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
 import { ocrImage } from "./ocr.mjs";
-import { capture, click, escapeSendKeys, keysAt, sleep, typeAt, windowInfo } from "./ui.mjs";
+import { capture, clearField, click, sleep, typeAt, windowInfo } from "./ui.mjs";
 
 const FFMPEG = path.join(
   os.homedir(), "AppData", "Local", "hermes", "tools", "ffmpeg-9.0.1-win32-x64", "bin", "ffmpeg.exe",
@@ -203,6 +204,52 @@ export const PICKER_FIELDS = ["Pfad"];
 export const isPickerField = (label) => PICKER_FIELDS.includes(label);
 
 /** Read every control in the dialog, plus the window rect. */
+/**
+ * Normalise a folder as the dialog's "Pfad" row reads it.
+ *
+ * OCR returns it with forward slashes ("C:/Users/stefa/Desktop"), sometimes with
+ * a trailing separator and quote marks. Anything that is not an absolute Windows
+ * path returns "" -- a folder that cannot exist is worse than no answer, because
+ * it would be watched for a file that can never appear there.
+ */
+export function parseDialogDir(raw) {
+  const s = String(raw ?? "")
+    .trim()
+    .replace(/^["'\u201e\u201c]+|["'\u201e\u201c]+$/g, "")
+    .trim()
+    // "\" and "|" are the two glyphs OCR gives for a separator, and Windows
+    // forbids "|" in a name, so turning it into a separator is never wrong.
+    .replace(/[\/|]/g, "\\")
+    .replace(/\\+$/, "");
+  if (!/^[A-Za-z]:\\/.test(s) && !/^\\\\[^\\]/.test(s)) return "";
+  return s;
+}
+
+/**
+ * The folder the export dialog will write into, as the dialog itself shows it.
+ *
+ * "Pfad" is a folder picker -- it cannot be typed into, and in quiet mode nothing
+ * retypes it -- so the dialog is the only authority on the destination, and this
+ * is what `runExport` watches. Returns null when the dialog shows nothing usable,
+ * so the caller can fall back and say which it did.
+ */
+export function dialogOutDir({ title = "Insta360 Studio" } = {}) {
+  let raw = null;
+  try {
+    raw = readDialog({ title }).fields?.Pfad?.value ?? null;
+  } catch {
+    return null;
+  }
+  const dir = parseDialogDir(raw);
+  if (!dir) return null;
+  try {
+    if (!statSync(dir).isDirectory()) return null;
+  } catch {
+    return null;
+  }
+  return dir;
+}
+
 export function readDialog({ title = "Insta360 Studio" } = {}) {
   const frame = snap(title);
   const fields = {};
@@ -477,18 +524,23 @@ export async function setText({ title = "Insta360 Studio", label, text } = {}) {
 
   const want = String(text ?? "");
   const at = { title, x: row.click.x, y: row.click.y };
-  // The click puts the caret in the field; the keys then have to go to the same
-  // spot (keysAt/typeAt), because CEF gives its inputs the mouse but not the
+  // The click puts the caret in the field; text and keys then have to go to the
+  // same spot (typeAt/keyMsg), because CEF gives its inputs the mouse but not the
   // keyboard focus.
   click(at);
   await sleep(600);
-  keysAt({ ...at, keys: "^{a}" });
+  // Clear with End + Backspace, never with Ctrl+A: a synthesised chord does not
+  // reach the renderer (its modifier state comes from the real keyboard, so
+  // Ctrl+A would arrive as a bare "a"), and SendKeys would type the rest into
+  // whatever window the operator has in the foreground.
+  clearField({ ...at, chars: String(row.value ?? "").length + 4 });
   await sleep(300);
-  if (want === "") keysAt({ ...at, keys: "{BACKSPACE}" });
-  else typeAt({ ...at, text: escapeSendKeys(want) });
-  await sleep(400);
-  keysAt({ ...at, keys: "{ENTER}" });
-  await sleep(1000);
+  if (want !== "") typeAt({ ...at, text: want });
+  // No commit key: measured on Studio 6.0.9, the field and its display update as
+  // the characters arrive ("mcpTest(2).mp4" -> "mcpTest(2).mp4X" read back from
+  // the picture). ENTER is deliberately not sent -- in this dialog it would press
+  // the default button, which is Export.
+  await sleep(600);
 
   const after = readDialog({ title });
   const now = after.fields[label]?.value;
@@ -501,7 +553,9 @@ export async function setText({ title = "Insta360 Studio", label, text } = {}) {
       after: now,
       changed: false,
       error: "the field did not take typed input",
-      note: "measured on Studio 6.0.9: this dialog's remaining text fields are not keyboard-editable",
+      note:
+        'typed with WM_CHAR at the row\'s click point. If this repeats: the row is a picker rather than a ' +
+        "text field (Pfad is a folder picker), or the click point no longer matches a changed layout",
     };
   }
   return { ok: true, label, requested: want, before: row.value, after: now, changed: true };

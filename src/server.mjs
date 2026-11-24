@@ -682,9 +682,13 @@ tool(
 tool(
   "studio_ui_send_keys",
   {
-    description: "Send a key chord to the Studio window (SendKeys syntax, e.g. '^{s}' for Ctrl+S).",
+    description:
+      "Send a key to the Studio window. One plain key (SendKeys spelling: '{ESC}', '{TAB}', '{ENTER}', " +
+      "'{BACKSPACE}', '{HOME}', '{END}', arrows) is delivered by message and works in quiet mode; a chord " +
+      "('^{s}', '%{F4}') goes through the system keyboard queue, which quiet mode refuses because it would be " +
+      "typed into whatever window has the operator's focus.",
     inputSchema: {
-      keys: z.string().describe("SendKeys chord"),
+      keys: z.string().describe("One plain key ({ESC}) or a SendKeys chord (^{s} -- quiet mode refuses chords)"),
       title: z.string().optional(),
     },
   },
@@ -716,7 +720,14 @@ tool(
       "video files — the gRPC exporter (studio_export) answers EXPORTER_START_FAILURE for VIDEO and VIDEO_CLIP, " +
       "whatever state the app is in. A clip must be loaded and the export dialog must be reachable.",
     inputSchema: {
-      outDir: z.string().optional().describe("Folder to watch for the new file (default: Desktop)"),
+      outDir: z
+        .string()
+        .optional()
+        .describe(
+          "Folder you expect the file in (default: the folder the export dialog shows). The dialog's own " +
+            '"Pfad" decides where it actually lands -- that field is a folder picker and is never retyped -- so ' +
+            "the dialog wins when the two disagree; the reply reports outDir, outDirSource and outDirMismatch.",
+        ),
       stage: z
         .enum(["dialog", "full"])
         .optional()
@@ -727,14 +738,14 @@ tool(
         .describe(
           'Dialog settings to apply before exporting, keyed by control label, e.g. {"Voreinstellung":"4K",' +
             '"Kodierung":"H.264"}. Applied with studio_ui_export_set and each one read back, so the reply ' +
-            "reports which actually took. Must agree with outDir — the path is a dialog control too.",
+            "reports which actually took. The destination folder is not settable this way: it is a folder picker.",
         ),
       timeoutMs: z.number().int().optional().describe("How long to wait for the finished file (default 900000)"),
       pollMs: z.number().int().optional().describe("Polling interval (default 2000)"),
       title: z.string().optional(),
     },
   },
-  async ({ outDir = DEFAULT_OUT_DIR, stage = "full", settings = null, timeoutMs = 900000, pollMs = 2000, title }) =>
+  async ({ outDir, stage = "full", settings = null, timeoutMs = 900000, pollMs = 2000, title }) =>
     runExport({ title: title ?? "Insta360 Studio", outDir, stage, settings, timeoutMs, pollMs }),
 );
 

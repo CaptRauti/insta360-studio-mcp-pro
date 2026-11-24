@@ -15,9 +15,11 @@ param(
   [Parameter(Mandatory=$true)][string]$Action,
   [string]$Title = "Insta360 Studio",
   [int]$Hwnd = 0,
-  [int]$X = 0,
-  [int]$Y = 0,
+  [int]$X = -1,
+  [int]$Y = -1,
   [string]$Keys = "",
+  [string]$Key = "",
+  [int]$Repeat = 1,
   [string]$Text = "",
   [string]$Out = "",
   [int]$SleepMs = 120,
@@ -210,9 +212,58 @@ function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double) 
 # foreground is the user's own application, so their next sentence would arrive
 # as our file path. WM_CHAR is addressed to the target window instead, so it
 # cannot leak anywhere, and it needs neither the front nor a cursor.
+# Which window a keyboard message has to go to.
+#
+# With a point: the child window under it -- CEF renders the UI into a child, and
+# a message to the frame never reaches it. Without one (-1): the child under the
+# *centre* of the window, for the same reason. The child check keeps a message
+# from crossing into another process.
+function Resolve-TargetChild([IntPtr]$top, [int]$relX, [int]$relY) {
+  if ($relX -lt 0 -or $relY -lt 0) {
+    $rect = Get-WinRect $top
+    $relX = [int][Math]::Floor(($rect.Right - $rect.Left) / 2)
+    $relY = [int][Math]::Floor(($rect.Bottom - $rect.Top) / 2)
+  }
+  return (Resolve-Child $top $relX $relY).child
+}
+
+# Send one key, as a window message, to the child under (relX, relY).
+#
+# Only keys that carry no modifier can be delivered this way: Chromium builds a
+# key event's modifier state from the *real* keyboard, so a synthesised
+# Ctrl+A would reach the page as a bare "a" and a synthesised Ctrl+S as "s".
+# Enter, Tab, Escape, Backspace and the arrows are fine and are what the dialog
+# and the native pickers actually need.
+function Send-KeyMessage([IntPtr]$top, [int]$relX, [int]$relY, [string]$key, [int]$repeat = 1) {
+  $map = @{
+    "ENTER" = 0x0D; "RETURN" = 0x0D; "TAB" = 0x09; "ESCAPE" = 0x1B; "ESC" = 0x1B;
+    "BACKSPACE" = 0x08; "BACK" = 0x08; "DELETE" = 0x2E; "DEL" = 0x2E;
+    "HOME" = 0x24; "END" = 0x23; "SPACE" = 0x20;
+    "UP" = 0x26; "DOWN" = 0x28; "LEFT" = 0x25; "RIGHT" = 0x27;
+    "PAGEUP" = 0x21; "PAGEDOWN" = 0x22
+  }
+  $name = $key.Trim().ToUpperInvariant()
+  if (-not $map.ContainsKey($name)) {
+    throw ("unsupported key '$key' -- a letter is text, not a key; send text with -Action type. " +
+           "Known keys: " + (($map.Keys | Sort-Object) -join ", "))
+  }
+  $vk = $map[$name]
+  $child = Resolve-TargetChild $top $relX $relY
+  $WM_KEYDOWN = 0x0100
+  $WM_KEYUP = 0x0101
+  for ($i = 0; $i -lt [Math]::Max(1, $repeat); $i++) {
+    [void][W32]::SendMessage($child, $WM_KEYDOWN, [IntPtr]$vk, [IntPtr]::Zero)
+    [void][W32]::SendMessage($child, $WM_KEYUP, [IntPtr]$vk, [IntPtr]::Zero)
+    Start-Sleep -Milliseconds 20
+  }
+  Start-Sleep -Milliseconds $SleepMs
+  return @{ child = [int64]$child; key = $name; vk = $vk; repeat = [Math]::Max(1, $repeat) }
+}
+
 function Send-TextMessage([IntPtr]$top, [int]$relX, [int]$relY, [string]$text) {
-  $child = $top
-  if ($relX -ge 0 -and $relY -ge 0) { $child = (Resolve-Child $top $relX $relY).child }
+  # No point means "the window": target the content child, not the frame, or the
+  # characters land nowhere and the reply still says ok.
+  $child = Resolve-TargetChild $top $relX $relY
   $WM_CHAR = 0x0102
   foreach ($ch in $text.ToCharArray()) {
     [void][W32]::SendMessage($child, $WM_CHAR, [IntPtr][int]$ch, [IntPtr]::Zero)
@@ -368,6 +419,26 @@ switch ($Action) {
     $info.text = $Text
     Write-Output ($info | ConvertTo-Json -Compress)
   }
+  "keymsg" {
+    # One key, as a message -- the quiet-mode counterpart of -Action keys.
+    if (-not $Key) {
+      Write-Output (@{ ok = $false; error = "keymsg needs -Key ENTER|TAB|ESCAPE|BACKSPACE|DELETE|HOME|END|SPACE|UP|DOWN|LEFT|RIGHT" } | ConvertTo-Json -Compress)
+      exit 3
+    }
+    try {
+      $res = Send-KeyMessage $h $X $Y $Key $Repeat
+    } catch {
+      Write-Output (@{ ok = $false; error = $_.Exception.Message } | ConvertTo-Json -Compress)
+      exit 3
+    }
+    $info.action = "keymsg"
+    $info.key = $res.key
+    $info.vk = $res.vk
+    $info.repeat = $res.repeat
+    $info.child = $res.child
+    $info.style = "message"
+    Write-Output ($info | ConvertTo-Json -Compress)
+  }
   "keys" {
     if ($Quiet) {
       Write-Output (@{ ok = $false; quiet = $true; error = "quiet mode cannot send the key chord '$Keys': SendKeys goes to the system keyboard queue and would be typed into whatever window has the user's focus. Set INSTA360_QUIET=0 for chords, or use -Action atkeys/-Action type which deliver characters as WM_CHAR." } | ConvertTo-Json -Compress)
@@ -421,6 +492,18 @@ switch ($Action) {
     Write-Output ($info | ConvertTo-Json -Compress)
   }
   "capture" {
+    # A minimised window is not composited, so PrintWindow gives back a blank or
+    # a stale frame -- which every caller reads as "the UI is empty". Say so
+    # instead. Loud mode restores the window first (it is allowed to), quiet mode
+    # refuses, because raising the window is the interruption it exists to avoid.
+    if ([W32]::IsIconic($h)) {
+      if ($Quiet) {
+        Write-Output (@{ ok = $false; quiet = $true; iconic = $true; error = "the window is minimised: a minimised window has no composited frame, so it cannot be captured. Restore it and run again (quiet mode does not raise or move windows); INSTA360_QUIET=0 would let the tool restore it itself." } | ConvertTo-Json -Compress)
+        exit 3
+      }
+      [void][W32]::ShowWindow($h, 9)
+      Start-Sleep -Milliseconds 400
+    }
     if (-not $Out) { $Out = Join-Path $env:TEMP "studio_capture.png" }
     $w = $rect.Right - $rect.Left
     $hh = $rect.Bottom - $rect.Top

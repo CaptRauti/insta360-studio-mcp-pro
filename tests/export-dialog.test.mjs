@@ -8,7 +8,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { dropClippedRows, matches, optionRows, rowFor, stripIndicators } from "../src/export-dialog.mjs";
+import {
+  dropClippedRows,
+  matches,
+  optionRows,
+  parseDialogDir,
+  rowFor,
+  stripIndicators,
+} from "../src/export-dialog.mjs";
 import { DIALOG_LABELS, looksLikeExportDialog } from "../src/ui.mjs";
 
 // As OCR reported it: labels at x~478, values at x~575, and unrelated fragments
@@ -254,4 +261,28 @@ test("dropClippedRows drops the clipped row even when it is the current value", 
   ];
   assert.deepEqual(dropClippedRows(rows, 385).map((r) => r.text),
     ["1080P - 1920 x 1080", "Benutzerdefiniert"]);
+});
+
+// The export destination comes from the dialog, so the folder it names has to
+// survive OCR: those readings are what a real `Pfad` row looked like.
+
+test("parseDialogDir turns the OCR reading of a folder into a path", () => {
+  // Measured: the row read back as "C:/Users/stefa/Desktop".
+  assert.equal(parseDialogDir("C:/Users/stefa/Desktop"), "C:\\Users\\stefa\\Desktop");
+  // A stray separator or quote is trimmed, not kept.
+  assert.equal(parseDialogDir('"C:\\out\\"'), "C:\\out");
+  // Backslash read as a pipe: Windows forbids "|", so this is a separator.
+  assert.equal(parseDialogDir("C:|Users|stefa|Desktop"), "C:\\Users\\stefa\\Desktop");
+  // A UNC share is still absolute.
+  assert.equal(parseDialogDir("\\\\srv\\share"), "\\\\srv\\share");
+});
+
+test("parseDialogDir refuses anything that cannot be a folder", () => {
+  // A relative path would be watched somewhere unpredictable: better no answer,
+  // because the caller then falls back and says so.
+  assert.equal(parseDialogDir("Desktop"), "");
+  assert.equal(parseDialogDir(""), "");
+  assert.equal(parseDialogDir(null), "");
+  // The label instead of the value, which is what a misread row looks like.
+  assert.equal(parseDialogDir("Pfad"), "");
 });
