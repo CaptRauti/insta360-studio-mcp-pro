@@ -342,6 +342,15 @@ as "the UI is empty" rather than as an error. Quiet mode now says so and exits 3
 first, which is what loud mode is for. (Verified with a window of our own that was minimised on purpose; Studio
 was left untouched.)
 
+The same check sits in the pipeline's wait, where it replaces a wrong answer rather than a blank picture:
+`waitForLibrary` on a minimised window used to burn its whole timeout and report "the start page did not render
+in time" — as if Studio were broken. It now answers in 2.3 s with
+
+```
+{ "ok": false, "words": 0,
+  "error": "Studio is minimised — restore its window, then run again (quiet mode does not raise or move windows)" }
+```
+
 ## Install
 
 ```bash
