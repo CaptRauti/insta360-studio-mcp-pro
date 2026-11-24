@@ -501,8 +501,12 @@ async function readWholeText(file) {
  * Crash dumps and their timestamps. `lag_reports` are the interesting ones:
  * Studio writes them when it *hangs*, which is the failure mode we keep
  * chasing. settings.dat / metadata files are crashpad bookkeeping, not dumps.
+ *
+ * With `correlate` (default) every lag report is also read back against the
+ * session log that was running at the time — because not every one of them is
+ * a hang: Studio also writes one when a *second* instance shuts itself down.
  */
-export async function listCrashDumps({ env = process.env, components, limit = 40 } = {}) {
+export async function listCrashDumps({ env = process.env, components, limit = 40, correlate = true } = {}) {
   const dumps = [];
   let noise = 0;
   for (const { component, dir } of crashDirs(env)) {
@@ -528,14 +532,204 @@ export async function listCrashDumps({ env = process.env, components, limit = 40
     }
   }
   dumps.sort((a, b) => String(b.mtime).localeCompare(String(a.mtime)));
+  const wanted = dumps.slice(0, limit);
+  if (correlate) {
+    for (const d of wanted) d.trigger = await classifyLagDump(d, env);
+  }
   return {
     root: insta360LocalRoot(env),
     found: dumps.length,
     newest: dumps[0]?.mtime ?? null,
     note:
-      "lag_reports are written when Studio hangs (the 'Lade Dateien…' symptom). " +
-      "After a crash, do not restart Studio before copying the dump — Studio rotates them.",
-    dumps: dumps.slice(0, limit),
+      "After a crash, do not restart Studio before copying the dump — Studio rotates them. " +
+      "`trigger` says what the session log shows at that moment: 'ui lag' is a real stall " +
+      "(Studio's own LagMonitorUiWorker), 'secondary instance exit' is harmless — a second " +
+      "Studio instance shutting itself down also writes a lag report.",
+    dumps: wanted,
     ignoredBookkeepingFiles: noise,
+  };
+}
+
+// ── absolute time ────────────────────────────────────────────────────────────
+// Log lines carry only `dd hh:mm:ss.ddd` — no date. The date comes from the
+// session directory (and file name) the line lives in, which is why every
+// moment below is reconstructed from the directory rather than guessed.
+
+const LINE_TIME_RE = /^(\d\d) (\d\d):(\d\d):(\d\d)\.(\d\d\d)\]/;
+
+/** Start time of a session directory (`YYYY_MM_DD_HH_MM_SS_pid`), local time. */
+export function sessionStart(name) {
+  const m = String(name).match(/^(\d{4})_(\d{2})_(\d{2})_(\d{2})_(\d{2})_(\d{2})/);
+  if (!m) return null;
+  return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+}
+
+/**
+ * A decrypted file's lines with absolute timestamps.
+ *
+ * The session start supplies the date; a line whose clock jumps back an hour or
+ * more is taken to be past midnight and rolls the day forward. Returns null for
+ * anything that is not a readable encrypted container.
+ */
+export async function fileTimeline(file, start) {
+  const r = await readDecryptedLog(file);
+  if (!r.ok) return null;
+  const out = [];
+  let dayOffset = 0;
+  let prev = -1;
+  for (const text of r.lines) {
+    const m = LINE_TIME_RE.exec(text);
+    if (!m) {
+      out.push({ when: null, text });
+      continue;
+    }
+    const secs = +m[2] * 3600 + +m[3] * 60 + +m[4];
+    if (prev >= 0 && secs < prev - 3600) dayOffset += 1;
+    prev = Math.max(prev, secs);
+    out.push({
+      when: new Date(start.getFullYear(), start.getMonth(), start.getDate() + dayOffset, +m[2], +m[3], +m[4], +m[5]),
+      text,
+    });
+  }
+  return out;
+}
+
+/** The session directory that was running at `at` (latest start ≤ at). */
+export async function coveringSession(at, { env = process.env, area = "studio" } = {}) {
+  const root = path.join(studioLogRoot(env), area);
+  if (!existsSync(root)) return null;
+  let best = null;
+  for (const e of await readdir(root, { withFileTypes: true })) {
+    if (!e.isDirectory()) continue;
+    const start = sessionStart(e.name);
+    if (!start || start > at) continue;
+    if (!best || start > best.start) best = { area, name: e.name, start, dir: path.join(root, e.name) };
+  }
+  return best;
+}
+
+/**
+ * What was Studio doing around a moment in time?
+ *
+ * This is the instrument for the 'Lade Dateien…' blocker: ask for the minutes
+ * around a stall and you get the operations in flight, in absolute time — the
+ * session is found automatically if you do not name one.
+ */
+export async function readLogWindow({ env = process.env, at, minutes = 5, areas = ["studio"], session: sessionName, limit = 400 } = {}) {
+  const when = at ? new Date(at) : null;
+  if (!sessionName && (!when || Number.isNaN(when.getTime()))) {
+    throw new Error("either at (an ISO date-time) or session (a session directory name) is required");
+  }
+  const from = when && !Number.isNaN(when.getTime()) ? new Date(when.getTime() - minutes * 60000) : null;
+  const to = when && !Number.isNaN(when.getTime()) ? new Date(when.getTime() + minutes * 60000) : null;
+  const lines = [];
+  const seen = [];
+  const wanted = areas.filter((a) => LOG_AREAS.includes(a));
+  for (const area of wanted.length ? wanted : LOG_AREAS) {
+    const root = path.join(studioLogRoot(env), area);
+    if (!existsSync(root)) continue;
+    for (const e of await readdir(root, { withFileTypes: true })) {
+      if (!e.isDirectory()) continue;
+      if (sessionName && e.name !== sessionName) continue;
+      const start = sessionStart(e.name);
+      if (!start) continue;
+      if (!sessionName && start > to) continue;
+      const dir = path.join(root, e.name);
+      let started = false;
+      for (const f of await listFiles(dir)) {
+        const L = await fileTimeline(f, start);
+        if (!L) continue;
+        for (const l of L) {
+          if (from && (!l.when || l.when < from || l.when > to)) continue;
+          if (!started) {
+            seen.push({ area, session: e.name, start: start.toISOString() });
+            started = true;
+          }
+          lines.push({ when: l.when ? l.when.toISOString() : null, area, session: e.name, file: path.basename(f), text: l.text });
+        }
+      }
+    }
+  }
+  lines.sort((a, b) => String(a.when).localeCompare(String(b.when)));
+  return {
+    at: when && !Number.isNaN(when.getTime()) ? when.toISOString() : null,
+    minutes,
+    sessions: seen,
+    returnedLines: Math.min(limit, lines.length),
+    totalLines: lines.length,
+    truncated: lines.length > limit,
+    lines: lines.slice(0, limit),
+  };
+}
+
+// Studio's own hang detector, and the path a second instance takes on exit.
+const LAG_MARKER = /LagMonitorUiWorker::HandleTimeout|ui lag dump enable/i;
+const SECONDARY_MARKER = /CheckPrimary\]:\s+\[app\] check app|secondary instance/i;
+const DUMP_NOISE = /DumpWithoutCrash|catch dump begin|dump end/i;
+
+/**
+ * Why does this lag report exist?
+ *
+ * Studio writes a lag dump when its UI thread misses a deadline — but also when
+ * a second Studio instance shuts itself down. Separating the two keeps a dump
+ * count from being read as a hang count.
+ */
+export async function classifyLagDump(dump, env = process.env) {
+  const at = new Date(dump.mtime);
+  const s = await coveringSession(at, { env });
+  if (!s) {
+    return { kind: "unknown", correlated: false, session: null, detail: "no session directory covers this time — the logs have rotated away" };
+  }
+  const from = new Date(at.getTime() - 90000);
+  const to = new Date(at.getTime() + 90000);
+  const evidence = [];
+  let lag = null;
+  let secondary = false;
+  let slowest = null;
+  let lastBefore = null;
+  for (const f of await listFiles(s.dir)) {
+    const L = await fileTimeline(f, s.start);
+    if (!L) continue;
+    for (const l of L) {
+      if (!l.when) continue;
+      if (l.when >= from && l.when <= to) {
+        if (LAG_MARKER.test(l.text)) lag = l;
+        if (SECONDARY_MARKER.test(l.text)) secondary = true;
+        const slow = /frame render slow, cost total: (\d+(?:\.\d+)?) ms/.exec(l.text);
+        if (slow && (!slowest || +slow[1] > slowest.ms)) slowest = { ms: +slow[1], when: l.when.toISOString(), text: l.text.slice(0, 200) };
+      }
+      if (l.when <= at && l.when >= from && !DUMP_NOISE.test(l.text)) lastBefore = l;
+    }
+  }
+  if (lag) {
+    evidence.push({ when: lag.when.toISOString(), text: lag.text.slice(0, 200) });
+    return {
+      kind: "ui lag",
+      correlated: true,
+      session: s.name,
+      detail: `Studio's LagMonitorUiWorker tripped (UI thread missed its deadline) ${lag.when.toISOString()}`,
+      slowFrame: slowest,
+      lastActivityBefore: lastBefore ? { when: lastBefore.when.toISOString(), text: lastBefore.text.slice(0, 200) } : null,
+      evidence,
+    };
+  }
+  if (secondary) {
+    return {
+      kind: "secondary instance exit",
+      correlated: true,
+      session: s.name,
+      detail: "a second Studio instance checked for the primary instance and shut itself down — Studio writes a lag report on that path too, so this is not a hang",
+      lastActivityBefore: lastBefore ? { when: lastBefore.when.toISOString(), text: lastBefore.text.slice(0, 200) } : null,
+      evidence,
+    };
+  }
+  return {
+    kind: "unknown",
+    correlated: true,
+    session: s.name,
+    detail: "the session log shows neither the lag marker nor the secondary-instance path in the ±90 s window",
+    slowFrame: slowest,
+    lastActivityBefore: lastBefore ? { when: lastBefore.when.toISOString(), text: lastBefore.text.slice(0, 200) } : null,
+    evidence,
   };
 }

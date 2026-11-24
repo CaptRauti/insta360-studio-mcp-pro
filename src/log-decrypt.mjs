@@ -133,7 +133,12 @@ export function decryptBuffer(buf, { limit = Infinity } = {}) {
 export function verifyKeystream(buf, file = "") {
   const lines = decryptBuffer(buf, { limit: 12 }).filter(Boolean);
   const structured = lines.filter((l) => LINE_RE.test(l));
-  if (structured.length < 3) {
+  // Even one structured line means the stream is doing its job — a wrong key
+  // produces garbage, not the log format. The decisive check is below, where
+  // the first line must repeat the pid and start time the file name states;
+  // requiring more lines here would call a short (but perfectly readable) log
+  // encrypted, which is the "cannot see" confusion this exists to prevent.
+  if (structured.length < 1) {
     return {
       ok: false,
       reason:

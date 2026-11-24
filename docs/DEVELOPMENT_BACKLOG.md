@@ -22,11 +22,24 @@ The manual documents a class of causes we have not tested. Three leads, all from
 
 **Do this before writing any new edit feature:** test the three path hypotheses, and use the dumps as the instrument.
 
-State after building D1/D2: the log route is **partly closed**. The dump timestamps prove *when* Studio hung, and the
-readable sibling logs give the install history, the launch arguments and the detector's decisions — but the main log
-that would name the file it is stuck on cannot be read, because Insta360 encrypts it with a key inside its binaries
-(reverse-engineering job, not a parser). What is left as the instrument is a **differential comparison**: one project
-written by Studio itself vs. one this server builds, field by field, plus the three path hypotheses. See E3 for the
+State after the log decoder (D1): the log route is **open**, and the dumps are now explained rather than
+just dated. The main/export/thumbnail/`quick_look` containers decode with a keystream recovered from the
+ciphertext itself (D1) and verified per file against the pid and start time in the file name — 136/136
+containers, 423 702 lines on this install. First measurements:
+
+- **Not every dump is a hang.** With `studio_dumps correlate` the nine reports split into Studio's own
+  `LagMonitorUiWorker::HandleTimeout` (**real stall** — a UI-thread deadline missed after
+  `PgaRenderThread.cc:  frame render slow, cost total: 365 ms` while the thumbnail service loads
+  CUDA/OpenGL textures) and the `secondary instance` path (**harmless** — a second Studio instance
+  shutting itself down writes a lag report too). Counting dumps as hangs without this split overstates
+  the bug.
+- **Absolute time is available.** Lines carry only `hh:mm:ss.ddd`; the date comes from the session
+  directory (sessions run 22 h+ and cross midnight), so
+  `studio_logs action=window at=<ISO time>` answers "what was Studio doing when it stalled?" — this is
+  the instrument the differential comparison below should be built on.
+
+What is left as the instrument is a **differential comparison**: one project written by Studio itself vs.
+one this server builds, field by field, plus the three path hypotheses. See E3 for the
 `Project File Save Path` preference, which is both a hypothesis and a lever.
 
 ---
@@ -100,8 +113,8 @@ Stats, Remove Grain and the batch operations all live there.
 
 | # | Function | Effort | Notes |
 |---|---|---|---|
-| D1 | `studio_logs` (list / sessions / read / grep by area) | **✅ built** | `operation-guide/file-management/obtain-log-or-dump-files`. Measured: launcher/CEF/detector/setup logs are plain text, main/export/thumbnail/`quick_look` are encrypted — the tool *reports* encryption instead of decoding it, and every read is confined to the Insta360 tree. `src/logs.mjs`, 8 tests. |
-| D2 | `studio_dumps` (find crash dumps) | **✅ built** | The dumps are in `crashes\lag_reports` (written on a **hang**), not `crashes\reports`; crashpad bookkeeping (`settings.dat`, `metadata`) is counted, not listed. |
+| D1 | `studio_logs` (list / sessions / read / grep / **window** by area) | **✅ built** | `operation-guide/file-management/obtain-log-or-dump-files`. Measured: launcher/CEF/detector/setup logs are plain text; the main/export/thumbnail/`quick_look` containers **decrypt transparently** — the keystream was recovered from the ciphertext itself (recursive 256-byte block recovery, AppInit `GetSystemTimeAsFileTime` mixed as the first block), and every read is verified against the pid and start time in the file name, so a build with a different schedule is reported as encrypted rather than shown as mojibake (136/136 containers on this install). `action=window at=<time>` reconstructs absolute time from the session directory (lines carry only `hh:mm:ss.ddd`, and sessions cross midnight by 22 h+) and returns what Studio was doing around a stall. `src/logs.mjs` + `src/log-decrypt.mjs`, 15 tests. |
+| D2 | `studio_dumps` (find crash dumps, **explain them**) | **✅ built** | The dumps are in `crashes\lag_reports` (written on a **hang**), not `crashes\reports`; crashpad bookkeeping (`settings.dat`, `metadata`) is counted, not listed. Each lag report is correlated with the session log running at that moment and classified: **`ui lag`** (Studio's `LagMonitorUiWorker::HandleTimeout` after a slow render frame, thumbnail service loading CUDA/OpenGL textures) vs. **`secondary instance exit`** (a second Studio instance shuts itself down and writes a lag report on the way out — *not* a hang, must not be counted as one), plus the slowest `frame render slow` cost and the last activity before the dump. |
 | D3 | Import/preview error classifier | S | Map the documented error strings + the "Corrupted Frame" red-frame state (`troubleshooting/playback-preview-issue/media-play-error`, v5.8.4+) to plain sentences instead of a stuck page |
 | D4 | `studio_version_report` | S | Manual: `installation-and-update/download-and-installation-operations` (Menu ▸ Help ▸ Check for Updates / Install Thumbnail Plugin). **Report only — never update**: the launcher moves the install and invalidates every measured offset |
 | D5 | `studio_ui_export` timeout/`export-slow` guidance | S | Manual: `troubleshooting/file-export-issue/export-slow` — export speed is GPU-bound; the documented levers are Exporter Codec = all, Image Processing Acceleration = Auto, lower bitrate |

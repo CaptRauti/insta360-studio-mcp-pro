@@ -79,6 +79,7 @@ import {
   listLogAreas,
   listSessions,
   readLogTail,
+  readLogWindow,
 } from "./logs.mjs";
 import { findText, ocrImage } from "./ocr.mjs";
 import { closeControl, isPickerField, isTextBox, openControl, readDialog, selectOption, setText } from "./export-dialog.mjs";
@@ -146,10 +147,10 @@ tool(
   "studio_logs",
   {
     description:
-      "Read Insta360 Studio's own logs. action=list summarises each log area (studio, detector, quick_look, setup) and says how much of it is readable, including how many of the encrypted containers the recovered keystream still opens; action=sessions lists recent Studio starts with their files; action=read returns the tail of one file; action=grep searches the logs. Studio writes its main/export/thumbnail/quick_look logs as an XOR container — those are decrypted transparently (the keystream is verified against pid and start time from the file name on every read) and reported as encrypted only when that verification fails, so a caller can tell 'nothing wrong' apart from 'cannot see'. Use studio_dumps for hang/crash minidumps.",
+      "Read Insta360 Studio's own logs. action=list summarises each log area (studio, detector, quick_look, setup) and says how much of it is readable, including how many of the encrypted containers the recovered keystream still opens; action=sessions lists recent Studio starts with their files; action=read returns the tail of one file; action=grep searches the logs; action=window (at=ISO time) returns what Studio was doing around a moment — the session is found from the time, and dates are reconstructed from the session directory, so a stall can be placed in absolute time. Studio writes its main/export/thumbnail/quick_look logs as an XOR container — those are decrypted transparently (the keystream is verified against pid and start time from the file name on every read) and reported as encrypted only when that verification fails, so a caller can tell 'nothing wrong' apart from 'cannot see'. Use studio_dumps for hang/crash minidumps.",
     inputSchema: {
       action: z
-        .enum(["list", "sessions", "read", "grep"])
+        .enum(["list", "sessions", "read", "grep", "window"])
         .optional()
         .describe("What to do (default list)"),
       area: z.enum(LOG_AREAS).optional().describe("Log area (list/sessions default studio; grep defaults to all areas)"),
@@ -162,13 +163,22 @@ tool(
         .boolean()
         .optional()
         .describe("grep: also search the encrypted containers, decrypting them (default true); false searches only plain-text logs"),
+      at: z
+        .string()
+        .optional()
+        .describe("window: an ISO date-time (e.g. 2026-11-24T17:17) — the session running at that moment is found automatically"),
+      minutes: z.number().optional().describe("window: half-width of the time window in minutes (default 5)"),
+      session: z
+        .string()
+        .optional()
+        .describe("window: pin one session directory (YYYY_MM_DD_HH_MM_SS_pid) instead of resolving the time to a session"),
       root: z
         .string()
         .optional()
         .describe("Override the Insta360 data root (e.g. a copied log tree from another machine)"),
     },
   },
-  async ({ action = "list", area, file, pattern, days = 7, lines = 200, limit, decrypt, root } = {}) => {
+  async ({ action = "list", area, file, pattern, days = 7, lines = 200, limit, decrypt, at, minutes, session, root } = {}) => {
     const env = root ? { ...process.env, INSTA360_LOCAL_ROOT: root } : process.env;
     switch (action) {
       case "list":
@@ -177,6 +187,8 @@ tool(
         return listSessions({ env, area: area ?? "studio", limit: limit ?? 5 });
       case "read":
         return readLogTail({ file, lines, env });
+      case "window":
+        return readLogWindow({ env, at, minutes: minutes ?? 5, session, areas: area ? [area] : undefined, limit: limit ?? 400 });
       case "grep":
         return grepLogs({ env, pattern, days, areas: area ? [area] : undefined, limit: limit ?? 100, decrypt: decrypt ?? true });
       default:
@@ -189,19 +201,23 @@ tool(
   "studio_dumps",
   {
     description:
-      "List Insta360 crash dumps, newest first. Studio writes minidumps into crashes\\lag_reports when it HANGS (the 'stuck on Lade Dateien…' symptom) and into crashes\\reports when a module crashes; the timestamps tell you which of your runs stalled. Crashpad bookkeeping files (settings.dat, metadata) are counted, not listed.",
+      "List Insta360 crash dumps, newest first. Studio writes minidumps into crashes\\lag_reports when it HANGS (the 'stuck on Lade Dateien…' symptom) and into crashes\\reports when a module crashes; the timestamps tell you which of your runs stalled. With correlate (default) each lag report is read back against the session log running at that moment and gets a `trigger`: 'ui lag' means Studio's own LagMonitorUiWorker tripped — a real stall, with the slow render frame and the last activity before it reported; 'secondary instance exit' means a second Studio instance shut itself down, which also writes a lag report and is NOT a hang. Crashpad bookkeeping files (settings.dat, metadata) are counted, not listed.",
     inputSchema: {
       limit: z.number().optional().describe("Max dumps to return (default 40)"),
       components: z
         .array(z.string())
         .optional()
         .describe("Restrict to these components, e.g. [\"Insta360 Studio\"]"),
+      correlate: z
+        .boolean()
+        .optional()
+        .describe("Read each lag report back against the session log to say why it exists (default true)"),
       root: z.string().optional().describe("Override the Insta360 data root"),
     },
   },
-  async ({ limit = 40, components, root } = {}) => {
+  async ({ limit = 40, components, correlate, root } = {}) => {
     const env = root ? { ...process.env, INSTA360_LOCAL_ROOT: root } : process.env;
-    return listCrashDumps({ env, components, limit });
+    return listCrashDumps({ env, components, limit, correlate: correlate ?? true });
   },
 );
 

@@ -94,8 +94,8 @@ Studio keeps its own logs, and they are the only place it explains itself. The t
 
 | Tool | What it does |
 |---|---|
-| `studio_logs` | `action=list` summarises each area and how much of it is readable text; `action=sessions` lists recent Studio starts with their files; `action=read` returns the tail of one file; `action=grep` searches the readable logs (regex, modified-within-days) |
-| `studio_dumps` | List crash minidumps, newest first — `crashes\lag_reports` are written when Studio **hangs** |
+| `studio_logs` | `action=list` summarises each area and how much of it is readable text; `action=sessions` lists recent Studio starts with their files; `action=read` returns the tail of one file; `action=grep` searches the logs (regex, modified-within-days); `action=window at="2026-11-24T17:17"` reconstructs absolute time from the session directory and returns what Studio was doing around that moment — the instrument for a stall |
+| `studio_dumps` | List crash minidumps, newest first — `crashes\lag_reports` are written when Studio **hangs** — and explain each one by correlating it with the session log: `ui lag` (real stall) vs. `secondary instance exit` (harmless) |
 
 Measured on 6.0.9 (2026-11-24), and this is the part worth knowing before you trust a log:
 
@@ -118,12 +118,18 @@ be used as an arbitrary file reader.
 Live, on this machine:
 
 ```
-studio_logs {}                       -> studio 114 files (37 readable / 68 encrypted, 113 MB),
-                                        detector 1/1, quick_look 5/0, setup 2/2
-studio_logs {action:"sessions"}      -> 26 Studio starts, newest 2026-11-24T09:14:30
-studio_dumps {}                      -> 9 dumps, newest 2026-11-23T21:58:56 (lag/hang)
-studio_logs {action:"read", file:"…31604.log"}
-                                     -> {readable:false, kind:"encrypted", reason:"…"}
+studio_logs {}                       -> studio 219 files (71 readable / 131 encrypted, all 131 decryptable),
+                                        detector 1/1, quick_look 5/0 (all 5 decryptable), setup 2/2
+studio_logs {action:"sessions"}      -> 47 Studio starts, newest 2026-11-24T17:06:28
+studio_dumps {}                      -> 10 dumps, newest 2026-11-24T16:17:38 (lag/hang)
+                                        trigger: "ui lag" — LagMonitorUiWorker tripped,
+                                        slowest frame 136 ms, in session 2026_11_24_17_06_28_32984
+studio_logs {action:"window", at:"2026-11-24T17:16:33"}
+                                     -> 17:16:33.788  window_menu_view_model.cpp:0331
+                                        17:16:41.097  path_util.cc:0152  IsWritableDirectory…
+studio_logs {action:"read", file:"…_32984.log", lines:2}
+                                     -> readable, decrypted in place (encrypted containers are opened,
+                                        not refused — the pid and start time in the file name prove the key)
 studio_logs {action:"grep", area:"setup", pattern:"Insta360_Studio_6"}
                                      -> 6.0.8_release_insta360(RC_build100) 11-21,
                                         6.0.9_beta1_insta360(RC_build8)     11-23
@@ -584,7 +590,7 @@ Kept here because it's hard to find anywhere else:
 - `savePath` in `ExportHeader` is an **output directory**, not a file path. The exporter creates it and writes the file inside, named after the source unless `SourceGroup.dest_file_name` is set.
 - The photo/image export types (`PHOTO` 0 through `DNG_SEQUENCE_DNG_WITH_JPG` 8, `DEMUX_TO_JPEG` 11) accept a source named directly. `VIDEO` (9) and `VIDEO_CLIP` (10) answer `EXPORTER_START_FAILURE` — tested cold, with a clip loaded in the player, and with a project open in Studio; all three the same. The request has no video path field, and the exporter resolves footage from internal project state that neither the UI nor an `.insproj` populates.
 - The exporter dies if you fire a long burst of requests at it; it then needs Studio restarted to come back. Space the calls out.
-- Most Studio logs are encrypted (a constant 16-byte container header `cd013a985f5beca1bcc1ca036aa5d1a0` plus `bf08ac29` frames — **not** a frame header at offset 0, as an earlier reading of this tree claimed), but the launcher, CEF, detector and setup logs in the same tree are plain text. Use `studio_logs` / `studio_dumps` instead of reading the tree by hand: they classify every file, refuse the opaque ones honestly, and scope by area and age.
+- Studio's main/export/thumbnail/`quick_look` logs are an XOR container (a constant 16-byte header `cd013a985f5beca1bcc1ca036aa5d1a0` plus `bf08ac29` frames — **not** a frame header at offset 0, as an earlier reading of this tree claimed), and the launcher, CEF, detector and setup logs in the same tree are plain text. The container key schedule was recovered from the ciphertext itself (see `src/log-decrypt.mjs`), so `studio_logs` reads both kinds; each read is verified against the pid and start time in the file name, and a build with a different schedule is reported as encrypted rather than shown as mojibake. Use `studio_logs` / `studio_dumps` instead of reading the tree by hand: they classify every file, decrypt what they can, scope by area and age, and can reconstruct absolute time from the session directory (`action=window`).
 
 The probe scripts that got us there are in `research/grpc-probes/`.
 
@@ -603,7 +609,7 @@ The probe scripts that got us there are in `research/grpc-probes/`.
 
 ## Limitations
 
-- **A project this server builds does not export.** It opens, the clips carry correct per-clip metadata, and then both timeline clips sit on "Lade Dateien…" — cause not established. The manual's own path rules (project file and media locations, user name, no renaming) are the current leads; see `docs/DEVELOPMENT_BACKLOG.md` §0. The log route to the cause is **partly closed**: Studio's own hang produces a minidump (`studio_dumps` lists them, newest 2026-11-23T21:58 — i.e. during the test runs that hit this), but the main log that would name the file it is stuck on is encrypted, so a dump plus a differential comparison against a Studio-written project is the instrument, not a text log.
+- **A project this server builds does not export.** It opens, the clips carry correct per-clip metadata, and then both timeline clips sit on "Lade Dateien…" — cause not established. The manual's own path rules (project file and media locations, user name, no renaming) are the current leads; see `docs/DEVELOPMENT_BACKLOG.md` §0. The log route to the cause is now **open**: the main log decodes (see the log bullet above), and `studio_dumps` correlates each minidump with the session log — of the 10 reports on this machine, 4 are Studio's own `LagMonitorUiWorker` tripping after a slow render frame (**real stalls**, newest 2026-11-24T16:17 local, during the test runs that hit this) and 3 are the harmless second-instance exit, so dumps alone overstate the bug. What is left is a differential comparison against a Studio-written project plus the three path hypotheses.
 - **Windows only.** The GUI layer is Win32 + PowerShell.
 - **gRPC video export does not work — use the GUI for video.** `VIDEO`/`VIDEO_CLIP` fail with `EXPORTER_START_FAILURE` whether Studio is cold, has a clip loaded, or has a project open. Photo and image types export standalone over gRPC; `studio_ui_export` is the video path.
 - **GUI export needs a loaded clip.** An empty player means nothing to export — `studio_ui_state` tells you.
