@@ -108,6 +108,10 @@ export function harvestClips(root) {
       for (const clip of track.clips ?? []) {
         const url = clip.url;
         if (!url || !clip.sourceFrames) continue;
+        // A clip Studio could not attach (state !== 0) is not evidence of what a
+        // good clip looks like: its sourceFrames, fps and view state are exactly
+        // the values that failed. Harvesting it spreads the failure.
+        if (Number(clip.state ?? 0) !== 0) continue;
         const list = out.get(url) ?? [];
         if (!list.some((c) => c.sourceFrames === clip.sourceFrames)) list.push(clip);
         out.set(url, list);
@@ -459,26 +463,44 @@ export function clipDisplayName(fileName) {
  * says 905 where Studio wrote 904), not to override the file. A harvested value
  * that disagrees is from a project built by earlier buggy tooling and is
  * discarded.
+ *
+ * `sourceFrames` is counted in **timeline** frames, not in the file's own. Studio
+ * writes 825 for a 60 fps file on a 30 fps timeline and calls the clip's `fps` 30
+ * — the same duration expressed once, in the project's unit. Comparing a raw
+ * ffprobe count (1651) against Studio's 825 made every harvested model look
+ * wrong, so the clip for that file was discarded in favour of a template clip
+ * from unrelated footage, and the project carried clip fps 60 on a 30 fps
+ * timeline. Studio then refuses to attach the clip and the timeline sits on
+ * "Lade Dateien...". Hence `projectFps` below: the probe is converted into the
+ * timeline's unit before anything is compared or written.
  */
-export function sourceMetaFor(url, model, models = new Map()) {
+export function sourceMetaFor(url, model, models = new Map(), projectFps = 0) {
   const candidates = models.get(url) ?? [];
   const probe = probeSource(url);
   const fallbackName = clipDisplayName(url);
+  const targetFps = Number(projectFps) || Number(probe?.fps) || Number(model?.fps) || 0;
+  const scale = probe?.fps && targetFps && Math.abs(probe.fps - targetFps) > 0.5 ? targetFps / probe.fps : 1;
+  const frames = probe?.frames ? Math.round(probe.frames * scale) : 0;
 
-  if (probe?.frames) {
+  if (frames) {
     let best = null;
     let bestDelta = Infinity;
     for (const c of candidates) {
-      const delta = Math.abs(c.sourceFrames - probe.frames);
+      const delta = Math.abs(c.sourceFrames - frames);
       if (delta < bestDelta) {
         bestDelta = delta;
         best = c;
       }
     }
     if (best && bestDelta <= 2) {
-      return { name: best.name ?? fallbackName, frames: best.sourceFrames, fps: best.fps, from: "harvested", probe, candidates: candidates.length, clip: best };
+      // The harvested clip wins on the exact count as well: its sourceFrames is
+      // what Studio itself wrote for this file (825), where the scaled probe
+      // rounds to 826. `state` is Studio's mark about whether it could attach the
+      // clip — never a value to copy. Harvesting from a project whose clips
+      // failed to attach would carry the failure into every new project.
+      return { name: best.name ?? fallbackName, frames: best.sourceFrames, fps: targetFps, scaled: scale !== 1, from: "harvested", probe, candidates: candidates.length, clip: best };
     }
-    return { name: fallbackName, frames: probe.frames, fps: Math.round(probe.fps) || model?.fps, from: "ffprobe", probe, candidates: candidates.length };
+    return { name: fallbackName, frames, fps: targetFps, scaled: scale !== 1, from: "ffprobe", probe, candidates: candidates.length };
   }
 
   // File unreadable: fall back to the template, then to a harvested clip.
@@ -524,7 +546,7 @@ export function newProjectFrom(template, { name, projectPath: projectDir, source
   if (aspectRatio) base.aspectRatio = aspectRatio;
 
   const built = sources.map((url) => {
-    const meta = sourceMetaFor(url, model, clipModels);
+    const meta = sourceMetaFor(url, model, clipModels, Number(base.fps) || 0);
     // The clip that carries this file's true metadata is the better model: it
     // already has the right view/FOV state for the footage.
     const sourceModel = meta.clip ?? model;
@@ -533,6 +555,10 @@ export function newProjectFrom(template, { name, projectPath: projectDir, source
         cloneClip(sourceModel, {
           url: projectPath(url),
           name: meta.name,
+          fps: meta.fps,
+          // Studio's own "could attach this" mark. It is written, never inferred:
+          // a clone of a model that failed would otherwise claim the same failure.
+          state: 0,
           sourceFrames: meta.frames,
           source_total_frames: meta.frames,
           startFrame: 0,
