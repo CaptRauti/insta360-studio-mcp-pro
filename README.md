@@ -480,7 +480,7 @@ All of these were run and the outputs checked with `ffprobe` / `file` — the si
 ## Tests
 
 ```bash
-npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads — 71 tests
+npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads — 85 tests
 npm run check           # syntax-check every module
 npm run test:nvap       # NVAP extractor self-test (hybrid headers, 44/44 containers)
 npm run probe           # live MCP handshake, tool list, gRPC port discovery
@@ -546,8 +546,20 @@ The probe scripts that got us there are in `research/grpc-probes/`.
 
 ---
 
+## Documentation
+
+| File | What it holds |
+|---|---|
+| `docs/FEATURE_SURVEY.md` | Studio's documented feature set, per-page manual URLs, per-model applicability — the source list for what can be automated at all |
+| `docs/DEVELOPMENT_BACKLOG.md` | Manual-vs-server coverage audit: what Studio documents, what these 31 tools cover, and the ranked list of functions still to build |
+| `docs/INSPROJ_SCHEMA.md` | The measured `.insproj` schema, including the frame arithmetic `len(c) = source_total_frames − leftTrim − rightTrim` |
+| `docs/ASSET_CATALOG.md` | Asset library and unpacked NVAP contents |
+
+---
+
 ## Limitations
 
+- **A project this server builds does not export.** It opens, the clips carry correct per-clip metadata, and then both timeline clips sit on "Lade Dateien…" — cause not established. The manual's own path rules (project file and media locations, user name, no renaming) are the current leads; see `docs/DEVELOPMENT_BACKLOG.md` §0. Until it is solved, edit projects Studio wrote itself.
 - **Windows only.** The GUI layer is Win32 + PowerShell.
 - **gRPC video export does not work — use the GUI for video.** `VIDEO`/`VIDEO_CLIP` fail with `EXPORTER_START_FAILURE` whether Studio is cold, has a clip loaded, or has a project open. Photo and image types export standalone over gRPC; `studio_ui_export` is the video path.
 - **GUI export needs a loaded clip.** An empty player means nothing to export — `studio_ui_state` tells you.
