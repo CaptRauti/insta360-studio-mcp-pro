@@ -96,6 +96,7 @@ Studio keeps its own logs, and they are the only place it explains itself. The t
 |---|---|
 | `studio_logs` | `action=list` summarises each area and how much of it is readable text; `action=sessions` lists recent Studio starts with their files; `action=read` returns the tail of one file; `action=grep` searches the logs (regex, modified-within-days); `action=window at="2026-11-24T17:17"` reconstructs absolute time from the session directory and returns what Studio was doing around that moment — the instrument for a stall |
 | `studio_dumps` | List crash minidumps, newest first — `crashes\lag_reports` are written when Studio **hangs** — and explain each one by correlating it with the session log: `ui lag` (real stall) vs. `secondary instance exit` (harmless) |
+| `studio_prefs` | Studio's own settings, which are one plain INI file (`action=read` dumps it, `action=paths` gives the media/project/export locations with each checked, `action=get` resolves a key, `action=set` edits one line). This is where the manual's `Project File Save Path` lives ([preference]) and where the export's codec and hardware switches are ([codec]: `cuda_accel`, `hardware_encoding_h265_export`). `set` refuses while Studio runs, because Studio rewrites the file on exit |
 
 Measured on 6.0.9 (2026-11-24), and this is the part worth knowing before you trust a log:
 
@@ -601,7 +602,7 @@ The probe scripts that got us there are in `research/grpc-probes/`.
 | File | What it holds |
 |---|---|
 | `docs/FEATURE_SURVEY.md` | Studio's documented feature set, per-page manual URLs, per-model applicability — the source list for what can be automated at all |
-| `docs/DEVELOPMENT_BACKLOG.md` | Manual-vs-server coverage audit: what Studio documents, what these 33 tools cover, and the ranked list of functions still to build |
+| `docs/DEVELOPMENT_BACKLOG.md` | Manual-vs-server coverage audit: what Studio documents, what these 35 tools cover, and the ranked list of functions still to build |
 | `docs/INSPROJ_SCHEMA.md` | The measured `.insproj` schema, including the frame arithmetic `len(c) = source_total_frames − leftTrim − rightTrim` |
 | `docs/ASSET_CATALOG.md` | Asset library and unpacked NVAP contents |
 

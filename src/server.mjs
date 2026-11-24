@@ -34,6 +34,7 @@ import {
   startExporting,
 } from "./exporter.mjs";
 import { discoverExporter, discoverThumbnail, portOpen } from "./grpc-client.mjs";
+import { LOCATION_KEYS, getPref, prefsFile, readPaths, readPrefs, setPref, studioGuiRunning } from "./prefs.mjs";
 import {
   findProjects,
   getClipTransform,
@@ -140,6 +141,42 @@ tool(
       projectRootExists: existsSync(STUDIO_PROJECT_ROOT),
       ready: Boolean(exporterOpen),
     };
+  },
+);
+
+tool(
+  "studio_prefs",
+  {
+    description:
+      "Read — and, with care, set — Insta360 Studio's own settings, which live in one plain INI file (`startup.ini` under %LOCALAPPDATA%\\Insta360\\Insta360 Studio). This is where the locations the manual calls `Project File Save Path` and the media/export folders really are ([preference]: workspace_location, footage_project_location, project_location, export_location, last_visit_dir), together with the codec and hardware switches that decide how an export is rendered ([codec]: hardware_decoding_preview, hardware_encoding_export, hardware_encoding_h265_export, cuda_accel, hardaware_model), the UI language and theme ([ui], [preference] lang). action=read dumps the sections, action=paths gives the five locations with each directory's existence checked, action=get resolves one key, action=set rewrites a single line in place (keeping every other byte, with a .bak copy). set REFUSES while Studio is running because Studio rewrites the file from memory when it exits — close Studio first, or pass force=true when you know the change is meant to be transient.",
+    inputSchema: {
+      action: z.enum(["read", "paths", "get", "set"]).optional().describe("What to do (default read)"),
+      section: z.string().optional().describe("INI section, e.g. preference, codec, ui (read/get/set)"),
+      key: z.string().optional().describe("Setting name (get/set)"),
+      value: z.string().optional().describe("New value (set)"),
+      force: z
+        .boolean()
+        .optional()
+        .describe("set: write even though Studio is running (the change will be lost when it exits)"),
+    },
+  },
+  async ({ action = "read", section, key, value, force = false }) => {
+    const file = prefsFile();
+    switch (action) {
+      case "paths":
+        return { ...readPaths({ file }), knownLocationKeys: LOCATION_KEYS };
+      case "get": {
+        if (!key) throw new Error("key is required for action=get");
+        return getPref(key, { file, section });
+      }
+      case "set": {
+        if (!key) throw new Error("key is required for action=set");
+        if (value === undefined) throw new Error("value is required for action=set");
+        return setPref(key, value, { file, section, force });
+      }
+      default:
+        return { ...readPrefs({ file, section }), studio: studioGuiRunning(), knownLocationKeys: LOCATION_KEYS };
+    }
   },
 );
 

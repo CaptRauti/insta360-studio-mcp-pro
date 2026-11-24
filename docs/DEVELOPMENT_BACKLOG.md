@@ -1,7 +1,7 @@
 # Development backlog — what Studio can do that this server cannot (yet)
 
 Built 2026-11-24 from the official online manual (every row cites its page), `docs/FEATURE_SURVEY.md`, and the
-measured behaviour of the 33 tools. Coverage legend: **✓** covered · **◐** partial / read-only · **✗** missing.
+measured behaviour of the 35 tools. Coverage legend: **✓** covered · **◐** partial / read-only · **✗** missing.
 
 Base URL for all manual links: `https://onlinemanual.insta360.com/studio/en-us/`
 
@@ -153,10 +153,10 @@ Stats, Remove Grain and the batch operations all live there.
 
 | # | Function | Effort | Notes |
 |---|---|---|---|
-| E1 | `studio_pref_codec` | S | Manual: `preference-settings/codec-settings` and `export-slow` — Exporter Codec selection, Image Processing Acceleration (Auto), player codec |
+| E1 | ~~`studio_pref_codec`~~ | — | **done** in `studio_prefs` (`action=read|get`, section `codec`): `hardware_decoding_preview`, `hardware_encoding_export`, `hardware_encoding_h265_export`, `cuda_accel`, `hardaware_model`. On this machine hardware encode incl. H.265 is on and `hardaware_model` is the RTX 3070 — the encoder the BIOS warning protects |
 | E2 | `studio_pref_audio` | S | Manual: `preference-settings/audio-settings` |
-| E3 | `studio_pref_paths` | S | Project file save path — no longer a research question: `%LOCALAPPDATA%\Insta360\Insta360 Studio\startup.ini` keeps it in plain text under `[preference]` (`project_location`, `workspace_location`, `footage_project_location`, `last_visit_dir`, `export_location`), together with the flags that matter for rendering (`cuda_accel`, `hardware_decoding_preview`). Read/set tool, S. |
-| E4 | `studio_pref_language` | S | Manual: `preference-settings/language-settings`; also explains OCR surprises (`Menü` → `Menÿ`) |
+| E3 | ~~`studio_pref_paths`~~ | — | **done** in `studio_prefs` (`action=paths`): `%LOCALAPPDATA%\Insta360\Insta360 Studio\startup.ini`, section `[preference]`, holds `project_location`, `workspace_location`, `footage_project_location`, `last_visit_dir`, `export_location` in plain text — each returned with its directory's existence checked. Reading is free; `set` refuses while Studio runs (it rewrites the file from memory on exit) |
+| E4 | ~~`studio_pref_language`~~ | — | **done** in `studio_prefs` (`action=get key=lang`): `[preference] lang=de` on this machine. Also explains OCR surprises (`Menü` → `Menÿ`) |
 
 ### F. AI features — high user value, GUI-only, long-running
 
@@ -205,5 +205,5 @@ lost export into an immediate answer.
 3. **A1, A2, A3** (keyframes, colour, transitions) — the reframing/editing core, file-based, no GUI risk.
 4. **G1–G8** (preflight) — cheap, and it stops every AI/export path from failing late.
 5. **C1, C3, C4** (finish the export matrix) + **B1/B2** (Media page + watermark).
-6. **A4–A8, B3–B5, E1–E4.**
+6. **A4–A8, B3–B5, E2** (E1, E3, E4 are done — `studio_prefs`).
 7. **F1–F4** — one at a time, each is a project in its own right.
