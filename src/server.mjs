@@ -72,6 +72,14 @@ import {
   validateFov,
 } from "./camera.mjs";
 import { studioDir, studioExe, studioInfo } from "./studio-path.mjs";
+import {
+  LOG_AREAS,
+  grepLogs,
+  listCrashDumps,
+  listLogAreas,
+  listSessions,
+  readLogTail,
+} from "./logs.mjs";
 import { findText, ocrImage } from "./ocr.mjs";
 import { closeControl, isPickerField, isTextBox, openControl, readDialog, selectOption, setText } from "./export-dialog.mjs";
 
@@ -130,6 +138,65 @@ tool(
       projectRootExists: existsSync(STUDIO_PROJECT_ROOT),
       ready: Boolean(exporterOpen),
     };
+  },
+);
+
+tool(
+  "studio_logs",
+  {
+    description:
+      "Read Insta360 Studio's own logs. action=list summarises each log area (studio, detector, quick_look, setup) and says how much of it is readable text; action=sessions lists recent Studio starts with their files; action=read returns the tail of one file; action=grep searches the readable logs. Studio encrypts its main/export/thumbnail/quick_look logs — those are reported as encrypted instead of being decoded, so a caller can tell 'nothing wrong' apart from 'cannot see'. Use studio_dumps for hang/crash minidumps.",
+    inputSchema: {
+      action: z
+        .enum(["list", "sessions", "read", "grep"])
+        .optional()
+        .describe("What to do (default list)"),
+      area: z.enum(LOG_AREAS).optional().describe("Log area (list/sessions default studio; grep defaults to all areas)"),
+      file: z.string().optional().describe("Absolute path of a log file (for action=read)"),
+      pattern: z.string().optional().describe("Regular expression, case-insensitive (for action=grep)"),
+      days: z.number().optional().describe("grep: only files modified within N days (default 7)"),
+      lines: z.number().optional().describe("read: how many trailing lines (default 200)"),
+      limit: z.number().optional().describe("sessions: how many recent starts (default 5); grep: max matches (default 100)"),
+      root: z
+        .string()
+        .optional()
+        .describe("Override the Insta360 data root (e.g. a copied log tree from another machine)"),
+    },
+  },
+  async ({ action = "list", area, file, pattern, days = 7, lines = 200, limit, root } = {}) => {
+    const env = root ? { ...process.env, INSTA360_LOCAL_ROOT: root } : process.env;
+    switch (action) {
+      case "list":
+        return listLogAreas({ env });
+      case "sessions":
+        return listSessions({ env, area: area ?? "studio", limit: limit ?? 5 });
+      case "read":
+        return readLogTail({ file, lines, env });
+      case "grep":
+        return grepLogs({ env, pattern, days, areas: area ? [area] : undefined, limit: limit ?? 100 });
+      default:
+        throw new Error(`unknown action: ${action}`);
+    }
+  },
+);
+
+tool(
+  "studio_dumps",
+  {
+    description:
+      "List Insta360 crash dumps, newest first. Studio writes minidumps into crashes\\lag_reports when it HANGS (the 'stuck on Lade Dateien…' symptom) and into crashes\\reports when a module crashes; the timestamps tell you which of your runs stalled. Crashpad bookkeeping files (settings.dat, metadata) are counted, not listed.",
+    inputSchema: {
+      limit: z.number().optional().describe("Max dumps to return (default 40)"),
+      components: z
+        .array(z.string())
+        .optional()
+        .describe("Restrict to these components, e.g. [\"Insta360 Studio\"]"),
+      root: z.string().optional().describe("Override the Insta360 data root"),
+    },
+  },
+  async ({ limit = 40, components, root } = {}) => {
+    const env = root ? { ...process.env, INSTA360_LOCAL_ROOT: root } : process.env;
+    return listCrashDumps({ env, components, limit });
   },
 );
 

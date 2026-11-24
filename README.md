@@ -85,6 +85,49 @@ anything the UI or an `.insproj` hands it.
 | `studio_install_info` | Inspect the install directory |
 | `studio_camera_caps` | Which FOV types, modes, aspects and reframe angles a camera allows — from the FOV/distance tables inside Studio's Qt resources |
 
+### Logs & crash dumps
+
+Studio keeps its own logs, and they are the only place it explains itself. The tree is
+`%LOCALAPPDATA%\Insta360\Insta360 Studio\log\` with one directory per Studio start under
+`studio\`, plus the `detector\`, `quick_look\` and `setup\` areas.
+
+| Tool | What it does |
+|---|---|
+| `studio_logs` | `action=list` summarises each area and how much of it is readable text; `action=sessions` lists recent Studio starts with their files; `action=read` returns the tail of one file; `action=grep` searches the readable logs (regex, modified-within-days) |
+| `studio_dumps` | List crash minidumps, newest first — `crashes\lag_reports` are written when Studio **hangs** |
+
+Measured on 6.0.9 (2026-11-24), and this is the part worth knowing before you trust a log:
+
+| Area | Readable | Encrypted |
+|---|---|---|
+| `studio\…\*_launcher_*.log`, `*_cef_*.log` | ✅ launcher line, Chromium/GL errors | — |
+| `studio\…\<ts>_<pid>.log`, `*_export_*`, `*_thumbnail_*` | — | ❌ |
+| `detector\` (config, GPU state, `detector enable false`) | ✅ | — |
+| `setup\` (Inno Setup install history: **which build, which EXE, when**) | ✅ | — |
+| `quick_look\` | — | ❌ |
+
+The encrypted files share a constant 16-byte container header
+(`cd013a985f5beca1bcc1ca036aa5d1a0`) and carry `bf08ac29` frame magic; the payload is
+high-entropy, so it is real encryption with a key inside Studio's binaries, not a
+reversible obfuscation. Both tools therefore **report** encryption instead of decoding
+it — a log reader that prints mojibake out of a cipher is worse than one that says it
+cannot read the file. Every read is also confined to the Insta360 tree, so `file` cannot
+be used as an arbitrary file reader.
+
+Live, on this machine:
+
+```
+studio_logs {}                       -> studio 114 files (37 readable / 68 encrypted, 113 MB),
+                                        detector 1/1, quick_look 5/0, setup 2/2
+studio_logs {action:"sessions"}      -> 26 Studio starts, newest 2026-11-24T09:14:30
+studio_dumps {}                      -> 9 dumps, newest 2026-11-23T21:58:56 (lag/hang)
+studio_logs {action:"read", file:"…31604.log"}
+                                     -> {readable:false, kind:"encrypted", reason:"…"}
+studio_logs {action:"grep", area:"setup", pattern:"Insta360_Studio_6"}
+                                     -> 6.0.8_release_insta360(RC_build100) 11-21,
+                                        6.0.9_beta1_insta360(RC_build8)     11-23
+```
+
 ### Camera capability data
 
 `studio_camera_caps` is backed by `src/data/camera_matrix.json`, built from the
@@ -480,7 +523,7 @@ All of these were run and the outputs checked with `ffprobe` / `file` — the si
 ## Tests
 
 ```bash
-npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads — 85 tests
+npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads, log/dump reader — 93 tests
 npm run check           # syntax-check every module
 npm run test:nvap       # NVAP extractor self-test (hybrid headers, 44/44 containers)
 npm run probe           # live MCP handshake, tool list, gRPC port discovery
@@ -540,7 +583,7 @@ Kept here because it's hard to find anywhere else:
 - `savePath` in `ExportHeader` is an **output directory**, not a file path. The exporter creates it and writes the file inside, named after the source unless `SourceGroup.dest_file_name` is set.
 - The photo/image export types (`PHOTO` 0 through `DNG_SEQUENCE_DNG_WITH_JPG` 8, `DEMUX_TO_JPEG` 11) accept a source named directly. `VIDEO` (9) and `VIDEO_CLIP` (10) answer `EXPORTER_START_FAILURE` — tested cold, with a clip loaded in the player, and with a project open in Studio; all three the same. The request has no video path field, and the exporter resolves footage from internal project state that neither the UI nor an `.insproj` populates.
 - The exporter dies if you fire a long burst of requests at it; it then needs Studio restarted to come back. Space the calls out.
-- Most Studio logs are encrypted (a `bf08ac29` frame header plus a counter), but the CEF and detector logs in the same tree are plain text — check both before giving up on a log.
+- Most Studio logs are encrypted (a constant 16-byte container header `cd013a985f5beca1bcc1ca036aa5d1a0` plus `bf08ac29` frames — **not** a frame header at offset 0, as an earlier reading of this tree claimed), but the launcher, CEF, detector and setup logs in the same tree are plain text. Use `studio_logs` / `studio_dumps` instead of reading the tree by hand: they classify every file, refuse the opaque ones honestly, and scope by area and age.
 
 The probe scripts that got us there are in `research/grpc-probes/`.
 
@@ -551,7 +594,7 @@ The probe scripts that got us there are in `research/grpc-probes/`.
 | File | What it holds |
 |---|---|
 | `docs/FEATURE_SURVEY.md` | Studio's documented feature set, per-page manual URLs, per-model applicability — the source list for what can be automated at all |
-| `docs/DEVELOPMENT_BACKLOG.md` | Manual-vs-server coverage audit: what Studio documents, what these 31 tools cover, and the ranked list of functions still to build |
+| `docs/DEVELOPMENT_BACKLOG.md` | Manual-vs-server coverage audit: what Studio documents, what these 33 tools cover, and the ranked list of functions still to build |
 | `docs/INSPROJ_SCHEMA.md` | The measured `.insproj` schema, including the frame arithmetic `len(c) = source_total_frames − leftTrim − rightTrim` |
 | `docs/ASSET_CATALOG.md` | Asset library and unpacked NVAP contents |
 
@@ -559,7 +602,7 @@ The probe scripts that got us there are in `research/grpc-probes/`.
 
 ## Limitations
 
-- **A project this server builds does not export.** It opens, the clips carry correct per-clip metadata, and then both timeline clips sit on "Lade Dateien…" — cause not established. The manual's own path rules (project file and media locations, user name, no renaming) are the current leads; see `docs/DEVELOPMENT_BACKLOG.md` §0. Until it is solved, edit projects Studio wrote itself.
+- **A project this server builds does not export.** It opens, the clips carry correct per-clip metadata, and then both timeline clips sit on "Lade Dateien…" — cause not established. The manual's own path rules (project file and media locations, user name, no renaming) are the current leads; see `docs/DEVELOPMENT_BACKLOG.md` §0. The log route to the cause is **partly closed**: Studio's own hang produces a minidump (`studio_dumps` lists them, newest 2026-11-23T21:58 — i.e. during the test runs that hit this), but the main log that would name the file it is stuck on is encrypted, so a dump plus a differential comparison against a Studio-written project is the instrument, not a text log.
 - **Windows only.** The GUI layer is Win32 + PowerShell.
 - **gRPC video export does not work — use the GUI for video.** `VIDEO`/`VIDEO_CLIP` fail with `EXPORTER_START_FAILURE` whether Studio is cold, has a clip loaded, or has a project open. Photo and image types export standalone over gRPC; `studio_ui_export` is the video path.
 - **GUI export needs a loaded clip.** An empty player means nothing to export — `studio_ui_state` tells you.

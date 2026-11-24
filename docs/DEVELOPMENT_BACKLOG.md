@@ -1,7 +1,7 @@
 # Development backlog — what Studio can do that this server cannot (yet)
 
 Built 2026-11-24 from the official online manual (every row cites its page), `docs/FEATURE_SURVEY.md`, and the
-measured behaviour of the 31 tools. Coverage legend: **✓** covered · **◐** partial / read-only · **✗** missing.
+measured behaviour of the 33 tools. Coverage legend: **✓** covered · **◐** partial / read-only · **✗** missing.
 
 Base URL for all manual links: `https://onlinemanual.insta360.com/studio/en-us/`
 
@@ -18,10 +18,16 @@ The manual documents a class of causes we have not tested. Three leads, all from
 | "Move media to another drive, then change **Project File Save Path**" is Insta360's own fix for media that will not import/edit | `troubleshooting/file-import-issue/media-import-issue` (Scenario 5) | The project file path is a real, user-visible variable — and it is a *preference* we cannot read or set today (see E3). |
 | Media-library assets on a **network/other drive** fail to load on the project page | `troubleshooting/page-function-issues/library-load` | Same failure *shape* (a page that never finishes loading). Studio itself treats "resource not on the expected volume" as a load failure. |
 | Error strings worth recognising instead of guessing | `troubleshooting/file-import-issue/media-import-issue` | `2 imports failed: Unknown error (2)`, `No master file corresponding to LRV file was found`, `Video generates two video files, one of which can't be retrieved`, `file is not supported in current offset version` — the last one matters for us, because this whole server depends on the *offset version*. |
-| The **log tree** exists and nothing reads it | `operation-guide/file-management/obtain-log-or-dump-files` | Present on this machine: `%LOCALAPPDATA%\Insta360\Insta360 Studio\log\{studio,detector,quick_look,setup}` + crash dumps under `%LOCALAPPDATA%\Insta360\Insta360\Studio\crashes\reports`. The CEF/detector logs in that tree are **plain text**. Studio's own advice for a crash is "do not restart immediately, or the dump is lost". |
+| The **log tree** exists and now has a reader | `operation-guide/file-management/obtain-log-or-dump-files` | Built as D1/D2. Measured: the launcher, CEF, **detector** and Inno-Setup logs are plain text; the main/export/thumbnail/`quick_look` logs are **encrypted** (constant 16-byte header `cd013a985f5beca1bcc1ca036aa5d1a0` + `bf08ac29` frames, high-entropy payload), and the crash dumps live in `crashes\lag_reports` — written on a **hang**, which is this exact symptom. 9 dumps, newest 2026-11-23T21:58, i.e. from the test runs that hit it. |
 
-**Do this before writing any new edit feature:** read the log while reproducing the "Lade Dateien…" state, and test
-the three path hypotheses. Cheap, and it decides whether the project route is viable at all.
+**Do this before writing any new edit feature:** test the three path hypotheses, and use the dumps as the instrument.
+
+State after building D1/D2: the log route is **partly closed**. The dump timestamps prove *when* Studio hung, and the
+readable sibling logs give the install history, the launch arguments and the detector's decisions — but the main log
+that would name the file it is stuck on cannot be read, because Insta360 encrypts it with a key inside its binaries
+(reverse-engineering job, not a parser). What is left as the instrument is a **differential comparison**: one project
+written by Studio itself vs. one this server builds, field by field, plus the three path hypotheses. See E3 for the
+`Project File Save Path` preference, which is both a hypothesis and a lever.
 
 ---
 
@@ -94,8 +100,8 @@ Stats, Remove Grain and the batch operations all live there.
 
 | # | Function | Effort | Notes |
 |---|---|---|---|
-| D1 | `studio_logs` (list / tail / grep by area) | S | `operation-guide/file-management/obtain-log-or-dump-files`; plain-text CEF/detector logs confirmed readable, `studio/` logs are encrypted. **Unlocks §0.** |
-| D2 | `studio_dumps` (find crash dumps) | S | `%LOCALAPPDATA%\Insta360\Insta360\Studio\crashes\reports`; warn "do not restart Studio, the dump is lost" |
+| D1 | `studio_logs` (list / sessions / read / grep by area) | **✅ built** | `operation-guide/file-management/obtain-log-or-dump-files`. Measured: launcher/CEF/detector/setup logs are plain text, main/export/thumbnail/`quick_look` are encrypted — the tool *reports* encryption instead of decoding it, and every read is confined to the Insta360 tree. `src/logs.mjs`, 8 tests. |
+| D2 | `studio_dumps` (find crash dumps) | **✅ built** | The dumps are in `crashes\lag_reports` (written on a **hang**), not `crashes\reports`; crashpad bookkeeping (`settings.dat`, `metadata`) is counted, not listed. |
 | D3 | Import/preview error classifier | S | Map the documented error strings + the "Corrupted Frame" red-frame state (`troubleshooting/playback-preview-issue/media-play-error`, v5.8.4+) to plain sentences instead of a stuck page |
 | D4 | `studio_version_report` | S | Manual: `installation-and-update/download-and-installation-operations` (Menu ▸ Help ▸ Check for Updates / Install Thumbnail Plugin). **Report only — never update**: the launcher moves the install and invalidates every measured offset |
 | D5 | `studio_ui_export` timeout/`export-slow` guidance | S | Manual: `troubleshooting/file-export-issue/export-slow` — export speed is GPU-bound; the documented levers are Exporter Codec = all, Image Processing Acceleration = Auto, lower bitrate |
@@ -151,8 +157,8 @@ lost export into an immediate answer.
 
 ## 3. Suggested order
 
-1. **D1 + D2** (log/dump reader) — half a day, and it is the instrument for §0.
-2. **§0 investigation** using D1/D2 + the three path hypotheses + E3.
+1. ~~**D1 + D2** (log/dump reader)~~ — **done 2026-11-24**: `src/logs.mjs`, `studio_logs` + `studio_dumps`, 8 tests, 93 total. Result: dumps are readable evidence, Studio's main log is not (encrypted).
+2. **§0 investigation**: differential comparison (Studio-written project vs. ours, field by field) + the three path hypotheses + E3 (`Project File Save Path`). The dump timestamps from step 1 scope it to the runs that actually hung.
 3. **A1, A2, A3** (keyframes, colour, transitions) — the reframing/editing core, file-based, no GUI risk.
 4. **G1–G8** (preflight) — cheap, and it stops every AI/export path from failing late.
 5. **C1, C3, C4** (finish the export matrix) + **B1/B2** (Media page + watermark).
