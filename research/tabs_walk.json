@@ -1,0 +1,139 @@
+[
+  {
+    "tab": "Text",
+    "ok": true,
+    "clicked": {
+      "x": 171,
+      "y": 85
+    },
+    "lines": [
+      "Basic@45,131",
+      "12:00@178,155",
+      "Tag@323,162",
+      "beliebt@49,203",
+      "Titel@48,267  Daily@301,261",
+      "ENROUTE@198,284",
+      "Reisen@49,299",
+      "Urlaub@49,331",
+      "Zeit@48,363",
+      "Ort@48,395  HOKKAIDO.@193,389",
+      "SPECIAL@188,584",
+      "GIFF@202,601",
+      "ÄJRF@295,613  VLOOI@327,613",
+      "ZR@186,624  KIDi@223,634",
+      "ndma@203,1059"
+    ],
+    "words": 19
+  },
+  {
+    "tab": "Sticker",
+    "ok": true,
+    "clicked": {
+      "x": 226,
+      "y": 85
+    },
+    "lines": [
+      "Stickerbib.„@44,131",
+      "beliebt@49,166",
+      "Erde@49,198  Online@78,198",
+      "Winter@48,230",
+      "Reisen@49,262",
+      "Journal-Stil@48,294",
+      "Magazin@49,326",
+      "Collage@48,358",
+      "Feste@49,390",
+      "Insta360@49,422",
+      "Tech-Stil@48,454",
+      "Saison@48,486  LOVE@281,492",
+      "Handschrift@49,517",
+      "Linie@49,550",
+      "Animation@48,582",
+      "Abdeckung@48,646",
+      "Emoji@49,678",
+      "Sprechblasen@48,710",
+      "Valentinstag@48,742",
+      "Frühlingsfest@49,773",
+      "CAUTION@314,925",
+      "SPEED@183,949  50@299,955  HP@328,956",
+      "Favorit@45,1014",
+      "Meine@45,1051  Down...@85,1052"
+    ],
+    "words": 29
+  },
+  {
+    "tab": "Effekte",
+    "ok": true,
+    "clicked": {
+      "x": 287,
+      "y": 85
+    },
+    "lines": [
+      "Effektebi„.@45,131",
+      "Empfehlung@65,166",
+      "Rein/Raus@49,198",
+      "Rahmen@49,230  Fade-@174,226  Ou@203,226  t@219,227  Fade-@280,226  In@310,226",
+      "Dyna@49,262  misch@78,262",
+      "Atmos@48,294  phä@86,294  re@108,297",
+      "Licht@49,326",
+      "Film@49,358  &@75,358  Ferns...@90,358  Camera@173,360  Open@215,360  Paper@280,360  Stop-@312,360  Motm@342,360",
+      "Glitch@48,390",
+      "geteiltes@48,422  Bild...@102,422",
+      "Animation@48,454",
+      "X-shaped@173,494  im@254,494  Mask@280,494  Intro@311,494",
+      "open@226,497",
+      "Diagonal@174,628  W@223,628  ipe@235,628  Im@254,628  Travel@279,628  Intro@314,628",
+      "Multi-screen@174,762  Slim@243,762  vertical@279,762  ing@348,762",
+      "open@320,765",
+      "Favorit@45,1014",
+      "Schließen@173,1030  Swirl@279,1030  Focus@308,1030  Colom@341,1030",
+      "Meine@45,1051  Down...@85,1052"
+    ],
+    "words": 50
+  },
+  {
+    "tab": "Übergänge",
+    "ok": true,
+    "clicked": {
+      "x": 339,
+      "y": 84
+    },
+    "lines": [
+      "Übergaru@33,156",
+      "Basis@38,191",
+      "Spread@163,249  Left@203,248  Spread@269,246  Right@309,246",
+      "leffekte@78,286",
+      "Spezia@39,287",
+      "Andere@41,383  Spread@166,383  u@206,383  Spread@272,380  Down@312,381",
+      "p@214,385",
+      "Glow@169,517  Scan@199,517  Diagonal@275,514  Slide@325,514",
+      "Slide2@222,650  üssolve@278,649",
+      "Diagonal@172,651",
+      "Slide@175,785  Left@203,784  Slide@281,783  Right@309,782",
+      "Slide@177,919  Up@206,919  Slide@283,917  Chwn@312,917",
+      "Lichtblitz@181,1052  Black@287,1050  Fade@318,1050"
+    ],
+    "words": 32
+  },
+  {
+    "tab": "Bewegung",
+    "ok": true,
+    "clicked": {
+      "x": 386,
+      "y": 104
+    },
+    "lines": [
+      "Basis@49,166",
+      "Kamerabewe...@49,230  Spread@173,226  Left@213,226  Spread@279,226  Right@319,226",
+      "Spezia@48,262  leffekte@87,261",
+      "Glitch@48,294",
+      "Natürlich@49,326",
+      "Andere@48,358  Spread@173,360  up@213,360  Spread@279,360  Down@319,361",
+      "Glow@173,494  Scan@203,494  Diagonal@280,494  Slide@329,494",
+      "Diagonal@174,628  Slide2@223,628  Dissolve@280,628",
+      "Slide@173,762  Left@202,762  Slide@279,762  Right@308,762",
+      "Slide@173,896  up@202,896  Slide@279,896  Down@308,896",
+      "Lichtblitz@174,1030  Black@280,1030  Fade@311,1030"
+    ],
+    "words": 33
+  }
+]

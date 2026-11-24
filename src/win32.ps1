@@ -15,7 +15,8 @@ param(
   [string]$Keys = "",
   [string]$Text = "",
   [string]$Out = "",
-  [int]$SleepMs = 120
+  [int]$SleepMs = 120,
+  [switch]$Pin
 )
 
 $ErrorActionPreference = "Stop"
@@ -96,14 +97,35 @@ if ($h -eq [IntPtr]::Zero) {
 if ([W32]::IsIconic($h)) { [void][W32]::ShowWindow($h, 9) }
 
 function Set-Foreground($hwnd) {
-  # Windows blocks SetForegroundWindow from background processes unless the
-  # foreground lock is released first. A synthetic ALT keypress releases it.
+  # Bringing a window to the front from a background process is blocked two ways:
+  # SetForegroundWindow/BringWindowToTop return false (Windows' foreground lock),
+  # and the ALT-keypress trick that is supposed to release that lock does not
+  # reliably work here either — measured: both returned false and the foreground
+  # window stayed put.
+  #
+  # SetWindowPos with HWND_TOPMOST is not subject to the lock and does work
+  # (measured: returns true, and WindowFromPoint over the target's area then
+  # resolves to it). It is used as the primary mechanism, with the foreground
+  # calls kept as a best-effort follow-up so keyboard focus lands too.
+  $HWND_TOPMOST = [IntPtr](-1)
+  $SWP_NOSIZE = 0x1
+  $SWP_NOMOVE = 0x2
+  $SWP_SHOWWINDOW = 0x40
+  [void][W32]::SetWindowPos($hwnd, $HWND_TOPMOST, 0, 0, 0, 0, ($SWP_NOMOVE -bor $SWP_NOSIZE -bor $SWP_SHOWWINDOW))
+  Start-Sleep -Milliseconds 120
   [void][W32]::keybd_event(0x12, 0, 0, [IntPtr]::Zero)   # ALT down
   [void][W32]::keybd_event(0x12, 0, 2, [IntPtr]::Zero)   # ALT up
-  Start-Sleep -Milliseconds 80
+  Start-Sleep -Milliseconds 60
   [void][W32]::SetForegroundWindow($hwnd)
-  [void][W32]::BringWindowToTop($hwnd)
-  Start-Sleep -Milliseconds 120
+  Start-Sleep -Milliseconds 100
+}
+
+# Undo the TOPMOST pin, so the window does not float over everything afterwards.
+function Clear-Topmost($hwnd) {
+  $HWND_NOTOPMOST = [IntPtr](-2)
+  $SWP_NOSIZE = 0x1
+  $SWP_NOMOVE = 0x2
+  [void][W32]::SetWindowPos($hwnd, $HWND_NOTOPMOST, 0, 0, 0, 0, ($SWP_NOMOVE -bor $SWP_NOSIZE))
 }
 
 $rect = Get-WinRect $h
@@ -140,6 +162,7 @@ switch ($Action) {
     Start-Sleep -Milliseconds $SleepMs
     $info.action = "click"
     $info.clicked = @{ x = $ax; y = $ay; relx = $X; rely = $Y }
+    if (-not $Pin) { Clear-Topmost $h }
     Write-Output ($info | ConvertTo-Json -Compress)
   }
   "dblclick" {
@@ -157,6 +180,12 @@ switch ($Action) {
     Start-Sleep -Milliseconds $SleepMs
     $info.action = "dblclick"
     $info.clicked = @{ x = $ax; y = $ay; relx = $X; rely = $Y }
+    if (-not $Pin) { Clear-Topmost $h }
+    Write-Output ($info | ConvertTo-Json -Compress)
+  }
+  "unpin" {
+    Clear-Topmost $h
+    $info.action = "unpin"
     Write-Output ($info | ConvertTo-Json -Compress)
   }
   "atkeys" {

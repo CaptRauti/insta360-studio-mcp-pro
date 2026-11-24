@@ -58,6 +58,22 @@ export function windowInfo(title = DEFAULT_WINDOW_TITLE) {
   return r;
 }
 
+/**
+ * Bring the window to the front.
+ *
+ * Required before any capture: Studio's window can be fully painted yet still
+ * read back blank (measured: a 2576x1408 capture of 16 KB, OCR 0 words) while it
+ * is not the foreground window. The same capture after `focus` returned 44 words.
+ * A window that has just been started by `spawn` is never in the foreground, so
+ * this is the difference between "Studio did not render" and "Studio was simply
+ * behind something".
+ */
+export function focusWindow({ title = DEFAULT_WINDOW_TITLE } = {}) {
+  const r = runPs(WIN32_PS1, ["-Action", "focus", "-Title", title], { timeout: 30000 });
+  if (!r || r.ok === false) throw new Error(`could not focus "${title}"`);
+  return r;
+}
+
 /** Move/resize the window so click coordinates are stable across runs. */
 export function moveWindow({ title = DEFAULT_WINDOW_TITLE, x = 100, y = 40, width = 1384, height = 900 } = {}) {
   const r = runPs(WIN32_PS1, ["-Action", "move", "-Title", title, "-X", String(x), "-Y", String(y), "-Keys", `${width}x${height}`]);
