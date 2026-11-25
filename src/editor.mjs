@@ -75,6 +75,29 @@ export function findAll(found, text, { exact = true } = {}) {
 }
 
 /**
+ * OCR skeleton of a label: alphanumerics only, and the glyph pairs the
+ * recogniser actually confuses folded together (`l`, `i`, `|` all read as `1` in
+ * Studio's small card font). `mcpCtrl049` and the OCR's `mcpctr1049` both become
+ * `mcpctr1049`.
+ */
+export function skeleton(text) {
+  return String(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .replace(/[li|]/g, "1");
+}
+
+/** True when two skeletons are equal, or differ by one substitution on a long enough name. */
+export function sameSkeleton(a, b) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (a.length < 6 || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i] && ++diff > 1) return false;
+  return true;
+}
+
+/**
  * Find a caption that the OCR may have split across several words.
  *
  * Project cards are labelled with the project name, and the OCR breaks such a
@@ -88,10 +111,20 @@ export function findAll(found, text, { exact = true } = {}) {
  * row is ~135px away) and a horizontal gap limit (neighbouring cards sit close
  * together, so a row must not be smeared into one string). An exact match beats
  * a partial one, which keeps "Lamspringe" off the neighbouring "LamspringeKlon"
- * card.
+ * card — and both beat the fuzzy stage below.
+ *
+ * The last stage exists because OCR confuses glyph shapes inside names and
+ * nobody gets to choose what Studio calls a project: `mcpCtrl049` is read as
+ * `mcpctr1049` (`l` -> `1`), `mcpzwx` as `mcpzv.'x` (`w` -> `v`, plus stray
+ * punctuation). Those read as "not in library" for a card sitting in plain
+ * sight, so after an exact and a substring match the labels are compared by
+ * their OCR skeleton — alphanumerics only, `l`/`i`/`|` folded to `1` — with one
+ * substitution tolerated on names of six characters or more. Folded, the first
+ * example is `mcpctrl049` on both sides: an exact hit.
  */
 export function findLabel(found, text, { yMin = 0, yTol = 8, maxGap = 60 } = {}) {
   const wantTight = String(text).toLowerCase().replace(/\s+/g, "");
+  const wantSkeleton = skeleton(text);
   const tight = (g) => g.map((w) => String(w.text)).join("").toLowerCase();
   const words = found
     .filter((w) => (w.y ?? 0) >= yMin)
@@ -146,6 +179,7 @@ export function findLabel(found, text, { yMin = 0, yTol = 8, maxGap = 60 } = {})
         const t = tight(group);
         if (t === wantTight) consider(group, 3);
         else if (t.includes(wantTight)) consider(group, 2);
+        else if (sameSkeleton(skeleton(group.map((w) => String(w.text)).join("")), wantSkeleton)) consider(group, 1);
       }
     }
   }

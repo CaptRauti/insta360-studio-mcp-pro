@@ -24,7 +24,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { execFileSync, spawn } from "node:child_process";
-import { readProject, writeProject, newProjectFrom, summarizeProject, timelineLayout, relayout, makeTransition, setEffect, trimClip, harvestClips } from "./project.mjs";
+import { readProject, writeProject, newProjectFrom, summarizeProject, timelineLayout, relayout, makeTransition, setEffect, trimClip, harvestClips, BUILD_MARKER } from "./project.mjs";
 import { assetLibrary, findAsset, librarySummary, studioDataRoot } from "./assets.mjs";
 import { readScreen, openProject as openProjectGui, openTab, findWord } from "./editor.mjs";
 import { runExport, sleep, DEFAULT_WINDOW_TITLE, windowInfo, focusWindow } from "./ui.mjs";
@@ -388,7 +388,7 @@ export function assetCatalog() {
  * A directory is only treated as ours when the marker is there, so a project the
  * user created in the GUI is never skipped by mistake.
  */
-export const BUILD_MARKER = ".mcp-built";
+export { BUILD_MARKER };
 
 /** Record that this tooling wrote (or owns) the project in `dir`. */
 export function markBuilt(dir, extra = {}) {

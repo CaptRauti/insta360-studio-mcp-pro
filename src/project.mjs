@@ -14,9 +14,125 @@
 // retarget keyframes or repoint a clip without touching the GUI.
 
 import { readFile, writeFile, copyFile } from "node:fs/promises";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import os from "node:os";
 import path from "node:path";
+
+/**
+ * Studio's own name for a source file, as the media library shows it.
+ *
+ * A project shown in the timeline is not enough for Studio to load its media:
+ * the project folder also needs `project_album_info.data`, the album of sources
+ * this project uses, and each entry's `name` must be the *display* name Studio
+ * knows the card by ("VID_049.mp4") — not the file name
+ * ("VID_20260822_190557_049.mp4"). With the file name there, Studio sits on
+ * "Lade Dateien" forever, shows a black thumbnail and refuses to export
+ * ("Quelldatei fehlt"). Verified by swapping only that field on an otherwise
+ * identical build: file name → black, display name → picture.
+ *
+ * The display name lives in the media card registry
+ * (workspace/media_card/local/media_cards.json, keyed by absolute path). The
+ * registry is 35 MB, so it is parsed once per process and only when a build
+ * needs it.
+ */
+let mediaCardIndex = null;
+
+function mediaCardsFile() {
+  const config = process.env.INSTA360_STUDIO_CONFIG ?? path.join(os.homedir(), "AppData", "Local", "Insta360", "Insta360 Studio");
+  return path.join(config, "workspace", "media_card", "local", "media_cards.json");
+}
+
+function loadMediaCards() {
+  if (mediaCardIndex) return mediaCardIndex;
+  mediaCardIndex = new Map();
+  try {
+    const raw = JSON.parse(readFileSync(mediaCardsFile(), "utf8"));
+    for (const card of raw.media_cards ?? []) {
+      const key = String(card.uuid ?? "").replace(/\\/g, "/");
+      if (key) mediaCardIndex.set(key.toLowerCase(), card.display_name || path.basename(key));
+    }
+  } catch {
+    // No registry (fresh install, other machine): fall back to the pattern below.
+  }
+  return mediaCardIndex;
+}
+
+export function displayNameFor(url) {
+  const key = String(url ?? "").replace(/\\/g, "/");
+  const base = path.basename(key);
+  const known = loadMediaCards().get(key.toLowerCase());
+  if (known) return known;
+  // Insta360 writes VID_20260822_190557_049.mp4 and shows VID_049.mp4: the
+  // sequence number carries over, date and time do not.
+  const m = base.match(/^([A-Za-z]+)_\d{8}_\d{6}_(\d+)\.(\w+)$/);
+  return m ? `${m[1]}_${m[2]}.${m[3]}` : base;
+}
+
+/**
+ * Build the `project_album_info.data` that belongs next to a .insproj.
+ *
+ * A project only loads its media when this file carries the full album, not just
+ * a node list. Studio writes four parts and reads all of them back:
+ *
+ *   album_tree:            { nodes[], root_uuids[], version }
+ *   media_card_snapshots:  { "<abs path>": { create_time, display_name, uuid, … } }
+ *   tab_media_uuids:       [ "<abs path>", … ]
+ *   version:               1
+ *
+ * Measured: with `nodes` alone the project opened, but the clip stayed
+ * unattached (`state` flipped 0 → 2 on load), the player sat on "Lade Dateien"
+ * and export said "Quelldatei fehlt". Filling in the snapshots and the root/tab
+ * lists is what makes Studio attach the source. `create_time` is taken from
+ * Insta360's own file name (VID_20260822_190557_049.mp4 → 2026-08-22T19:05:57)
+ * and falls back to the file's mtime.
+ */
+function createTimeFor(url) {
+  const base = path.basename(String(url ?? "").replace(/\\/g, "/"));
+  const m = base.match(/_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`;
+  try {
+    const d = new Date(statSync(url).mtimeMs);
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  } catch {
+    return "";
+  }
+}
+
+export function albumInfoFor(project) {
+  const seen = new Set();
+  const nodes = [];
+  const snapshots = {};
+  const paths = [];
+  for (const track of project?.tracks ?? []) {
+    for (const clip of track?.clips ?? []) {
+      const url = String(clip?.url ?? "").replace(/\\/g, "/");
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      const name = displayNameFor(url);
+      const nodeUuid = randomUUID();
+      nodes.push({ media_card_uuid: url, name, node_uuid: nodeUuid, parent_uuid: "", type: "Footage" });
+      snapshots[url] = {
+        create_time: createTimeFor(url),
+        display_name: name,
+        is_dng_group: false,
+        is_photo_group: false,
+        remark_name: "",
+        source: "local",
+        uuid: url,
+      };
+      paths.push(url);
+    }
+  }
+  return {
+    album_tree: { nodes, root_uuids: nodes.map((n) => n.node_uuid), version: 1 },
+    media_card_snapshots: snapshots,
+    tab_media_uuids: paths,
+    version: 1,
+  };
+}
 
 /**
  * Read the true frame count / fps / dimensions of a source clip.
@@ -78,6 +194,18 @@ export function probeSource(file) {
  * against the real file happens in `sourceMetaFor`, which is the only place that
  * can tell a good candidate from a bad one.
  */
+/**
+ * The marker a project directory carries once this tooling wrote it.
+ *
+ * It lives here rather than next to `markBuilt` because harvesting has to honour
+ * it: a project this tool built is not a model for what Studio writes. Measured
+ * — a failed build left a clip with the view state that made Studio refuse it
+ * (fov in degrees: `type 1, value 75`, no `dewarp_setting` block), harvesting
+ * picked that clip over Studio's own for the same file, and every project built
+ * afterwards inherited the failure.
+ */
+export const BUILD_MARKER = ".mcp-built";
+
 export function harvestClips(root) {
   const out = new Map();
   if (!root || !existsSync(root)) return out;
@@ -85,6 +213,8 @@ export function harvestClips(root) {
   for (const entry of readdirSync(root, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     const dir = path.join(root, entry.name);
+    // Our own output is not evidence: see BUILD_MARKER above.
+    if (existsSync(path.join(dir, BUILD_MARKER))) continue;
     let names;
     try {
       names = readdirSync(dir);
@@ -144,12 +274,17 @@ export async function readProject(filePath) {
 }
 
 /** Write a project back. Creates a .bak copy first unless disabled. */
-export async function writeProject(filePath, data, { backup = true } = {}) {
+export async function writeProject(filePath, data, { backup = true, album = true } = {}) {
   if (backup && existsSync(filePath)) {
     await copyFile(filePath, `${filePath}.bak`);
   }
   const json = JSON.stringify(data, null, 4);
   await writeFile(filePath, json, "utf8");
+  // Without this file Studio opens the project but never loads its sources.
+  if (album) {
+    const albumPath = path.join(path.dirname(filePath), "project_album_info.data");
+    await writeFile(albumPath, JSON.stringify(albumInfoFor(data), null, 4), "utf8");
+  }
   return { filePath, bytes: Buffer.byteLength(json, "utf8"), backup };
 }
 
@@ -474,6 +609,22 @@ export function clipDisplayName(fileName) {
  * "Lade Dateien...". Hence `projectFps` below: the probe is converted into the
  * timeline's unit before anything is compared or written.
  */
+/**
+ * A harvested clip's frame count expressed in the *file's* frames.
+ *
+ * `sourceFrames` is written in the frame rate of the project the clip was
+ * harvested from — Studio writes 825 for a 60 fps file on a 30 fps timeline and
+ * 1651 for the same file on a 60 fps one. Comparing one against a probe taken in
+ * the other unit discards every real model.
+ */
+function candidateFrames(clip, probe) {
+  const own = Number(clip?.fps) || 0;
+  const fileFps = Number(probe?.fps) || 0;
+  const n = Number(clip?.sourceFrames) || 0;
+  if (!own || !fileFps || Math.abs(own - fileFps) < 0.5) return n;
+  return Math.round(n * (fileFps / own));
+}
+
 export function sourceMetaFor(url, model, models = new Map(), projectFps = 0) {
   const candidates = models.get(url) ?? [];
   const probe = probeSource(url);
@@ -486,7 +637,12 @@ export function sourceMetaFor(url, model, models = new Map(), projectFps = 0) {
     let best = null;
     let bestDelta = Infinity;
     for (const c of candidates) {
-      const delta = Math.abs(c.sourceFrames - frames);
+      // A harvested clip counts in the frame rate of the project it was taken
+      // from, which need not be this one: the same file is 1651 in a 60 fps
+      // project and 825 in a 30 fps project. Compare in the file's own unit, or
+      // the only model that matches is the one another 30 fps build left behind.
+      const inFileFrames = candidateFrames(c, probe);
+      const delta = Math.abs(inFileFrames - probe.frames);
       if (delta < bestDelta) {
         bestDelta = delta;
         best = c;
@@ -498,7 +654,16 @@ export function sourceMetaFor(url, model, models = new Map(), projectFps = 0) {
       // rounds to 826. `state` is Studio's mark about whether it could attach the
       // clip — never a value to copy. Harvesting from a project whose clips
       // failed to attach would carry the failure into every new project.
-      return { name: best.name ?? fallbackName, frames: best.sourceFrames, fps: targetFps, scaled: scale !== 1, from: "harvested", probe, candidates: candidates.length, clip: best };
+      //
+      // When the model was written at this project's frame rate its count is
+      // already in this unit, so take it as written (825); only a model from a
+      // different frame rate has to be scaled, and that truncates rather than
+      // rounds (1651 at 60 fps is 825.5 frames at 30 fps, and Studio wrote 825).
+      const exact =
+        Number(best.fps) > 0 && Number(targetFps) > 0
+          ? Math.floor((Number(best.sourceFrames) * Number(targetFps)) / Number(best.fps) + 1e-6)
+          : Math.floor(candidateFrames(best, probe) * scale + 1e-6);
+      return { name: best.name ?? fallbackName, frames: exact, fps: targetFps, scaled: scale !== 1, from: "harvested", probe, candidates: candidates.length, clip: best };
     }
     return { name: fallbackName, frames, fps: targetFps, scaled: scale !== 1, from: "ffprobe", probe, candidates: candidates.length };
   }
