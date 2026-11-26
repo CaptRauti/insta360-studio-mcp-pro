@@ -14,6 +14,7 @@ import {
   matches,
   optionRows,
   parseDialogDir,
+  preferExact,
   rowFor,
   stripIndicators,
 } from "../src/export-dialog.mjs";
@@ -85,6 +86,68 @@ test("rowFor skips a label match whose row has no value cells", () => {
   const row = rowFor(ocr, "Rahmen");
   assert.ok(row, "the dialog row must still be found");
   assert.equal(row.value, "30fps");
+});
+
+test("rowFor re-reads a row at zoom when the native pass drops a short value", () => {
+  // Measured on 6.0.9: choosing `25.00` in `Rahmen` leaves the row *displaying*
+  // `25.00` at x~574, but the native OCR pass returns the label alone — the value
+  // word is simply absent — so the row was skipped and `Rahmen` read back as
+  // MISSING (or as the project-info panel's own row). The same cell reads cleanly
+  // at 4-5x, which is what this fallback does.
+  const ocr = {
+    words: [
+      { text: "Rahmen:", x: 479, y: 429, w: 52, h: 10 }, // no value word beside it
+      { text: "Bitrate(Mb...", x: 479, y: 475, w: 80, h: 12 },
+    ],
+  };
+  const regions = [];
+  const row = rowFor(ocr, "Rahmen", {
+    png: "unused.png",
+    reread: (region) => {
+      regions.push(region);
+      return {
+        ok: true,
+        words: [
+          { text: "Rahmen:", x: 479, y: 429, w: 52, h: 10 },
+          { text: "25.00", x: 574, y: 429, w: 30, h: 10 },
+        ],
+      };
+    },
+  });
+  assert.ok(row, "row not found");
+  assert.equal(row.value, "25.00");
+  assert.equal(row.click.x, 656, "click must land in the dialog's value column");
+  assert.equal(row.zoomed, true, "the fallback must be flagged");
+  assert.equal(regions.length, 1, "exactly one zoomed re-read");
+  assert.ok(regions[0].x <= 479 && regions[0].w >= 250, `strip must cover the value: ${JSON.stringify(regions[0])}`);
+});
+
+test("rowFor does not re-read when the native pass already found the value", () => {
+  let called = 0;
+  const row = rowFor(DIALOG_OCR, "Kodierung", {
+    png: "unused.png",
+    reread: () => {
+      called += 1;
+      return { ok: true, words: [] };
+    },
+  });
+  assert.equal(row.value, "h265");
+  assert.equal(called, 0, "the cheap path must not pay for a zoom");
+});
+
+test("preferExact picks the bare rate, not the preset header that contains it", () => {
+  // Measured on 6.0.9: the Rahmen list is headed by the preset spelled out with its
+  // rate. Asking for "50.00" used to match the header first and set the *preset*.
+  const rows = [
+    { text: "Quellbild-Framerate übernehmen - 50.00", x: 500, y: 100, h: 12 },
+    { text: "25.00", x: 500, y: 136, h: 12 },
+    { text: "50.00", x: 500, y: 172, h: 12 },
+  ];
+  assert.equal(preferExact(rows, "50.00").text, "50.00");
+  assert.equal(preferExact(rows, "25.00").text, "25.00");
+  // without an exact counterpart, containment still matches (the header case)
+  assert.equal(preferExact(rows, "Quellbild-Framerate übernehmen").text, "Quellbild-Framerate übernehmen - 50.00");
+  assert.equal(preferExact(rows, "TikTok"), null, "no match must stay null");
 });
 
 test("optionMatch accepts an option the list box elided", () => {

@@ -157,8 +157,10 @@ const VALUE_SPAN = 250;
 const rowTolerance = (lab) => Math.max(13, Math.round((lab.h ?? 12) * 1.5));
 
 /** The label's row: the value cells sitting right of it on the same line. */
-export function rowFor(ocr, label) {
+export function rowFor(ocr, label, { png, reread } = {}) {
   const key = label.toLowerCase().slice(0, 8);
+  // `reread` is injectable so tests can exercise the zoom path without ffmpeg.
+  const reRead = reread ?? (png ? (region) => zoomOcr(png, region) : null);
   // A label can be read **twice** in the same window: the dialog's left column
   // and the project-info panel behind it. That panel has a "Rahmen" row of its
   // own — the project's frame rate, `60fps`, so the *value* does not tell them
@@ -168,14 +170,40 @@ export function rowFor(ocr, label) {
   // Rahmen did not open in 4 clicks"). The dialog's own column is the leftmost
   // candidate that actually has value cells beside it, so leftmost wins.
   const labels = ocr.words.filter((w) => w.text.toLowerCase().startsWith(key)).sort((a, b) => a.x - b.x);
-  for (const lab of labels) {
-    // Bound the right edge relative to the label: the OCR also reads unrelated
-    // text far right on the same line (x~1318 on the small layout, x~2506 on the
-    // large one), which would drag the cell's centre across the window and click
-    // into empty space.
-    const cells = ocr.words
+  // Value cells = OCR words on the label's line, right of the label's right edge,
+  // within the span. Bounding the right edge relative to the label matters: the OCR
+  // also reads unrelated text far right on the same line (x~1318 on the small layout,
+  // x~2506 on the large one), which would drag the cell's centre across the window
+  // and click into empty space.
+  const cellsFor = (lab, words) =>
+    words
       .filter((w) => Math.abs(w.y - lab.y) <= rowTolerance(lab) && w.x > lab.x + lab.w && w.x < lab.x + VALUE_SPAN)
       .sort((a, b) => a.x - b.x);
+
+  for (const lab of labels) {
+    let cells = cellsFor(lab, ocr.words);
+    let zoomed = false;
+    // Short values only survive a zoomed read. Measured on 6.0.9: choosing `25.00` in
+    // `Rahmen` leaves the row displaying `25.00` at x~574, yet the native pass returns
+    // the label alone -- no value word at all -- so the row would be skipped and the
+    // caller falls through to the project-info panel's own `Rahmen` row (or to
+    // nothing, which read as "the row has no text any OCR can get"). The same cell
+    // reads cleanly at 4-5x. So: when a label's row yields no cells, re-read just that
+    // strip once, zoomed, before giving up on it.
+    if (!cells.length && reRead) {
+      const strip = reRead({
+        x: Math.max(0, Math.round(lab.x) - 4),
+        y: Math.max(0, Math.round(lab.y) - 4),
+        w: VALUE_SPAN + 8,
+        h: Math.max(16, Math.round((lab.h ?? 12) + 10)),
+      });
+      if (strip?.ok && strip.words?.length) {
+        const relab =
+          strip.words.filter((w) => w.text.toLowerCase().startsWith(key)).sort((a, b) => a.x - b.x)[0] ?? lab;
+        cells = cellsFor(relab, strip.words);
+        zoomed = cells.length > 0;
+      }
+    }
     if (!cells.length) continue; // e.g. a label whose row is elsewhere on screen
     const x0 = cells[0].x;
     return {
@@ -185,6 +213,7 @@ export function rowFor(ocr, label) {
       // than what they display and the arrow sits at the right end.
       click: { x: Math.round(x0 + 82), y: lab.y + 8 },
       value: cells.map((w) => w.text).join(" "),
+      ...(zoomed ? { zoomed: true } : {}),
     };
   }
   return null;
@@ -270,7 +299,7 @@ export function readDialog({ title = "Insta360 Studio" } = {}) {
   const frame = snap(title);
   const fields = {};
   for (const name of CONTROLS) {
-    const row = rowFor(frame.ocr, name);
+    const row = rowFor(frame.ocr, name, { png: frame.planeFile });
     if (row) fields[name] = { value: row.value, click: row.click };
   }
   return { ok: true, window: windowInfo(title), screenshot: frame.planeFile, fields, words: frame.ocr.words };
@@ -374,7 +403,7 @@ export function dropClippedRows(rows, cropY, margin = 20) {
  */
 export async function openControl({ title = "Insta360 Studio", label, attempts = 4 } = {}) {
   let previous = snap(title);
-  const row = rowFor(previous.ocr, label);
+  const row = rowFor(previous.ocr, label, { png: previous.planeFile });
   if (!row) return { ok: false, error: `control "${label}" not found` };
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
@@ -425,7 +454,7 @@ export async function openControl({ title = "Insta360 Studio", label, attempts =
  */
 export async function closeControl({ title = "Insta360 Studio", label, attempts = 4 } = {}) {
   let previous = snap(title);
-  const row = rowFor(previous.ocr, label);
+  const row = rowFor(previous.ocr, label, { png: previous.planeFile });
   if (!row) return { ok: false, error: `control "${label}" not found` };
 
   let sawOpen = false;
@@ -487,8 +516,8 @@ export async function selectOption({ title = "Insta360 Studio", label, text } = 
   const opened = await openControl({ title, label });
   if (!opened.ok) return opened;
 
-  const hits = opened.rows.filter((r) => optionMatch(r.text, text));
-  if (!hits.length) {
+  const option = preferExact(opened.rows, text);
+  if (!option) {
     // Leave no box open behind us: a failed pick that stays open makes the *next*
     // read report the list's rows as the dialog's values. A second click on the
     // control toggles the popup shut.
@@ -497,7 +526,6 @@ export async function selectOption({ title = "Insta360 Studio", label, text } = 
     return { ok: false, error: `no option matching "${text}"`, options: opened.options };
   }
 
-  const option = hits[0];
   // A row is ~36 px tall; its text box is the most reliable click target.
   click({ title, x: option.x + 30, y: option.y + Math.max(6, Math.round(option.h / 2)) });
   await sleep(1000);
@@ -623,6 +651,26 @@ export function optionMatch(text, want) {
     if (n >= 6 && a.slice(0, n) === b.slice(0, n)) return true;
   }
   return false;
+}
+
+/** True when the option row and the wanted text reduce to the same string. */
+const sameOption = (text, want) =>
+  [norm, normLoose].some((key) => key(stripElision(text)) === key(stripElision(want)));
+
+/**
+ * The row to click for `want`: the one that **is** the requested option, else the
+ * first that merely contains it.
+ *
+ * Measured on 6.0.9: the `Rahmen` list is headed by the current preset, spelled out
+ * with its rate -- "Quellbild-Framerate übernehmen - 50.00" above the bare "25.00"
+ * and "50.00". Asking for "50.00" matched that header first and clicked *it*, so the
+ * pick set the preset instead of the rate (`picked` came back as the header string and
+ * the row afterwards read "Quellbild-Framerate übernehmen"). Preferring an exact row
+ * keeps `{"label":"Rahmen","text":"50.00"}` meaning the rate.
+ */
+export function preferExact(rows, want) {
+  const hits = (rows ?? []).filter((r) => optionMatch(r.text, want));
+  return hits.find((r) => sameOption(r.text, want)) ?? hits[0] ?? null;
 }
 
 /**
