@@ -1,0 +1,34 @@
+{
+  "control": "Rahmen",
+  "value": "Die Bildrate des Projekts anpassen",
+  "click": {
+    "x": 657,
+    "y": 483
+  },
+  "options": [
+    "Die Bildrate des Projekts anpassen - 6000",
+    "24.00",
+    "25.00",
+    "29.97",
+    "30.00",
+    "50.00",
+    "59.94"
+  ],
+  "listBox": {
+    "ok": true,
+    "box": {
+      "x": 566,
+      "y": 477,
+      "w": 340,
+      "h": 294
+    },
+    "brightness": {
+      "closed": 31.7,
+      "open": 50.1
+    }
+  },
+  "closedAgain": {
+    "ok": true,
+    "closed": true
+  }
+}

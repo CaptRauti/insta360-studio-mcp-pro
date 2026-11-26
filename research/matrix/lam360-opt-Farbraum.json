@@ -1,0 +1,29 @@
+{
+  "control": "Farbraum",
+  "value": "Rec.709 8bit",
+  "click": {
+    "x": 657,
+    "y": 646
+  },
+  "options": [
+    "Rec.709 8bit",
+    "Rec.709 IObit"
+  ],
+  "listBox": {
+    "ok": true,
+    "box": {
+      "x": 568,
+      "y": 640,
+      "w": 336,
+      "h": 88
+    },
+    "brightness": {
+      "closed": 25.7,
+      "open": 51.6
+    }
+  },
+  "closedAgain": {
+    "ok": true,
+    "closed": true
+  }
+}

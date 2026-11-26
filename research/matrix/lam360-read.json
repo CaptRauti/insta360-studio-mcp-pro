@@ -1,0 +1,96 @@
+{
+  "window": {
+    "quiet": true,
+    "hwnd": 3477908,
+    "bottom": 1040,
+    "width": 1384,
+    "monitor": {
+      "handle": 630525767,
+      "left": 0,
+      "bottom": 1440,
+      "top": 0,
+      "right": 2560,
+      "primary": true
+    },
+    "ok": true,
+    "height": 900,
+    "foreground": false,
+    "top": 140,
+    "iconic": false,
+    "left": 160,
+    "right": 1544,
+    "cursor": {
+      "y": 954,
+      "x": 1280
+    }
+  },
+  "settings": {
+    "Dateiname": "LamspringeKlon.mp4",
+    "Pfad": "C:/Users/stefa/Desktop",
+    "Voreinstellung": "Quellauflösung übernehmen",
+    "Auflösung": "Benutzerdefiniert",
+    "Rahmen": "60fps",
+    "Bitrate": "Empfohlen",
+    "Kodierung": "h264",
+    "Farbraum": "Rec.709 8bit"
+  },
+  "controls": {
+    "Dateiname": {
+      "value": "LamspringeKlon.mp4",
+      "click": {
+        "x": 657,
+        "y": 179
+      }
+    },
+    "Pfad": {
+      "value": "C:/Users/stefa/Desktop",
+      "click": {
+        "x": 656,
+        "y": 225
+      }
+    },
+    "Voreinstellung": {
+      "value": "Quellauflösung übernehmen",
+      "click": {
+        "x": 656,
+        "y": 345
+      }
+    },
+    "Auflösung": {
+      "value": "Benutzerdefiniert",
+      "click": {
+        "x": 657,
+        "y": 391
+      }
+    },
+    "Rahmen": {
+      "value": "60fps",
+      "click": {
+        "x": 1205,
+        "y": 276
+      }
+    },
+    "Bitrate": {
+      "value": "Empfohlen",
+      "click": {
+        "x": 657,
+        "y": 529
+      }
+    },
+    "Kodierung": {
+      "value": "h264",
+      "click": {
+        "x": 657,
+        "y": 600
+      }
+    },
+    "Farbraum": {
+      "value": "Rec.709 8bit",
+      "click": {
+        "x": 657,
+        "y": 646
+      }
+    }
+  },
+  "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795719444070.png"
+}

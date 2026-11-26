@@ -1,0 +1,29 @@
+{
+  "ok": true,
+  "editor": true,
+  "clicked": {
+    "x": 758,
+    "y": 376
+  },
+  "offset": 21,
+  "style": "message",
+  "verifiedBy": "project name on screen",
+  "text": "Insta360 Menü v Abgespieltes Projekt Medien Musik Projektbibliothek Meine Proj._ Lamspring„. Medienbibliothek Lokale Medi... Kameramed.„ Cloud-Medien Text Sticker + Importieren VID 049 mp4 VID 051.mp4 VID 053 mp4 Effekte Übergän___ Filter Projekt-Info Name Pfad Verhältnis Rahmen Exporti. LamspringeKlon D•JDokumente/1nsta360/St udio/MCP_Tests/Lamspring eKlon 2:1 (3600-Panorama) Bearbeiten alo Proje",
+  "registered": true,
+  "restarted": true,
+  "repairedPath": true,
+  "name": "LamspringeKlon",
+  "project": "D:\\Dokumente\\Insta360\\Studio\\MCP_Tests\\LamspringeKlon\\69304BB5-94A2-4713-A033-9B8C85FD3849.insproj",
+  "registration": {
+    "ok": true,
+    "count": 6,
+    "projects": [
+      "StefanTest",
+      "mcpalb",
+      "mcpFlat",
+      "Lamspringe",
+      "mcpKey",
+      "LamspringeKlon"
+    ]
+  }
+}

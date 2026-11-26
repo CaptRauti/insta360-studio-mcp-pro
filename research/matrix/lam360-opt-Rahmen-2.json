@@ -1,0 +1,12 @@
+{
+  "control": "Rahmen",
+  "value": "60fps",
+  "click": {
+    "x": 1205,
+    "y": 276
+  },
+  "listBox": {
+    "ok": false,
+    "error": "list box for \"Rahmen\" did not open in 4 clicks"
+  }
+}

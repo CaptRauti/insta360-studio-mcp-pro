@@ -1,0 +1,377 @@
+{
+ "started": {
+  "Dateiname": "LamspringeKlon.mp4",
+  "Pfad": "C:/Users/stefa/Desktop",
+  "Exportmodus": "Einzelnes Segment",
+  "Voreinstellung": "Benutzerdefiniert @",
+  "Auflösung": "4K -4320 x 2160",
+  "Rahmen": "Die Bildrate des Projekts anpassen",
+  "Bitrate": "Benutzerdefiniert",
+  "Kodierung": "h264",
+  "Farbraum": "Rec.709 8bit"
+ },
+ "effects": [
+  {
+   "control": "Kodierung",
+   "ok": true,
+   "before": "h264",
+   "options": [
+    {
+     "option": "H.264",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h264",
+      "Farbraum": "Rec.709 8bit"
+     },
+     "readError": null
+    },
+    {
+     "option": "H.265",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 8bit"
+     },
+     "readError": null
+    },
+    {
+     "option": "ProRes 422",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mov",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Kodierung": "ProRes",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    },
+    {
+     "option": "ProRes 422LT",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mov",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Kodierung": "ProRes",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    }
+   ]
+  },
+  {
+   "control": "Farbraum",
+   "ok": true,
+   "before": "Rec.709 IObit",
+   "options": [
+    {
+     "option": "Rec.709 8bit",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 8bit"
+     },
+     "readError": null
+    },
+    {
+     "option": "Rec.709 IObit",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    }
+   ]
+  },
+  {
+   "control": "Bitrate",
+   "ok": true,
+   "before": "Benutzerdefiniert",
+   "options": [
+    {
+     "option": "Empfohlen",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Empfohlen",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    },
+    {
+     "option": "Benutzerdefiniert",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    }
+   ]
+  },
+  {
+   "control": "Rahmen",
+   "ok": true,
+   "before": "Die Bildrate des Projekts anpassen",
+   "options": [
+    {
+     "option": "Die Bildrate des Projekts anpassen - 6000",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    },
+    {
+     "option": "24.00",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    },
+    {
+     "option": "25.00",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    },
+    {
+     "option": "29.97",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    },
+    {
+     "option": "30.00",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    },
+    {
+     "option": "50.00",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    },
+    {
+     "option": "59.94",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    }
+   ]
+  },
+  {
+   "control": "Auflösung",
+   "ok": true,
+   "before": "4K -4320 x 2160",
+   "options": [
+    {
+     "option": "— x 2160",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    },
+    {
+     "option": "5.7K - 5760 x 2880",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "5.7K - 5760 x 2880",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    },
+    {
+     "option": "8K - 7680 x 3840",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "8K - 7680 x 3840",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    },
+    {
+     "option": "Benutzerdefiniert",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "Benutzerdefiniert",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 IObit"
+     },
+     "readError": null
+    }
+   ]
+  }
+ ],
+ "recoveries": [],
+ "restored": {
+  "Dateiname": "LamspringeKlon.mp4",
+  "Pfad": "C:/Users/stefa/Desktop",
+  "Exportmodus": "Einzelnes Segment",
+  "Voreinstellung": "Quellauflösung übernehmen",
+  "Auflösung": "Benutzerdefiniert",
+  "Rahmen": "Die Bildrate des Projekts anpassen",
+  "Bitrate": "Benutzerdefiniert",
+  "Kodierung": "h264",
+  "Farbraum": "Rec.709 8bit"
+ },
+ "restoreOk": {
+  "mode": true,
+  "preset": true
+ }
+}

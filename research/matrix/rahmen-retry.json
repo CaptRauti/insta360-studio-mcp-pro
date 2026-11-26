@@ -1,0 +1,190 @@
+{
+ "started": {
+  "Dateiname": "LamspringeKlon.mp4",
+  "Pfad": "C:/Users/stefa/Desktop",
+  "Exportmodus": "Einzelnes Segment",
+  "Voreinstellung": "Quellauflösung übernehmen",
+  "Auflösung": "Benutzerdefiniert",
+  "Rahmen": "Die Bildrate des Projekts anpassen",
+  "Bitrate": "Benutzerdefiniert",
+  "Kodierung": "h264",
+  "Farbraum": "Rec.709 8bit"
+ },
+ "attempts": [
+  {
+   "want": "Die Bildrate des Projekts anpassen",
+   "ok": true,
+   "tries": [
+    {
+     "tried": "Die Bildrate des Projekts anpassen",
+     "ok": true,
+     "err": null,
+     "after": {
+      "rahmen": "Die Bildrate des Projekts anpassen",
+      "auflösung": "Benutzerdefiniert",
+      "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795724977667.png",
+      "words": []
+     }
+    }
+   ]
+  },
+  {
+   "want": "24.00",
+   "ok": true,
+   "tries": [
+    {
+     "tried": "24.00",
+     "ok": true,
+     "err": null,
+     "after": {
+      "auflösung": "Benutzerdefiniert",
+      "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795725014110.png",
+      "words": []
+     }
+    }
+   ]
+  },
+  {
+   "want": "25.00",
+   "ok": false,
+   "tries": [
+    {
+     "tried": "25.00",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "auflösung": "Benutzerdefiniert",
+      "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795725039317.png",
+      "words": []
+     }
+    },
+    {
+     "tried": "25.00",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "auflösung": "Benutzerdefiniert",
+      "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795725063467.png",
+      "words": []
+     }
+    }
+   ]
+  },
+  {
+   "want": "29.97",
+   "ok": false,
+   "tries": [
+    {
+     "tried": "29.97",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "auflösung": "Benutzerdefiniert",
+      "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795725100743.png",
+      "words": []
+     }
+    },
+    {
+     "tried": "29.97",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "auflösung": "Benutzerdefiniert",
+      "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795725125320.png",
+      "words": []
+     }
+    }
+   ]
+  },
+  {
+   "want": "30.00",
+   "ok": false,
+   "tries": [
+    {
+     "tried": "30.00",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "auflösung": "Benutzerdefiniert",
+      "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795725160636.png",
+      "words": []
+     }
+    },
+    {
+     "tried": "30.00",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "auflösung": "Benutzerdefiniert",
+      "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795725184288.png",
+      "words": []
+     }
+    }
+   ]
+  },
+  {
+   "want": "50.00",
+   "ok": false,
+   "tries": [
+    {
+     "tried": "50.00",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "auflösung": "Benutzerdefiniert",
+      "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795725221098.png",
+      "words": []
+     }
+    },
+    {
+     "tried": "50.00",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "auflösung": "Benutzerdefiniert",
+      "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795725246613.png",
+      "words": []
+     }
+    }
+   ]
+  },
+  {
+   "want": "59.94",
+   "ok": false,
+   "tries": [
+    {
+     "tried": "59.94",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "auflösung": "Benutzerdefiniert",
+      "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795725285114.png",
+      "words": []
+     }
+    },
+    {
+     "tried": "59.94",
+     "ok": false,
+     "err": "control \"Rahmen\" not found",
+     "after": {
+      "auflösung": "Benutzerdefiniert",
+      "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795725308266.png",
+      "words": []
+     }
+    }
+   ]
+  }
+ ],
+ "restored": {
+  "Dateiname": "LamspringeKlon.mp4",
+  "Pfad": "C:/Users/stefa/Desktop",
+  "Exportmodus": "Einzelnes Segment",
+  "Voreinstellung": "Quellauflösung übernehmen",
+  "Auflösung": "Benutzerdefiniert",
+  "Rahmen": "Die Bildrate des Projekts anpassen",
+  "Bitrate": "Benutzerdefiniert",
+  "Kodierung": "h264",
+  "Farbraum": "Rec.709 8bit"
+ },
+ "resetOk": true
+}

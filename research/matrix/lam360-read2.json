@@ -1,0 +1,104 @@
+{
+  "window": {
+    "quiet": true,
+    "hwnd": 3477908,
+    "bottom": 1040,
+    "width": 1384,
+    "monitor": {
+      "handle": 630525767,
+      "left": 0,
+      "bottom": 1440,
+      "top": 0,
+      "right": 2560,
+      "primary": true
+    },
+    "ok": true,
+    "height": 900,
+    "foreground": false,
+    "top": 140,
+    "iconic": false,
+    "left": 160,
+    "right": 1544,
+    "cursor": {
+      "y": 954,
+      "x": 1280
+    }
+  },
+  "settings": {
+    "Dateiname": "LamspringeKlon.mp4",
+    "Pfad": "C:/Users/stefa/Desktop",
+    "Exportmodus": "Einzelnes Segment",
+    "Voreinstellung": "Pico-Pano @",
+    "Auflösung": "Benutzerdefiniert",
+    "Rahmen": "Die Bildrate des Projekts anpassen",
+    "Bitrate": "Benutzerdefiniert",
+    "Kodierung": "h265",
+    "Farbraum": "Rec.709 IObit"
+  },
+  "controls": {
+    "Dateiname": {
+      "value": "LamspringeKlon.mp4",
+      "click": {
+        "x": 657,
+        "y": 179
+      }
+    },
+    "Pfad": {
+      "value": "C:/Users/stefa/Desktop",
+      "click": {
+        "x": 656,
+        "y": 225
+      }
+    },
+    "Exportmodus": {
+      "value": "Einzelnes Segment",
+      "click": {
+        "x": 657,
+        "y": 271
+      }
+    },
+    "Voreinstellung": {
+      "value": "Pico-Pano @",
+      "click": {
+        "x": 657,
+        "y": 345
+      }
+    },
+    "Auflösung": {
+      "value": "Benutzerdefiniert",
+      "click": {
+        "x": 657,
+        "y": 391
+      }
+    },
+    "Rahmen": {
+      "value": "Die Bildrate des Projekts anpassen",
+      "click": {
+        "x": 657,
+        "y": 483
+      }
+    },
+    "Bitrate": {
+      "value": "Benutzerdefiniert",
+      "click": {
+        "x": 657,
+        "y": 529
+      }
+    },
+    "Kodierung": {
+      "value": "h265",
+      "click": {
+        "x": 657,
+        "y": 630
+      }
+    },
+    "Farbraum": {
+      "value": "Rec.709 IObit",
+      "click": {
+        "x": 657,
+        "y": 676
+      }
+    }
+  },
+  "screenshot": "C:\\Users\\stefa\\AppData\\Local\\Temp\\insta360-studio-mcp\\studio-1795720004620.png"
+}

@@ -1,0 +1,29 @@
+{
+  "control": "Bitrate",
+  "value": "Empfohlen",
+  "click": {
+    "x": 657,
+    "y": 529
+  },
+  "options": [
+    "V Empfohlen",
+    "Benutzerdefiniert"
+  ],
+  "listBox": {
+    "ok": true,
+    "box": {
+      "x": 566,
+      "y": 523,
+      "w": 340,
+      "h": 105
+    },
+    "brightness": {
+      "closed": 28.4,
+      "open": 50.5
+    }
+  },
+  "closedAgain": {
+    "ok": true,
+    "closed": true
+  }
+}

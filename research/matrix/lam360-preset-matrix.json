@@ -1,0 +1,113 @@
+[
+ {
+  "preset": "Quellauflösung übernehmen",
+  "ok": false,
+  "error": "no option matching \"Quellauflösung übernehmen\"",
+  "readback": {
+   "Dateiname": "LamspringeKlon.mp4",
+   "Pfad": "C:/Users/stefa/Desktop",
+   "Exportmodus": "Einzelnes Segment",
+   "Voreinstellung": "Pico-Pano @",
+   "Auflösung": "Quellauflösung überneh.„",
+   "Rahmen": "TikTok-Pano",
+   "Bitrate": "Apple VisionPro-Pano",
+   "Farbraum": "Rec.709 IObit"
+  }
+ },
+ {
+  "preset": "Youtube-Pano",
+  "ok": true,
+  "error": null,
+  "readback": {
+   "Dateiname": "LamspringeKlon.mp4",
+   "Pfad": "C:/Users/stefa/Desktop",
+   "Exportmodus": "Einzelnes Segment",
+   "Voreinstellung": "Youtube-Pano @",
+   "Auflösung": "Benutzerdefiniert",
+   "Rahmen": "Die Bildrate des Projekts anpassen",
+   "Bitrate": "Benutzerdefiniert",
+   "Kodierung": "h265",
+   "Farbraum": "Rec.709 IObit"
+  }
+ },
+ {
+  "preset": "TikTok-Pano",
+  "ok": true,
+  "error": null,
+  "readback": {
+   "Dateiname": "LamspringeKlon.mp4",
+   "Pfad": "C:/Users/stefa/Desktop",
+   "Exportmodus": "Einzelnes Segment",
+   "Voreinstellung": "TikTok-Pano @",
+   "Auflösung": "Benutzerdefiniert",
+   "Rahmen": "60fps",
+   "Bitrate": "Benutzerdefiniert",
+   "Kodierung": "h265",
+   "Farbraum": "Rec.709 IObit"
+  }
+ },
+ {
+  "preset": "Apple VisionPro-Pano",
+  "ok": true,
+  "error": null,
+  "readback": {
+   "Dateiname": "LamspringeKlon.mp4",
+   "Pfad": "C:/Users/stefa/Desktop",
+   "Exportmodus": "Einzelnes Segment",
+   "Voreinstellung": "Apple VisionPro-Pano @",
+   "Auflösung": "Benutzerdefiniert",
+   "Rahmen": "Die Bildrate des Projekts anpassen",
+   "Bitrate": "Benutzerdefiniert",
+   "Kodierung": "h265",
+   "Farbraum": "Rec.709 IObit"
+  }
+ },
+ {
+  "preset": "Meta Quest-Pano",
+  "ok": true,
+  "error": null,
+  "readback": {
+   "Dateiname": "LamspringeKlon.mp4",
+   "Pfad": "C:/Users/stefa/Desktop",
+   "Exportmodus": "Einzelnes Segment",
+   "Voreinstellung": "Meta Quest-Pano @",
+   "Auflösung": "Benutzerdefiniert",
+   "Rahmen": "Die Bildrate des Projekts anpassen",
+   "Bitrate": "Benutzerdefiniert",
+   "Kodierung": "h265",
+   "Farbraum": "Rec.709 IObit"
+  }
+ },
+ {
+  "preset": "Pico-Pano",
+  "ok": true,
+  "error": null,
+  "readback": {
+   "Dateiname": "LamspringeKlon.mp4",
+   "Pfad": "C:/Users/stefa/Desktop",
+   "Exportmodus": "Einzelnes Segment",
+   "Voreinstellung": "Pico-Pano @",
+   "Auflösung": "Benutzerdefiniert",
+   "Rahmen": "Die Bildrate des Projekts anpassen",
+   "Bitrate": "Benutzerdefiniert",
+   "Kodierung": "h265",
+   "Farbraum": "Rec.709 IObit"
+  }
+ },
+ {
+  "preset": "Benutzerdefiniert",
+  "ok": true,
+  "error": null,
+  "readback": {
+   "Dateiname": "LamspringeKlon.mp4",
+   "Pfad": "C:/Users/stefa/Desktop",
+   "Exportmodus": "Einzelnes Segment",
+   "Voreinstellung": "Benutzerdefiniert @",
+   "Auflösung": "4K -4320 x 2160",
+   "Rahmen": "Die Bildrate des Projekts anpassen",
+   "Bitrate": "Benutzerdefiniert",
+   "Kodierung": "h264",
+   "Farbraum": "Rec.709 8bit"
+  }
+ }
+]

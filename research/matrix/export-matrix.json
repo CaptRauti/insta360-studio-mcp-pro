@@ -1,0 +1,335 @@
+{
+ "collected_at": "2026-11-26T19:45:04.962Z",
+ "project": "LamspringeKlon (2:1 3600 Panorama, 60fps)",
+ "inventory": {
+  "Auflösung": {
+   "value_when_measured": "Benutzerdefiniert",
+   "click": {
+    "x": 657,
+    "y": 391
+   },
+   "options": [
+    "4K - 4320 x 2160",
+    "5.7K - 5760 x 2880",
+    "8K - 7680 x 3840",
+    "Benutzerdefiniert"
+   ],
+   "listbox": {
+    "x": 566,
+    "y": 385,
+    "w": 340,
+    "h": 178
+   }
+  },
+  "Rahmen": {
+   "value_when_measured": "Die Bildrate des Projekts anpassen",
+   "click": {
+    "x": 657,
+    "y": 483
+   },
+   "options": [
+    "Die Bildrate des Projekts anpassen - 6000",
+    "24.00",
+    "25.00",
+    "29.97",
+    "30.00",
+    "50.00",
+    "59.94"
+   ],
+   "listbox": {
+    "x": 566,
+    "y": 477,
+    "w": 340,
+    "h": 294
+   }
+  },
+  "Bitrate": {
+   "value_when_measured": "Empfohlen",
+   "click": {
+    "x": 657,
+    "y": 529
+   },
+   "options": [
+    "V Empfohlen",
+    "Benutzerdefiniert"
+   ],
+   "listbox": {
+    "x": 566,
+    "y": 523,
+    "w": 340,
+    "h": 105
+   }
+  },
+  "Kodierung": {
+   "value_when_measured": "h264",
+   "click": {
+    "x": 657,
+    "y": 600
+   },
+   "options": [
+    "H.264",
+    "H.265",
+    "ProRes 422",
+    "ProRes 422LT"
+   ],
+   "listbox": {
+    "x": 566,
+    "y": 594,
+    "w": 340,
+    "h": 178
+   }
+  },
+  "Farbraum": {
+   "value_when_measured": "Rec.709 8bit",
+   "click": {
+    "x": 657,
+    "y": 646
+   },
+   "options": [
+    "Rec.709 8bit",
+    "Rec.709 IObit"
+   ],
+   "listbox": {
+    "x": 568,
+    "y": 640,
+    "w": 336,
+    "h": 88
+   }
+  }
+ },
+ "presets": [
+  {
+   "preset": "Quellauflösung übernehmen",
+   "selected": false,
+   "error": "no option matching \"Quellauflösung übernehmen\"",
+   "forces": null,
+   "unmeasured_reason": "no option matching \"Quellauflösung übernehmen\""
+  },
+  {
+   "preset": "Youtube-Pano",
+   "selected": true,
+   "error": null,
+   "forces": {
+    "Kodierung": "h265",
+    "Farbraum": "Rec.709 IObit",
+    "Rahmen": "Die Bildrate des Projekts anpassen",
+    "Auflösung": "Benutzerdefiniert"
+   },
+   "unmeasured_reason": null
+  },
+  {
+   "preset": "TikTok-Pano",
+   "selected": true,
+   "error": null,
+   "forces": {
+    "Kodierung": "h265",
+    "Farbraum": "Rec.709 IObit",
+    "Rahmen": "60fps",
+    "Auflösung": "Benutzerdefiniert"
+   },
+   "unmeasured_reason": null
+  },
+  {
+   "preset": "Apple VisionPro-Pano",
+   "selected": true,
+   "error": null,
+   "forces": {
+    "Kodierung": "h265",
+    "Farbraum": "Rec.709 IObit",
+    "Rahmen": "Die Bildrate des Projekts anpassen",
+    "Auflösung": "Benutzerdefiniert"
+   },
+   "unmeasured_reason": null
+  },
+  {
+   "preset": "Meta Quest-Pano",
+   "selected": true,
+   "error": null,
+   "forces": {
+    "Kodierung": "h265",
+    "Farbraum": "Rec.709 IObit",
+    "Rahmen": "Die Bildrate des Projekts anpassen",
+    "Auflösung": "Benutzerdefiniert"
+   },
+   "unmeasured_reason": null
+  },
+  {
+   "preset": "Pico-Pano",
+   "selected": true,
+   "error": null,
+   "forces": {
+    "Kodierung": "h265",
+    "Farbraum": "Rec.709 IObit",
+    "Rahmen": "Die Bildrate des Projekts anpassen",
+    "Auflösung": "Benutzerdefiniert"
+   },
+   "unmeasured_reason": null
+  },
+  {
+   "preset": "Benutzerdefiniert",
+   "selected": true,
+   "error": null,
+   "forces": {
+    "Kodierung": "h264",
+    "Farbraum": "Rec.709 8bit",
+    "Rahmen": "Die Bildrate des Projekts anpassen",
+    "Auflösung": "4K -4320 x 2160"
+   },
+   "unmeasured_reason": null
+  }
+ ],
+ "option_effects": [
+  {
+   "control": "Exportmodus",
+   "ok": true,
+   "before": "Einzelnes Segment",
+   "options": [
+    {
+     "option": "s/ Einzelnes Segment",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon.mp4",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Einzelnes Segment",
+      "Voreinstellung": "Quellauflösung übernehmen",
+      "Auflösung": "Benutzerdefiniert",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h264",
+      "Farbraum": "Rec.709 8bit"
+     },
+     "readError": null
+    },
+    {
+     "option": "Mehrere Segmente",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Mehrere Segmente",
+      "Voreinstellung": "Quellauflösung übernehmen",
+      "Auflösung": "Benutzerdefiniert",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h264",
+      "Farbraum": "Rec.709 8bit"
+     },
+     "readError": null
+    }
+   ]
+  },
+  {
+   "control": "Auflösung",
+   "ok": true,
+   "before": "Benutzerdefiniert",
+   "options": [
+    {
+     "option": "4K - 4320 x 2160",
+     "ok": true,
+     "err": null,
+     "after": {
+      "Dateiname": "LamspringeKlon",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Mehrere Segmente",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h264",
+      "Farbraum": "Rec.709 8bit"
+     },
+     "readError": null
+    },
+    {
+     "option": "5.7K - 5760 x 2880",
+     "ok": false,
+     "err": "list box for \"Auflösung\" did not open in 4 clicks",
+     "after": {
+      "Dateiname": "LamspringeKlon",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Mehrere Segmente",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h264",
+      "Farbraum": "Rec.709 8bit"
+     },
+     "readError": null
+    },
+    {
+     "option": "8K - 7680 x 3840",
+     "ok": false,
+     "err": "list box for \"Auflösung\" did not open in 4 clicks",
+     "after": {
+      "Dateiname": "LamspringeKlon",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Mehrere Segmente",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h264",
+      "Farbraum": "Rec.709 8bit"
+     },
+     "readError": null
+    },
+    {
+     "option": "Benutzerdefiniert",
+     "ok": false,
+     "err": "list box for \"Auflösung\" did not open in 4 clicks",
+     "after": {
+      "Dateiname": "LamspringeKlon",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Exportmodus": "Mehrere Segmente",
+      "Voreinstellung": "Benutzerdefiniert @",
+      "Auflösung": "4K -4320 x 2160",
+      "Rahmen": "Die Bildrate des Projekts anpassen",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h264",
+      "Farbraum": "Rec.709 8bit"
+     },
+     "readError": null
+    }
+   ]
+  },
+  {
+   "control": "Rahmen",
+   "options": [],
+   "ok": false,
+   "error": "list box for \"Rahmen\" did not open in 4 clicks"
+  },
+  {
+   "control": "Bitrate",
+   "options": [],
+   "ok": false,
+   "error": "list box for \"Bitrate\" did not open in 4 clicks"
+  },
+  {
+   "control": "Kodierung",
+   "options": [],
+   "ok": false,
+   "error": "list box for \"Kodierung\" did not open in 4 clicks"
+  },
+  {
+   "control": "Farbraum",
+   "options": [],
+   "ok": false,
+   "error": "list box for \"Farbraum\" did not open in 4 clicks"
+  }
+ ],
+ "ocr_traps": {
+  "Rec.709 IObit": "Rec.709 10bit",
+  "Die Bildrate des Projekts anpassen - 6000": "… - 60.00",
+  "V Empfohlen": "✓ Empfohlen (tick glyph read as V)",
+  "Exportmod": "Exportmodus (label truncated by the column width)"
+ },
+ "residual": [
+  "Auflösung 5.7K / 8K: option list measured, effect not — the panel stopped accepting input after the 4K selection (see notes/*)",
+  "Rahmen individual values (24/25/29.97/30/50/59.94): list measured, per-value effect not",
+  "Bitrate 'Empfohlen' vs 'Benutzerdefiniert': list measured; the custom Mb/s field was not read",
+  "Kodierung H.265 / ProRes: list measured, effect on Farbraum/Bitrate not"
+ ]
+}

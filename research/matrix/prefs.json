@@ -1,0 +1,150 @@
+{
+  "file": "C:\\Users\\stefa\\AppData\\Local\\Insta360\\Insta360 Studio\\startup.ini",
+  "exists": true,
+  "sections": {
+    "General": {
+      "version": "6.0.9"
+    },
+    "ui": {
+      "first_run": "false",
+      "first_frame_guide": "true",
+      "theme": "0",
+      "translation_version": "1795491973000",
+      "onboarding_shown": "true",
+      "first_use_cloud": "false",
+      "window_geometry_state": "eyJ3aW5kb3dzIjpbeyJoZWlnaHQiOjkwMCwicGFnZSI6MCwidmlzaWJpbGl0eSI6Miwid2lkdGgiOjEzODQsIngiOjM1MTcsInkiOjE2MH0seyJoZWlnaHQiOjkwMCwicGFnZSI6MSwidmlzaWJpbGl0eSI6Miwid2lkdGgiOjEzODQsIngiOjE2MCwieSI6MTQwfV19",
+      "survey_url": "https://insta360survey.insta360.com/vm/PzzxG8Y.aspx",
+      "guide_tour_shown": "true",
+      "project_export_showed": "true",
+      "pano_project_tutorial_showed": "true"
+    },
+    "preference": {
+      "default_preview_definition": "1",
+      "lang": "de",
+      "footage_project_location": "D:/Dokumente/Insta360/Studio/FootageProject",
+      "last_visit_dir": "D:/Videos/Lamspringe26",
+      "export_location": "C:/Users/stefa/Desktop",
+      "workspace_location": "D:/Dokumente/Insta360/Studio/TimelineProject",
+      "enable_footage_cover": "true",
+      "enable_timeline_thumbnail": "true",
+      "install_quicklook": "true",
+      "last_startup_home_tab": "0",
+      "project_location": "D:/Dokumente/Insta360/Studio/Project",
+      "speed_up_deep_track_enabled": "false",
+      "sort_footage_type": "264",
+      "guide_line_state": "2"
+    },
+    "codec": {
+      "preview_definition": "1",
+      "hardware_decoding_preview": "true",
+      "hardware_decoding_export": "true",
+      "hardware_encoding_export": "true",
+      "hardware_encoding_h265_export": "true",
+      "is_amd_graphics_card": "false",
+      "hardaware_model": "NVIDIA GeForce RTX 3070 Laptop GPU/PCIe/SSE2",
+      "cuda_accel": "true",
+      "apply_hardware_detection": "true"
+    },
+    "dashboard": {
+      "garmin_china_pro": "false",
+      "garmin_global_pro": "false"
+    },
+    "colors": {
+      "0": "#FFFFFF",
+      "1": "#F4F5F6",
+      "2": "#DFE0E1",
+      "3": "#9D9E9F",
+      "4": "#606162",
+      "5": "#202122",
+      "6": "#D2EFFE",
+      "7": "#A5E1FA",
+      "8": "#7BD5F9",
+      "9": "#5FC6F8",
+      "10": "#4A9FD3",
+      "11": "#316E8C",
+      "12": "#D3E3FC",
+      "13": "#ADC7FB",
+      "14": "#7FA8F9",
+      "15": "#5287F6",
+      "16": "#2B63F5",
+      "17": "#2557CF",
+      "18": "#D4CBFB",
+      "19": "#AA8FF7",
+      "20": "#7D55F5",
+      "21": "#5639E3",
+      "22": "#452AAC",
+      "23": "#32208F",
+      "24": "#E6CDFC",
+      "25": "#D498F9",
+      "26": "#C163F7",
+      "27": "#AD48ED",
+      "28": "#8937B7",
+      "29": "#57217A",
+      "30": "#E5A8BF",
+      "31": "#DA789E",
+      "32": "#D14C7B",
+      "33": "#A63B5E",
+      "34": "#8C2446",
+      "35": "#6B243D",
+      "36": "#F1B9B2",
+      "37": "#EC9385",
+      "38": "#E76D59",
+      "39": "#FF381D",
+      "40": "#D6331D",
+      "41": "#A22C17",
+      "42": "#F1C8B3",
+      "43": "#EEAA85",
+      "44": "#EA8D57",
+      "45": "#DF6528",
+      "46": "#A94E21",
+      "47": "#903E17",
+      "48": "#F6DBAF",
+      "49": "#EFB758",
+      "50": "#F0AE3D",
+      "51": "#C4872E",
+      "52": "#A16307",
+      "53": "#704C17",
+      "54": "#FCFCC0",
+      "55": "#FCF781",
+      "56": "#FCFA65",
+      "57": "#FFEE00",
+      "58": "#CEC001",
+      "59": "#64611C",
+      "60": "#D2E7BB",
+      "61": "#BADB94",
+      "62": "#A3D16E",
+      "63": "#ADE338",
+      "64": "#85B422",
+      "65": "#3F5723"
+    },
+    "cloud_service": {
+      "show_cloud_tab": "true"
+    },
+    "onboarding": {
+      "seen_feature_hashes": "fe4fa4f1652cc3b007d30346ec828170"
+    },
+    "updater": {
+      "auto_download_reported": "true"
+    },
+    "host": {
+      "current_area": "OverSea",
+      "HOST_OPENAPI_INSTA360": "openapi-g.insta360.com"
+    }
+  },
+  "ageSeconds": 404,
+  "sectionMissing": false,
+  "studio": {
+    "running": true,
+    "image": "Insta360 Studio.exe",
+    "pids": [
+      67168
+    ]
+  },
+  "knownLocationKeys": [
+    "workspace_location",
+    "footage_project_location",
+    "project_location",
+    "export_location",
+    "last_visit_dir"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "control": "Kodierung",
+  "value": "h264",
+  "click": {
+    "x": 657,
+    "y": 600
+  },
+  "options": [
+    "H.264",
+    "H.265",
+    "ProRes 422",
+    "ProRes 422LT"
+  ],
+  "listBox": {
+    "ok": true,
+    "box": {
+      "x": 566,
+      "y": 594,
+      "w": 340,
+      "h": 178
+    },
+    "brightness": {
+      "closed": 32.1,
+      "open": 47.9
+    }
+  },
+  "closedAgain": {
+    "ok": true,
+    "closed": true
+  }
+}

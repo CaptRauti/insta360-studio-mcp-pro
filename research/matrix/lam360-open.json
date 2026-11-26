@@ -1,0 +1,41 @@
+{
+  "ok": true,
+  "stage": "dialog",
+  "dialogOpen": true,
+  "clicked": false,
+  "outDir": "C:\\Users\\stefa\\Desktop",
+  "outDirAsked": null,
+  "outDirSource": "dialog",
+  "outDirMismatch": false,
+  "settings": null,
+  "log": [
+    {
+      "step": "state",
+      "dialogOpen": false,
+      "player": {
+        "meanLuma": 48,
+        "stdDev": 55,
+        "edgeFraction": 0.14,
+        "likelyEmpty": false
+      }
+    },
+    {
+      "step": "click-toolbar",
+      "at": {
+        "x": 1222,
+        "y": 24
+      }
+    },
+    {
+      "step": "state",
+      "dialogOpen": true
+    },
+    {
+      "step": "outdir",
+      "dir": "C:\\Users\\stefa\\Desktop",
+      "source": "dialog",
+      "asked": null,
+      "mismatch": false
+    }
+  ]
+}

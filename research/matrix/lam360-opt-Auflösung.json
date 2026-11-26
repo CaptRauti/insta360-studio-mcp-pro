@@ -1,0 +1,31 @@
+{
+  "control": "Auflösung",
+  "value": "Benutzerdefiniert",
+  "click": {
+    "x": 657,
+    "y": 391
+  },
+  "options": [
+    "4K - 4320 x 2160",
+    "5.7K - 5760 x 2880",
+    "8K - 7680 x 3840",
+    "Benutzerdefiniert"
+  ],
+  "listBox": {
+    "ok": true,
+    "box": {
+      "x": 566,
+      "y": 385,
+      "w": 340,
+      "h": 178
+    },
+    "brightness": {
+      "closed": 31.9,
+      "open": 50.1
+    }
+  },
+  "closedAgain": {
+    "ok": true,
+    "closed": true
+  }
+}
