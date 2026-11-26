@@ -32,9 +32,15 @@ const FFMPEG = path.join(
 const FFPROBE = FFMPEG.replace(/ffmpeg\.exe$/, "ffprobe.exe");
 
 /** Labels in the dialog's left column; their values sit in the right one. */
+// The column is narrow, so the QML elides the longer labels and the OCR reports
+// them cut off ("Exportmod...", "Voreinstellu...", "Bitrate(Mb...", "Kodierungs...").
+// Matching therefore compares only the first eight characters, which every elided
+// form still carries. Measured on 6.0.9: skipping "Exportmodus" meant the tool
+// reported eight controls for a panel that has nine.
 export const CONTROLS = [
   "Dateiname",
   "Pfad",
+  "Exportmodus",
   "Voreinstellung",
   "Auflösung",
   "Rahmen",
@@ -153,25 +159,35 @@ const rowTolerance = (lab) => Math.max(13, Math.round((lab.h ?? 12) * 1.5));
 /** The label's row: the value cells sitting right of it on the same line. */
 export function rowFor(ocr, label) {
   const key = label.toLowerCase().slice(0, 8);
-  const lab = ocr.words.find((w) => w.text.toLowerCase().startsWith(key));
-  if (!lab) return null;
-  // Bound the right edge relative to the label: the OCR also reads unrelated
-  // text far right on the same line (x~1318 on the small layout, x~2506 on the
-  // large one), which would drag the cell's centre across the window and click
-  // into empty space.
-  const cells = ocr.words
-    .filter((w) => Math.abs(w.y - lab.y) <= rowTolerance(lab) && w.x > lab.x + lab.w && w.x < lab.x + VALUE_SPAN)
-    .sort((a, b) => a.x - b.x);
-  if (!cells.length) return null;
-  const x0 = cells[0].x;
-  return {
-    label,
-    y: lab.y,
-    // Click into the middle of the cell, not on its text: the boxes are wider
-    // than what they display and the arrow sits at the right end.
-    click: { x: Math.round(x0 + 82), y: lab.y + 8 },
-    value: cells.map((w) => w.text).join(" "),
-  };
+  // A label can be read **twice** in the same window: the dialog's left column
+  // and the project-info panel behind it. That panel has a "Rahmen" row of its
+  // own — the project's frame rate, `60fps`, so the *value* does not tell them
+  // apart either. Measured on 6.0.9 with a 360 project open: the panel's row sits
+  // at x~1205 while the dialog's controls are at x~656, and taking the first OCR
+  // match clicked 549 px into the panel, where nothing happens ("list box for
+  // Rahmen did not open in 4 clicks"). The dialog's own column is the leftmost
+  // candidate that actually has value cells beside it, so leftmost wins.
+  const labels = ocr.words.filter((w) => w.text.toLowerCase().startsWith(key)).sort((a, b) => a.x - b.x);
+  for (const lab of labels) {
+    // Bound the right edge relative to the label: the OCR also reads unrelated
+    // text far right on the same line (x~1318 on the small layout, x~2506 on the
+    // large one), which would drag the cell's centre across the window and click
+    // into empty space.
+    const cells = ocr.words
+      .filter((w) => Math.abs(w.y - lab.y) <= rowTolerance(lab) && w.x > lab.x + lab.w && w.x < lab.x + VALUE_SPAN)
+      .sort((a, b) => a.x - b.x);
+    if (!cells.length) continue; // e.g. a label whose row is elsewhere on screen
+    const x0 = cells[0].x;
+    return {
+      label,
+      y: lab.y,
+      // Click into the middle of the cell, not on its text: the boxes are wider
+      // than what they display and the arrow sits at the right end.
+      click: { x: Math.round(x0 + 82), y: lab.y + 8 },
+      value: cells.map((w) => w.text).join(" "),
+    };
+  }
+  return null;
 }
 
 /**
@@ -377,6 +393,7 @@ export async function openControl({ title = "Insta360 Studio", label, attempts =
           ok: true,
           label,
           current: row.value,
+          click: row.click,
           box,
           crop,
           factor,
@@ -470,8 +487,13 @@ export async function selectOption({ title = "Insta360 Studio", label, text } = 
   const opened = await openControl({ title, label });
   if (!opened.ok) return opened;
 
-  const hits = opened.rows.filter((r) => matches(r.text, text));
+  const hits = opened.rows.filter((r) => optionMatch(r.text, text));
   if (!hits.length) {
+    // Leave no box open behind us: a failed pick that stays open makes the *next*
+    // read report the list's rows as the dialog's values. A second click on the
+    // control toggles the popup shut.
+    click({ title, x: opened.click.x, y: opened.click.y });
+    await sleep(900);
     return { ok: false, error: `no option matching "${text}"`, options: opened.options };
   }
 
@@ -574,6 +596,34 @@ const normLoose = (s) => norm(s).replace(/[^a-z0-9]/g, "").replace(/[il]/g, "1")
 /** True when `text` contains `want`, exactly or tolerating those confusions. */
 export const matches = (text, want) =>
   norm(text).includes(norm(want)) || normLoose(text).includes(normLoose(want));
+
+/** Drop a trailing ellipsis, which is how the QML marks a truncated string. */
+const stripElision = (s) => norm(s).replace(/[\s.…·]+$/, "").trim();
+
+/**
+ * True when an option row and the requested text are the same string, allowing
+ * either side to be elided.
+ *
+ * Long options are truncated *inside the list box* too, not just in the label
+ * column: "Quellauflösung übernehmen" is drawn as "Quellauflösung überneh...".
+ * `matches` asks whether one string contains the other, which the truncated row
+ * never does in either direction — so the row was declared missing, no click was
+ * made, **and the box stayed open**, poisoning every read after it (the next
+ * read reported the open list's rows as the dialog's values: Rahmen read
+ * "TikTok-Pano"). Comparing the shared prefix instead of containment fixes the
+ * cause; the toggle-shut below fixes the blast radius.
+ */
+export function optionMatch(text, want) {
+  if (matches(text, want)) return true;
+  for (const key of [norm, normLoose]) {
+    const a = key(stripElision(text));
+    const b = key(stripElision(want));
+    if (!a || !b) continue;
+    const n = Math.min(a.length, b.length);
+    if (n >= 6 && a.slice(0, n) === b.slice(0, n)) return true;
+  }
+  return false;
+}
 
 /**
  * Set several dialog controls in one go, reading each field back to prove it took.
