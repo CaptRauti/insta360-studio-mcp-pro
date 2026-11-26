@@ -1,0 +1,577 @@
+{
+  "started": "2026-11-26T22:56:29.358Z",
+  "file": "C:\\Users\\stefa\\AppData\\Local\\Insta360\\Insta360 Studio\\nle\\video_export_preset_model.json",
+  "opening": {
+    "Dateiname": "VID 20260917 192757 OO O",
+    "Pfad": "C:/Users/stefa/Desktop",
+    "Voreinstellung": "Benutzerdefiniert",
+    "Auflösung": "Benutzerdefiniert",
+    "Rahmen": "25.00",
+    "Bitrate": "Benutzerdefiniert",
+    "Kodierung": "h265",
+    "Farbraum": "Rec.709 8bit"
+  },
+  "results": [
+    {
+      "control": "Kodierung",
+      "options": [
+        "H.264",
+        "H.265",
+        "ProRes 422",
+        "ProRes 422LT"
+      ],
+      "baseline": {
+        "current_presets": {
+          "1": "Custom",
+          "3": "Custom",
+          "4": "Custom"
+        },
+        "custom_presets": {
+          "0": {
+            "bitrate": 0,
+            "bitrateType": 0,
+            "colorSetting": 0,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 0,
+            "resolutionType": 0
+          },
+          "1": {
+            "bitrate": 88,
+            "bitrateType": 0,
+            "colorSetting": 2,
+            "encodeFormat": 1,
+            "fpsType": 3,
+            "resolutionShortSide": 1072,
+            "resolutionType": 0
+          },
+          "2": {
+            "bitrate": 0,
+            "bitrateType": 0,
+            "colorSetting": 0,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 0,
+            "resolutionType": 0
+          },
+          "3": {
+            "bitrate": 25,
+            "bitrateType": 1,
+            "colorSetting": 2,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 1080,
+            "resolutionType": 2
+          },
+          "4": {
+            "bitrate": 91,
+            "bitrateType": 0,
+            "colorSetting": 2,
+            "encodeFormat": 0,
+            "fpsType": 5,
+            "resolutionShortSide": 1920,
+            "resolutionType": 0
+          }
+        },
+        "user_presets": []
+      }
+    },
+    {
+      "control": "Kodierung",
+      "option": "H.264",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "h264",
+      "persisted": [
+        "custom_presets.1.encodeFormat: 1 -> 0"
+      ]
+    },
+    {
+      "control": "Kodierung",
+      "option": "H.265",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "h265",
+      "persisted": []
+    },
+    {
+      "control": "Kodierung",
+      "option": "ProRes 422",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "ProRes",
+      "persisted": [
+        "custom_presets.1.colorSetting: 2 -> 3",
+        "custom_presets.1.encodeFormat: 1 -> 2"
+      ]
+    },
+    {
+      "control": "Kodierung",
+      "option": "ProRes 422LT",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "ProRes 422LT",
+      "persisted": [
+        "custom_presets.1.colorSetting: 2 -> 3",
+        "custom_presets.1.encodeFormat: 1 -> 3"
+      ]
+    },
+    {
+      "control": "Farbraum",
+      "options": [
+        "Rec.709 8bit",
+        "Rec.709 IObit"
+      ],
+      "baseline": {
+        "current_presets": {
+          "1": "Custom",
+          "3": "Custom",
+          "4": "Custom"
+        },
+        "custom_presets": {
+          "0": {
+            "bitrate": 0,
+            "bitrateType": 0,
+            "colorSetting": 0,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 0,
+            "resolutionType": 0
+          },
+          "1": {
+            "bitrate": 88,
+            "bitrateType": 0,
+            "colorSetting": 3,
+            "encodeFormat": 3,
+            "fpsType": 3,
+            "resolutionShortSide": 1072,
+            "resolutionType": 0
+          },
+          "2": {
+            "bitrate": 0,
+            "bitrateType": 0,
+            "colorSetting": 0,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 0,
+            "resolutionType": 0
+          },
+          "3": {
+            "bitrate": 25,
+            "bitrateType": 1,
+            "colorSetting": 2,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 1080,
+            "resolutionType": 2
+          },
+          "4": {
+            "bitrate": 91,
+            "bitrateType": 0,
+            "colorSetting": 2,
+            "encodeFormat": 0,
+            "fpsType": 5,
+            "resolutionShortSide": 1920,
+            "resolutionType": 0
+          }
+        },
+        "user_presets": []
+      }
+    },
+    {
+      "control": "Farbraum",
+      "option": "Rec.709 8bit",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "Rec.709 8bit",
+      "persisted": [
+        "custom_presets.1.colorSetting: 3 -> 2",
+        "custom_presets.1.encodeFormat: 3 -> 1"
+      ]
+    },
+    {
+      "control": "Farbraum",
+      "option": "Rec.709 IObit",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "Rec.709 IObit",
+      "persisted": [
+        "custom_presets.1.encodeFormat: 3 -> 1"
+      ]
+    },
+    {
+      "control": "Bitrate",
+      "options": [
+        "Empfohlen",
+        "Original",
+        "Benutzerdefiniert"
+      ],
+      "baseline": {
+        "current_presets": {
+          "1": "Custom",
+          "3": "Custom",
+          "4": "Custom"
+        },
+        "custom_presets": {
+          "0": {
+            "bitrate": 0,
+            "bitrateType": 0,
+            "colorSetting": 0,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 0,
+            "resolutionType": 0
+          },
+          "1": {
+            "bitrate": 88,
+            "bitrateType": 0,
+            "colorSetting": 3,
+            "encodeFormat": 1,
+            "fpsType": 3,
+            "resolutionShortSide": 1072,
+            "resolutionType": 0
+          },
+          "2": {
+            "bitrate": 0,
+            "bitrateType": 0,
+            "colorSetting": 0,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 0,
+            "resolutionType": 0
+          },
+          "3": {
+            "bitrate": 25,
+            "bitrateType": 1,
+            "colorSetting": 2,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 1080,
+            "resolutionType": 2
+          },
+          "4": {
+            "bitrate": 91,
+            "bitrateType": 0,
+            "colorSetting": 2,
+            "encodeFormat": 0,
+            "fpsType": 5,
+            "resolutionShortSide": 1920,
+            "resolutionType": 0
+          }
+        },
+        "user_presets": []
+      }
+    },
+    {
+      "control": "Bitrate",
+      "option": "Empfohlen",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "Empfohlen",
+      "persisted": [
+        "custom_presets.1.bitrate: 88 -> 10",
+        "custom_presets.1.bitrateType: 0 -> 1"
+      ]
+    },
+    {
+      "control": "Bitrate",
+      "option": "Original",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "Original",
+      "persisted": [
+        "custom_presets.1.bitrate: 88 -> 179",
+        "custom_presets.1.bitrateType: 0 -> 2"
+      ]
+    },
+    {
+      "control": "Bitrate",
+      "option": "Benutzerdefiniert",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "Benutzerdefiniert",
+      "persisted": [
+        "custom_presets.1.bitrate: 88 -> 179"
+      ]
+    },
+    {
+      "control": "Rahmen",
+      "options": [
+        "Quellbild-Framerate übernehmen - 50.00",
+        "25.00",
+        "50.00"
+      ],
+      "baseline": {
+        "current_presets": {
+          "1": "Custom",
+          "3": "Custom",
+          "4": "Custom"
+        },
+        "custom_presets": {
+          "0": {
+            "bitrate": 0,
+            "bitrateType": 0,
+            "colorSetting": 0,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 0,
+            "resolutionType": 0
+          },
+          "1": {
+            "bitrate": 179,
+            "bitrateType": 0,
+            "colorSetting": 3,
+            "encodeFormat": 1,
+            "fpsType": 3,
+            "resolutionShortSide": 1072,
+            "resolutionType": 0
+          },
+          "2": {
+            "bitrate": 0,
+            "bitrateType": 0,
+            "colorSetting": 0,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 0,
+            "resolutionType": 0
+          },
+          "3": {
+            "bitrate": 25,
+            "bitrateType": 1,
+            "colorSetting": 2,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 1080,
+            "resolutionType": 2
+          },
+          "4": {
+            "bitrate": 91,
+            "bitrateType": 0,
+            "colorSetting": 2,
+            "encodeFormat": 0,
+            "fpsType": 5,
+            "resolutionShortSide": 1920,
+            "resolutionType": 0
+          }
+        },
+        "user_presets": []
+      }
+    },
+    {
+      "control": "Rahmen",
+      "option": "Quellbild-Framerate übernehmen - 50.00",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "Quellbild-Framerate übernehmen",
+      "persisted": [
+        "custom_presets.1.fpsType: 3 -> 0"
+      ]
+    },
+    {
+      "control": "Rahmen",
+      "option": "25.00",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "25.00",
+      "persisted": []
+    },
+    {
+      "control": "Rahmen",
+      "option": "50.00",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "50.00",
+      "persisted": [
+        "custom_presets.1.fpsType: 3 -> 7"
+      ]
+    },
+    {
+      "control": "Auflösung",
+      "options": [
+        "1080P - 1080 x 1920",
+        "2K - 1440 x 2560",
+        "4K - 2160 x 3840",
+        "Benutzerdefiniert"
+      ],
+      "baseline": {
+        "current_presets": {
+          "1": "Custom",
+          "3": "Custom",
+          "4": "Custom"
+        },
+        "custom_presets": {
+          "0": {
+            "bitrate": 0,
+            "bitrateType": 0,
+            "colorSetting": 0,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 0,
+            "resolutionType": 0
+          },
+          "1": {
+            "bitrate": 179,
+            "bitrateType": 0,
+            "colorSetting": 3,
+            "encodeFormat": 1,
+            "fpsType": 7,
+            "resolutionShortSide": 1072,
+            "resolutionType": 0
+          },
+          "2": {
+            "bitrate": 0,
+            "bitrateType": 0,
+            "colorSetting": 0,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 0,
+            "resolutionType": 0
+          },
+          "3": {
+            "bitrate": 25,
+            "bitrateType": 1,
+            "colorSetting": 2,
+            "encodeFormat": 0,
+            "fpsType": 0,
+            "resolutionShortSide": 1080,
+            "resolutionType": 2
+          },
+          "4": {
+            "bitrate": 91,
+            "bitrateType": 0,
+            "colorSetting": 2,
+            "encodeFormat": 0,
+            "fpsType": 5,
+            "resolutionShortSide": 1920,
+            "resolutionType": 0
+          }
+        },
+        "user_presets": []
+      }
+    },
+    {
+      "control": "Auflösung",
+      "option": "1080P - 1080 x 1920",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "1080P - 1080 x 1920",
+      "persisted": [
+        "custom_presets.1.resolutionShortSide: 1072 -> 1080",
+        "custom_presets.1.resolutionType: 0 -> 2"
+      ]
+    },
+    {
+      "control": "Auflösung",
+      "option": "2K - 1440 x 2560",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "2K - 1440 x 2560",
+      "persisted": [
+        "custom_presets.1.resolutionShortSide: 1072 -> 1440",
+        "custom_presets.1.resolutionType: 0 -> 3"
+      ]
+    },
+    {
+      "control": "Auflösung",
+      "option": "4K - 2160 x 3840",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "4K - 2160 x 3840",
+      "persisted": [
+        "custom_presets.1.resolutionShortSide: 1072 -> 2160",
+        "custom_presets.1.resolutionType: 0 -> 4"
+      ]
+    },
+    {
+      "control": "Auflösung",
+      "option": "Benutzerdefiniert",
+      "pickOk": true,
+      "pickError": null,
+      "pickChanged": true,
+      "readback": "Benutzerdefiniert",
+      "persisted": [
+        "custom_presets.1.resolutionShortSide: 1072 -> 2160"
+      ]
+    }
+  ],
+  "recoveries": [],
+  "restore": {
+    "want": {},
+    "got": {
+      "Dateiname": "VID 20260917 192757 OO O",
+      "Pfad": "C:/Users/stefa/Desktop",
+      "Voreinstellung": "Benutzerdefiniert",
+      "Auflösung": "Benutzerdefiniert",
+      "Rahmen": "25.00",
+      "Bitrate": "Benutzerdefiniert",
+      "Kodierung": "h265",
+      "Farbraum": "Rec.709 8bit"
+    },
+    "picks": [
+      {
+        "control": "Dateiname",
+        "value": "VID 20260917 192757 OO O",
+        "ok": true,
+        "error": null
+      },
+      {
+        "control": "Pfad",
+        "value": "C:/Users/stefa/Desktop",
+        "ok": true,
+        "error": null
+      },
+      {
+        "control": "Voreinstellung",
+        "value": "Benutzerdefiniert",
+        "ok": true,
+        "error": null
+      },
+      {
+        "control": "Auflösung",
+        "value": "Benutzerdefiniert",
+        "ok": true,
+        "error": null
+      },
+      {
+        "control": "Rahmen",
+        "value": "25.00",
+        "ok": true,
+        "error": null
+      },
+      {
+        "control": "Bitrate",
+        "value": "Benutzerdefiniert",
+        "ok": true,
+        "error": null
+      },
+      {
+        "control": "Kodierung",
+        "value": "h265",
+        "ok": true,
+        "error": null
+      },
+      {
+        "control": "Farbraum",
+        "value": "Rec.709 8bit",
+        "ok": true,
+        "error": null
+      }
+    ]
+  },
+  "finished": "2026-11-26T23:13:49.853Z"
+}

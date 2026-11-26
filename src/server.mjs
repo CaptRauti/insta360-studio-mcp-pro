@@ -90,6 +90,7 @@ import {
 import { findText, ocrImage } from "./ocr.mjs";
 import { closeControl, isPickerField, isTextBox, openControl, readDialog, selectOption, setText } from "./export-dialog.mjs";
 import { classifyLogText, explainPattern } from "./media-errors.mjs";
+import { decodePreset, describePreset, readPresetModel } from "./export-model.mjs";
 import { openProjectAt } from "./pipeline.mjs";
 
 // The install directory is resolved at call time (see studio-path.mjs): Studio
@@ -1495,7 +1496,11 @@ tool(
       "Read the settings in Studio's export dialog: file name, output path, preset, resolution, frame rate, " +
       "bitrate, codec and colour space, plus the window coordinates to click each control. The dialog is CEF/HTML " +
       "inside the main window, so there is no UI Automation tree and no debug port -- this is screenshot + OCR. " +
-      "Needs the dialog open: studio_ui_export with stage 'dialog' opens it, stage 'full' runs the whole export.",
+      "Needs the dialog open: studio_ui_export with stage 'dialog' opens it, stage 'full' runs the whole export. " +
+      "The reply also carries `persisted`: the same dialog's state from Studio's own file " +
+      "(`nle/video_export_preset_model.json`, written when the dialog closes). That is the exact witness — the OCR " +
+      "readback renders `ProRes 422` and `ProRes 422LT` alike — but it says what the dialog is set to, never what " +
+      "an export produced (use studio_ui_export {verify:true}).",
     inputSchema: {
       title: z.string().optional(),
       control: z.string().optional().describe("Read only this control, e.g. 'Kodierung'"),
@@ -1549,11 +1554,26 @@ tool(
       };
     }
     const dialog = readDialog({ title: windowTitle });
+    const raw = readPresetModel();
+    const decoded = decodePreset(raw.model);
     return {
       window: dialog.window,
       settings: Object.fromEntries(Object.entries(dialog.fields).map(([k, v]) => [k, v.value])),
       controls: dialog.fields,
       screenshot: dialog.screenshot,
+      // The dialog's state as Studio has it *on disk* (`nle/video_export_preset_model.json`).
+      // Written when the dialog CLOSES, so an open dialog's own values can legitimately
+      // differ (a pick only reaches the file on close) — and it is exact where the OCR
+      // readback is not: it separates `ProRes 422` from `ProRes 422LT`, which the panel
+      // renders identically.
+      persisted: {
+        file: raw.file,
+        fileExists: raw.model !== null,
+        writtenWhen: "dialog close (measured: a pick does not change the file; {ESC} does)",
+        slots: describePreset(decoded),
+        unknownCodes: decoded.unknown,
+        note: "what the dialog is set to — not what an export produced (studio_ui_export {verify:true})",
+      },
     };
   },
 );
