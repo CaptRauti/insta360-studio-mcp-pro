@@ -25,6 +25,7 @@
     "probe:ui-export-settings": "node tests/ui-export-settings.mjs",
     "probe:ui-export-with-settings": "node tests/ui-export-with-settings.mjs",
     "probe:thumbnail": "node tests/live-thumbnail.mjs",
+    "probe:click-spy": "node research/click_spy_probe.mjs",
     "probe:pipeline": "node tests/pipeline-e2e.mjs",
     "probe:export-failure": "node tests/repro-export-error.mjs"
   },

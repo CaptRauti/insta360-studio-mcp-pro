@@ -294,6 +294,17 @@ way to the export dialog would be typed into their mail. Messages are addressed 
 the target window and cannot leak, so text and plain keys are fine and chords are
 not.
 
+**Occlusion is the other failure mode, and it does not look like one.** A message click is
+resolved to the window under the point, and the helper refuses when that window belongs to another
+process — correctly, so a race never clicks into someone's mail. It then pins the target topmost
+and retries, which beats an ordinary covering window but **not** one that re-asserts topmost
+itself: measured with a maximised, always-on-top desktop application, every click in Studio's
+project library was refused (`belongs to another process (pid …)`) and the caller saw a project
+that "did not open". Read the error text — it names the pid — and check the covering window's
+rectangle before changing any coordinate. `-Direct` (named window, client coordinates, no
+z-order lookup) exists for this case and for verifying the message sequence against a window of
+your own; `npm run probe:click-spy` is that verification.
+
 A key with no modifier is not a chord, so `studio_ui_send_keys` accepts exactly one
 of those — `{ESC}`, `{TAB}`, `{ENTER}`, `{BACKSPACE}`, `{DEL}`, `{HOME}`, `{END}`,
 arrows, `{PGUP}`/`{PGDN}`, `{SPACE}` — and delivers it as `WM_KEYDOWN`/`WM_KEYUP`
@@ -549,6 +560,7 @@ npm run probe:export    # SLOW: drives a real GUI export (minutes, writes a big 
 npm run probe:grpc-export   # live gRPC photo export, verified on disk (seconds)
 npm run probe:grpc-types    # sweep every ExportType against one source
 npm run probe:grpc-material # does ExportHeader.materialList carry the source?
+npm run probe:click-spy  # clicks a topmost window of our own and asserts the message sequence (needs no app)
 npm run probe:ui-export-dialog  # open the export dialog and OCR it
 npm run probe:ui-export-fields  # read the dialog's fields with coordinates
 npm run probe:ui-export-video   # SLOW: GUI video export, then ffprobe the result

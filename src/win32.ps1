@@ -24,7 +24,12 @@ param(
   [string]$Out = "",
   [int]$SleepMs = 120,
   [switch]$Pin,
-  [switch]$Quiet
+  [switch]$Quiet,
+  # Send the click straight to the named window in client coordinates, without the
+  # WindowFromPoint z-order lookup. Use when an always-on-top window covers the
+  # target (the lookup then resolves the coverer however often the target is
+  # re-pinned), or to verify the message sequence against a window of your own.
+  [switch]$Direct
 )
 
 $ErrorActionPreference = "Stop"
@@ -226,23 +231,34 @@ function Set-Topmost($hwnd) {
 # Click by message instead of by cursor. The user keeps their mouse: nothing
 # moves the pointer, nothing takes the foreground, and the click still lands
 # because the messages are delivered to the window under the point.
-function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double) {
+function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double, [bool]$direct = $false) {
   $WM_MOUSEMOVE = 0x0200
   $WM_LBUTTONDOWN = 0x0201
   $WM_LBUTTONUP = 0x0202
   # A double click is a *message*, not two clicks: the OS raises
   # WM_LBUTTONDBLCLK only for real mouse input, and CEF/Qt widgets that act on a
   # double click wait for exactly that message. Sending DOWN/UP twice looks like
-  # two single clicks and opens nothing — measured on the project library, where
-  # every card offset was tried and the project never opened while a single click
-  # on a tab beside it still switched the page.
+  # two single clicks and opens nothing.
   $WM_LBUTTONDBLCLK = 0x0203
   $MK_LBUTTON = [IntPtr]1
-  $found = Resolve-ChildPinned $top $relX $relY
-  $child = $found.child
-  $cr = Get-WinRect $child
-  $cx = $found.screenX - $cr.Left
-  $cy = $found.screenY - $cr.Top
+  if ($direct) {
+    # -Direct: the caller named the window, so the point is already client-relative
+    # and the z-order lookup is skipped. Needed when an always-on-top window covers
+    # the target: WindowFromPoint then resolves the coverer no matter how often the
+    # target is re-pinned, and nothing can be driven. It is also the only way to
+    # verify the message sequence against a window of one's own.
+    $child = $top
+    $cx = $relX
+    $cy = $relY
+    $style = "direct"
+  } else {
+    $found = Resolve-ChildPinned $top $relX $relY
+    $child = $found.child
+    $cr = Get-WinRect $child
+    $cx = $found.screenX - $cr.Left
+    $cy = $found.screenY - $cr.Top
+    $style = $(if ($found.pinned) { "message-pinned" } else { "message" })
+  }
   $lp = [IntPtr]((($cy -band 0xFFFF) -shl 16) -bor ($cx -band 0xFFFF))
   [void][W32]::SendMessage($child, $WM_MOUSEMOVE, [IntPtr]::Zero, $lp)
   Start-Sleep -Milliseconds 30
@@ -255,7 +271,7 @@ function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double) 
     Start-Sleep -Milliseconds 45
     [void][W32]::SendMessage($child, $WM_LBUTTONUP, [IntPtr]::Zero, $lp)
   }
-  return @{ mode = $(if ($found.pinned) { "message-pinned" } else { "message" }); child = [int64]$child; cx = $cx; cy = $cy; screenX = $found.screenX; screenY = $found.screenY; pinned = $found.pinned }
+  return @{ mode = $style; child = [int64]$child; cx = $cx; cy = $cy }
 }
 
 # Type text into the window under a point as WM_CHAR messages.
@@ -356,7 +372,7 @@ switch ($Action) {
   }
   "click" {
     if ($Quiet) {
-      $res = Send-MessageClick $h $X $Y $false
+      $res = Send-MessageClick $h $X $Y $false $Direct
       Start-Sleep -Milliseconds $SleepMs
       $info.action = "click"
       $info.clicked = @{ relx = $X; rely = $Y; child = $res.child; cx = $res.cx; cy = $res.cy }
@@ -381,7 +397,7 @@ switch ($Action) {
   }
   "dblclick" {
     if ($Quiet) {
-      $res = Send-MessageClick $h $X $Y $true
+      $res = Send-MessageClick $h $X $Y $true $Direct
       Start-Sleep -Milliseconds $SleepMs
       $info.action = "dblclick"
       $info.clicked = @{ relx = $X; rely = $Y; child = $res.child; cx = $res.cx; cy = $res.cy }
