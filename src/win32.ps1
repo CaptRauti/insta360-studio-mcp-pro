@@ -230,6 +230,13 @@ function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double) 
   $WM_MOUSEMOVE = 0x0200
   $WM_LBUTTONDOWN = 0x0201
   $WM_LBUTTONUP = 0x0202
+  # A double click is a *message*, not two clicks: the OS raises
+  # WM_LBUTTONDBLCLK only for real mouse input, and CEF/Qt widgets that act on a
+  # double click wait for exactly that message. Sending DOWN/UP twice looks like
+  # two single clicks and opens nothing — measured on the project library, where
+  # every card offset was tried and the project never opened while a single click
+  # on a tab beside it still switched the page.
+  $WM_LBUTTONDBLCLK = 0x0203
   $MK_LBUTTON = [IntPtr]1
   $found = Resolve-ChildPinned $top $relX $relY
   $child = $found.child
@@ -244,7 +251,7 @@ function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double) 
   [void][W32]::SendMessage($child, $WM_LBUTTONUP, [IntPtr]::Zero, $lp)
   if ($double) {
     Start-Sleep -Milliseconds 60
-    [void][W32]::SendMessage($child, $WM_LBUTTONDOWN, $MK_LBUTTON, $lp)
+    [void][W32]::SendMessage($child, $WM_LBUTTONDBLCLK, $MK_LBUTTON, $lp)
     Start-Sleep -Milliseconds 45
     [void][W32]::SendMessage($child, $WM_LBUTTONUP, [IntPtr]::Zero, $lp)
   }

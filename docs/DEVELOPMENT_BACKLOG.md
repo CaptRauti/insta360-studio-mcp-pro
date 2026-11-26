@@ -7,10 +7,24 @@ Base URL for all manual links: `https://onlinemanual.insta360.com/studio/en-us/`
 
 ---
 
-## 0. The blocker comes first
+## 0. ~~The blocker~~ — solved 2026-11-25
 
-A project this server *builds* still opens with both clips stuck on **"Lade Dateien…"** and cannot be exported.
-The manual documents a class of causes we have not tested. Three leads, all from Insta360's own pages:
+**A project this server builds now opens, attaches its media and exports.** The cause was
+`project_album_info.data`: it is not merely a save artefact — Studio reads the album's own
+`media_card_snapshots` to classify the source, and a `{album_tree:{nodes}}`-only file makes Studio decode the
+file as a still (`fsType kImage` in the main log), so the clip never attaches and the player shows the
+`Lade Dateien.` media card (`meanLuma 14`). Four parts are required: `album_tree` (with `root_uuids` and
+`version`), `media_card_snapshots` (keyed by absolute path, each with `uuid` = that path, `display_name`,
+`create_time` derived from Insta360's own file name, `is_dng_group`, `is_photo_group`,
+`remark_name`, `source`), `tab_media_uuids` and `version`. Alongside it: the clip `name` must be the camera's
+short display name (`VID_049.mp4`), `sourceFrames`/`fps` are *timeline* frames (convert with an integer
+`projectFps/probeFps` ratio, truncating), `maxFadeIn`/`maxFadeOut` are 60, and `markTrimIn` decides what is
+exported. Measured end to end on 2026-11-25: a built project GUI-exported **178,569,151 bytes, H.264
+1920×1080, 1652 frames / 27.53 s + AAC** from a 1651-frame HEVC source. Detail:
+`references/project-authoring.md`; skill `insta360-studio-mcp`.
+
+Below is the reconnaissance that led to it, kept because the hypotheses and the level of evidence are still
+the model for how the next failure gets diagnosed. Three leads, all from Insta360's own pages:
 
 | Lead | Source | Why it fits |
 |---|---|---|
@@ -18,9 +32,10 @@ The manual documents a class of causes we have not tested. Three leads, all from
 | "Move media to another drive, then change **Project File Save Path**" is Insta360's own fix for media that will not import/edit | `troubleshooting/file-import-issue/media-import-issue` (Scenario 5) | The project file path is a real, user-visible variable — and it is a *preference* we cannot read or set today (see E3). |
 | Media-library assets on a **network/other drive** fail to load on the project page | `troubleshooting/page-function-issues/library-load` | Same failure *shape* (a page that never finishes loading). Studio itself treats "resource not on the expected volume" as a load failure. |
 | Error strings worth recognising instead of guessing | `troubleshooting/file-import-issue/media-import-issue` | `2 imports failed: Unknown error (2)`, `No master file corresponding to LRV file was found`, `Video generates two video files, one of which can't be retrieved`, `file is not supported in current offset version` — the last one matters for us, because this whole server depends on the *offset version*. |
-| The **log tree** exists and now has a reader | `operation-guide/file-management/obtain-log-or-dump-files` | Built as D1/D2. Measured: the launcher, CEF, **detector** and Inno-Setup logs are plain text; the main/export/thumbnail/`quick_look` logs are **encrypted** (constant 16-byte header `cd013a985f5beca1bcc1ca036aa5d1a0` + `bf08ac29` frames, high-entropy payload), and the crash dumps live in `crashes\lag_reports` — written on a **hang**, which is this exact symptom. 9 dumps, newest 2026-11-23T21:58, i.e. from the test runs that hit it. |
+| The **log tree** exists and now has a reader | `operation-guide/file-management/obtain-log-or-dump-files` | Built as D1/D2. Measured: the launcher, CEF, **detector** and Inno-Setup logs are plain text; the main/export/thumbnail/`quick_look` logs are XOR containers behind a constant 16-byte header (`cd013a985f5beca1bcc1ca036aa5d1a0`, `bf08ac29` frames) — **and they decode**: `studio_logs` recovers the keystream, verified per file against the pid and start time in the name. The crash dumps live in `crashes\lag_reports` — written on a **hang**, which is this exact symptom. |
 
-**Do this before writing any new edit feature:** test the three path hypotheses, and use the dumps as the instrument.
+**How it was closed:** the three path hypotheses were tested one by one and none of them was the cause; the
+dumps and the decoded main log were the instruments that produced the answer (see below).
 
 State after the log decoder (D1): the log route is **open**, and the dumps are now explained rather than
 just dated. The main/export/thumbnail/`quick_look` containers decode with a keystream recovered from the
@@ -52,11 +67,14 @@ this machine, and it came back narrow:
   `clipDisplayName()` (`src/project.mjs`), used as the fallback wherever a clip is not in the harvest
   library. Note this is *naming*, not loading: media is resolved by `url` (the log shows the loader
   opening FrameReaders from the clip url), which we were already writing correctly.
-- **`project_album_info.data` is Studio's own save artefact, not a requirement.** It is absent from
-  every project this server writes and present in every project Studio saved; the log shows Studio
-  writing it (`album_tree_view_model.cpp: begin serialize album info`) *because* it saved. It is
-  therefore evidence that a project was saved by Studio, not a cause of a loading failure — `mcpFlat`
-  loads its media without it.
+- **`project_album_info.data` is a load requirement — this was the misreading that cost the most time.** The
+  first pass read it as a save artefact because `mcpFlat` appeared to load without it; the album was then
+  written as `{album_tree:{nodes}}` only, and *that* file produced a project which opened, kept its timeline and
+  never attached its source. The complete album (all four parts, see the top of §0) is what makes the clip
+  attach. The instrument that settled it was the decoded main log, not a project diff: on load Studio prints
+  `DUMP:1 VideoSampleGroup: mediaMs 0 clip 0 srcMs 0 fsType kImage` — with no snapshot in the album it
+  classifies the file as a **still**, which is why the timeline exists while the player stays black and the
+  export answers `Quelldatei fehlt`.
 - **Studio did load that project's clips.** In the log around the 17:17 dump, both clips
   (`F:/Luna/VID_20261112_051426_001.mp4`, `D:/Videos/Lamspringe26/VID_20260822_190557_049.mp4`) open
   FrameReaders and their decoders and print `VideoSampleGroup` dumps — so "Lade Dateien…" was not a
@@ -69,8 +87,8 @@ this machine, and it came back narrow:
   read/set tool, not research. (Studio is configured with `cuda_accel=true`,
   `hardware_decoding_preview=true` — relevant to the render-thread stalls above.)
 
-What remains is the export itself: build a project from real media and attempt the export live — that
-is the one measurement §0 still needs.
+**The last measurement §0 needed was then made** (2026-11-25): a project built from real media exported through
+the GUI — 178,569,151 bytes, H.264 1920×1080, 1652 frames / 27.53 s + AAC. §0 is closed.
 
 ---
 
@@ -79,7 +97,7 @@ is the one measurement §0 still needs.
 | # | Studio area (manual) | Our tools | Missing |
 |---|---|---|---|
 | 1 | Import / media management (`creative-import`, `clip-management`) | ✓ `studio_ui_open_media` | **Clip create / copy / delete** (Studio 6.0 edits several clips from one media file and switches between schemes) ✗; import-error classification ✗ |
-| 2 | 360 reframing: keyframes, FOV presets, Reorient (`keyframe`, `adjust-the-perspective`) | ◐ `studio_clip_transform` / `_set_transform` (static transform only) | **Keyframes** ✗, **named FOV presets** (Crystal Ball, Tiny Planet, UltraWide, Linear…) ✗, Reorient ✗, 360 Monitor ✗ |
+| 2 | 360 reframing: keyframes, FOV presets, Reorient (`keyframe`, `adjust-the-perspective`) | ◐ `studio_clip_transform` / `_set_transform` (static transform only) | **Keyframes** ✗ (`key_frame_track` is `{}` in all 25 projects on this machine — schema must be harvested from a Studio-written project), **named FOV presets** (Crystal Ball, Tiny Planet, UltraWide, Linear…) ✗, Reorient ✗, 360 Monitor ✗ |
 | 3 | AI: Deep Track, Auto Frame, Auto Edit, Remove Grain, AquaVision (`deep-tracking-function`, `auto-frame`, `ai-processing-image-noise-reduction`) | ✗ | all of it ✗ |
 | 4 | Filters / looks / manual colour (`en-US.json`; no manual page) | ✗ | ✗ — `color_adjust_setting` exists in the clip schema but no tool writes it |
 | 5 | Transitions (v6.0 asset) | ✗ | ✗ — `transitions[]` sits in the project file |
@@ -91,7 +109,7 @@ is the one measurement §0 still needs.
 | 11 | HDR / colour space / I-Log / PureShot / Dolby (`dolby`) | ◐ `Farbraum` readable/settable in the export dialog | I-Log / PureShot toggles ✗; Dolby Vision → **drop** (macOS M-series only) |
 | 12 | Watermark (`watermark`) | ◐ via GUI copy/paste flow | as a written parameter ✗ |
 | 13 | Export: settings, batch, VR (`file-export-instructions`, `instructions-for-vr-panoramic-video-editing-and-export`) | ◐ `studio_ui_export_settings` / `_set` for `Kodierung`/`Farbraum`; **all** settings readable | measurement of `Auflösung`/`Rahmen`/`Bitrate`/`Voreinstellung` ✗, batch/queue ✗, VR platform presets ✗, AI stitching ✗ |
-| 14 | Project management (`project-page-introduction`) | ◐ read/list/sources + build (build does not export, see §0) | working authoring ✗ |
+| 14 | Project management (`project-page-introduction`) | ✓ read/list/sources + build; project opens, attaches media and exports (§0 closed); `studio_project_open` registers unlisted projects | clip create/copy/delete ✗, Media-page projects (`.insprj`) ✗ (B1) |
 | 15 | Stats / Dashboard (`dashboard-function`) | ✗ | ✗ — template, units, GPS source, GPX/FIT import |
 | 16 | Plug-ins (Premiere, QuickLook, LUT, FCPX) | — | **out of scope** |
 | 17 | Automation surface | — | our product; Insta360 documents none |
@@ -201,8 +219,8 @@ lost export into an immediate answer.
 ## 3. Suggested order
 
 1. ~~**D1 + D2** (log/dump reader)~~ — **done 2026-11-24**: `src/logs.mjs`, `studio_logs` + `studio_dumps`, 8 tests, 93 total. Later expanded: Studio's main log **does** decode now (keystream recovered from the ciphertext, verified per file) and dumps are correlated with it, so a dump says *why* it exists — see §0.
-2. ~~**§0 investigation**~~ — **differential run 2026-11-24** (`research/proj_diff.mjs`): our clip structure is identical to Studio's own save (55/55 fields, 0 structural differences); the one convention that differed (clip `name`) is fixed; the three path hypotheses are answered by `startup.ini [preference]`; the album file is Studio's save artefact, not a load requirement. **Left: one live export attempt** from a built project — §0 is an export-path question now, not a load-path one.
-3. **A1, A2, A3** (keyframes, colour, transitions) — the reframing/editing core, file-based, no GUI risk.
+2. ~~**§0 investigation**~~ — **closed 2026-11-25**: the album (`project_album_info.data`, all four parts) is what makes a built clip attach, and a built project now exports (178 MB, H.264 1652 frames). See the top of §0.
+3. **A1, A2, A3** (keyframes, colour, transitions) — the reframing/editing core, file-based, no GUI risk. For A1 the first step is a measurement, not code: `key_frame_track` is `{}` in **all 25 projects on this machine**, so its schema has to be harvested from a project Studio wrote with keyframes (see `references/project-and-effects.md`).
 4. **G1–G8** (preflight) — cheap, and it stops every AI/export path from failing late.
 5. **C1, C3, C4** (finish the export matrix) + **B1/B2** (Media page + watermark).
 6. **A4–A8, B3–B5, E2** (E1, E3, E4 are done — `studio_prefs`).

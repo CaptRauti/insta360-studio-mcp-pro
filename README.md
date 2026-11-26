@@ -279,7 +279,7 @@ old behaviour back.
 | operation | loud (`INSTA360_QUIET=0`) | quiet (default) |
 | --- | --- | --- |
 | read the UI, wait for state | `SetForegroundWindow`, then capture | `PrintWindow` of a background window, pointer untouched |
-| click, double-click | `SetCursorPos` + `mouse_event` | `WM_LBUTTONDOWN`/`WM_LBUTTONUP` to the window under the point |
+| click, double-click | `SetCursorPos` + `mouse_event` | `WM_LBUTTONDOWN`/`WM_LBUTTONUP` to the window under the point; a **double** click adds `WM_LBUTTONDBLCLK`, without which the app sees two single clicks |
 | typing text (`WM_CHAR`), e.g. into the export dialog's `Dateiname` | `SendKeys` on the system queue | `WM_CHAR` messages, addressed to the content window |
 | `studio_ui_send_keys` with **one** plain key (`{ESC}`, `{TAB}`, `{ENTER}`, `{BACKSPACE}`, arrows) | `SendKeys` | `WM_KEYDOWN`/`WM_KEYUP` for that key, addressed to the content window |
 | `studio_ui_send_keys` with a **chord** (`^s`, `%{F4}`, `a{ENTER}b`) | `SendKeys` | refuses (exit 4) |
@@ -464,6 +464,14 @@ So nothing here hardcodes it. `src/studio-path.mjs` resolves it in this order:
 so a wrong path shows up instead of failing silently. The research scripts use the same logic through
 `research/studioroot.py`.
 
+**A version switch is staged in a file, not in the registry.** `%LOCALAPPDATA%\Insta360\Apps\Insta360 Studio\configure.ini`
+carries `[General] current_version` / `new_version` / `new_package` / `new_install_type`; the launcher downloads the new
+tree into a sibling version directory and swaps `current` **on the next start**. Measured on this host: `current_version=6.0.9`,
+`new_version=6.0.10`, the `6.0.10` tree installed at 14:25 by a *silent* update that Studio triggered itself — so
+merely starting the app can leave you on a different build than the offsets and recovered descriptors in `research/`
+were measured against. Read `configure.ini` before trusting any of them, and re-run `research/protocat.py` after a
+switch.
+
 ---
 
 ## Usage
@@ -531,7 +539,7 @@ All of these were run and the outputs checked with `ffprobe` / `file` — the si
 ## Tests
 
 ```bash
-npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads, log/dump reader — 93 tests
+npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads, log/dump reader — 111 tests, plus 19 clip-metadata and 10 prefs checks
 npm run check           # syntax-check every module
 npm run test:nvap       # NVAP extractor self-test (hybrid headers, 44/44 containers)
 npm run probe           # live MCP handshake, tool list, gRPC port discovery
@@ -610,7 +618,7 @@ The probe scripts that got us there are in `research/grpc-probes/`.
 
 ## Limitations
 
-- **A project this server builds does not export.** It opens and the clips carry correct per-clip metadata; the open question is the export step. The differential comparison has been run (`research/proj_diff.mjs`) against a project Studio saved itself and it came back narrow: the clip structure is **identical, field for field (55/55, no structural difference)**, and the one convention that differed — Studio shows the camera's short name (`VID_049.mp4`), we wrote the ingested one (`VID_20260822_190557_049.mp4`) — is fixed (`clipDisplayName`). The three path hypotheses are answered: `startup.ini [preference]` holds `project_location`, `workspace_location`, `footage_project_location`, `export_location` in plain text. `project_album_info.data` is a save artefact, not a load requirement. So the load path is clean and what remains is a live export attempt; see `docs/DEVELOPMENT_BACKLOG.md` §0. Supporting evidence: the main log decodes (see the log bullet above), and `studio_dumps` correlates each minidump with the session log — of the 10 reports on this machine, 4 are Studio's own `LagMonitorUiWorker` tripping after a slow render frame (**real stalls**, newest 2026-11-24T16:17 local, during the test runs that hit this) and 3 are the harmless second-instance exit, so dumps alone overstate the bug.
+- **A project this server builds opens, attaches its media and exports — solved 2026-11-25.** The cause was the project album: `project_album_info.data` must carry all four parts (`album_tree` with `root_uuids`/`version`, `media_card_snapshots` keyed by absolute path, `tab_media_uuids`, `version`). A `{album_tree:{nodes}}`-only album makes Studio decode the source as a still (`fsType kImage` in the main log) — the timeline exists, the player stays black (`meanLuma 14`) and the export answers `Quelldatei fehlt`. With the full album the clip attaches and the GUI export produces a real file: measured **178,569,151 bytes, H.264 1920×1080, 1652 frames / 27.53 s + AAC** from a 1651-frame HEVC source. Supporting detail: the clip `name` must be the camera's short display name (`VID_049.mp4`, `clipDisplayName`), frame counts are *timeline* frames, and the three path hypotheses are answered by `startup.ini [preference]`. Evidence for all of it: the main log decodes (see the log bullet above) and `studio_dumps` correlates each minidump with the session log — of the 10 reports on this machine, 4 are Studio's own `LagMonitorUiWorker` tripping after a slow render frame (**real stalls**, newest 2026-11-24T16:17 local, during the test runs that hit this) and 3 are the harmless second-instance exit, so dumps alone overstate the bug. See `docs/DEVELOPMENT_BACKLOG.md` §0.
 - **Windows only.** The GUI layer is Win32 + PowerShell.
 - **gRPC video export does not work — use the GUI for video.** `VIDEO`/`VIDEO_CLIP` fail with `EXPORTER_START_FAILURE` whether Studio is cold, has a clip loaded, or has a project open. Photo and image types export standalone over gRPC; `studio_ui_export` is the video path.
 - **GUI export needs a loaded clip.** An empty player means nothing to export — `studio_ui_state` tells you.

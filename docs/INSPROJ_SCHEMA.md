@@ -189,7 +189,7 @@ none added; conversely the older clip is **missing** `asteroidPitchOffset`,
 | `original_camera_transform` | object | identical to `camera_transform` in mcpTest | Pre-edit camera transform (baseline for reset). |
 | `camera_movement` | object | see below | Camera-movement template container. |
 | `head_track` | object | see below | Head-tracking container. |
-| `key_frame_track` | object | `{}` | User keyframes. **Empty `{}` in every observed clip** — keyframe semantics **unknown** / not exercised. |
+| `key_frame_track` | object | `{}` | User keyframes. **Empty `{}` in all 25 projects on this machine** — see the section below for the candidate schema recovered from the binary. |
 | `play_rate_track` | object | `{}` | Speed/slow-motion track. **Empty `{}` in every observed clip** — semantics **unknown**. |
 | `deep_track` | object | see below | AI tracking cache, keyed to the project directory. |
 | `time_watermark` | object | `{enableTimeWatermark:false, timeWatermarkFormat:2, timeWatermarkTransparency:100}` | Per-clip time watermark. |
@@ -493,6 +493,45 @@ mismatch shifts or overlaps clips.)
   into `effect_filter.externfilterResourcePath`
   (`D:\\Dokumente\\…\\HD Fireworks.cube.binary` in mcpAuto/mcpE2E/mcpAcceptance).
   Expect Studio to normalise separators on save.
+
+### `key_frame_track` — candidate schema, recovered from the binary (unverified)
+
+**Status: hypothesis, not measurement.** `key_frame_track` is `{}` in all 25 projects on
+this machine, so there is no row to read. What exists is the string table of
+`Insta360 Studio.exe` — the `.insproj` is written by Studio's own C++ serialiser, so
+every JSON key is a literal in that binary, and the literals of one struct sit together.
+`research/jsonkey_neighbours.py` prints a literal's neighbourhood; the table at
+`0x077ca2xx` (a view/pose) and `0x077ca5xx` (a track) is adjacent to `collectComments`,
+a `jsoncpp` member, which is what identifies the region as a JSON parser's key set:
+
+```
+id, fov, distance, yaw, pitch, roll            → a view (the same names as camera_transform)
+timeRatio, target, states, to, version,
+startTime, linear, endTime, targets,
+transitions, smooth                             → a track/stage
+slip_in_slip_out, fade_in_fade_out,
+slip_in_fade_out, fade_in_slip_out              → transition curve names
+```
+
+The last four match the `clip.keyframe.*` entries in `translations/de-DE.json`
+(`Nichts`, `Gleichmäßige Überblendung` are the remaining curves), so they are almost
+certainly this struct's `transitions` values.
+
+**Do not write a builder against this yet.** Two traps the skill has already been bitten
+by apply here: a plausible-looking key set silently mis-serialises, and a track whose
+real shape is `states[]`/`targets[]` may need more than per-keyframe poses. Harvest the
+truth first — a project Studio wrote with keyframes is the authority, and
+`research/keyframe_probe.mjs` finds it and prints the keys flat:
+
+```bash
+node research/keyframe_probe.mjs    # scans every project, prints any non-empty key_frame_track
+```
+
+The `key_frame_track.cpp` symbol table in `studio_worker.dll` adds two names —
+`RemoveKeyFrameInsideArea`, `RemoveHeadTrackModeKeyFrame`, and the literal
+`head_track_start_keyframe` — so Deep Track's own keyframes share this track's type
+space (see `ViewData.KeyFrameType` in `src/proto/export.proto`: `kKeyFrame`,
+`kDeepTrackStart`, `kDeepTrackEnd`, `kViewFinderStart`, `kViewFinderEnd`, `kNone`).
 
 ---
 
