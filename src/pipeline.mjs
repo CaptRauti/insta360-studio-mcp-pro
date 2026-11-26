@@ -223,6 +223,32 @@ export function listProjects() {
   return readProList().projects ?? [];
 }
 
+/**
+ * Put a project first in Studio's own project list (`nle/pro.insproj`).
+ *
+ * Written for the keyframe acceptance test, which needs Studio to *load* a project after a
+ * restart. Scope and limits, measured:
+ *
+ * - Putting a project first did **not** make a freshly started Studio open it — the start
+ *   page showed the media library and stayed there, no autosave of the project file. So this
+ *   is not a way to open a project; treat the ordering as a hint, not a switch.
+ * - The start page's sidebar is not a way in either: its "Projektbibliothek" entry does not
+ *   respond to a click while the media page is showing (measured: 0 px changed, after 30 s,
+ *   at 1384x900). The click path *does* work once an editor is already open — that is how
+ *   `openProject` switches projects — so a fresh start has no reachable project library.
+ */
+export function setCurrentProject(name) {
+  const list = readProList();
+  const entries = list.projects ?? [];
+  const idx = entries.findIndex((p) => String(p.name).toLowerCase() === String(name).toLowerCase());
+  if (idx < 0) return { ok: false, error: `project "${name}" is not registered`, projects: entries.map((p) => p.name) };
+  const [entry] = entries.splice(idx, 1);
+  entries.unshift(entry);
+  list.projects = entries;
+  fs.writeFileSync(PRO_LIST, JSON.stringify(list, null, 4), "utf8");
+  return { ok: true, current: entry.name, projects: entries.map((p) => p.name) };
+}
+
 /** Turn a project directory or .insproj path into { dir, file }. */
 function resolveProjectPath(target) {
   const p = path.resolve(target);
