@@ -674,7 +674,12 @@ export async function runExport({
   throw new Error(
     `export did not produce a file of at least ${minBytes} bytes in ${watchDir} ` +
       `within ${Math.round(timeoutMs / 1000)}s` +
-      (candidate ? ` (last seen: ${candidate.file} @ ${candidate.size} bytes)` : ""),
+      (candidate ? ` (last seen: ${candidate.file} @ ${candidate.size} bytes)` : "") +
+      ". Wenn der Export nur langsam ist und nicht hängt (Handbuch: troubleshooting/file-export-issue/export-slow):" +
+      " Export ist GPU-gebunden. Hebel, in dieser Reihenfolge: [codec] hardware_encoding_export" +
+      " (und hardware_encoding_h265_export für H.265) in startup.ini — also Einstellungen ▸ Codec," +
+      " Hardware-Encoder an; niedrigere Bitrate oder Auflösung; timeoutMs höher setzen statt abzubrechen." +
+      " Welcher Decoder in der Sitzung lief, sagt studio_logs action=explain (decodePath).",
   );
 }
 

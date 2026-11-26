@@ -12,7 +12,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 
@@ -89,6 +89,7 @@ import {
 } from "./logs.mjs";
 import { findText, ocrImage } from "./ocr.mjs";
 import { closeControl, isPickerField, isTextBox, openControl, readDialog, selectOption, setText } from "./export-dialog.mjs";
+import { classifyLogText, explainPattern } from "./media-errors.mjs";
 import { openProjectAt } from "./pipeline.mjs";
 
 // The install directory is resolved at call time (see studio-path.mjs): Studio
@@ -153,9 +154,9 @@ tool(
   "studio_prefs",
   {
     description:
-      "Read — and, with care, set — Insta360 Studio's own settings, which live in one plain INI file (`startup.ini` under %LOCALAPPDATA%\\Insta360\\Insta360 Studio). This is where the locations the manual calls `Project File Save Path` and the media/export folders really are ([preference]: workspace_location, footage_project_location, project_location, export_location, last_visit_dir), together with the codec and hardware switches that decide how an export is rendered ([codec]: hardware_decoding_preview, hardware_encoding_export, hardware_encoding_h265_export, cuda_accel, hardaware_model), the UI language and theme ([ui], [preference] lang). action=read dumps the sections, action=paths gives the five locations with each directory's existence checked, action=get resolves one key, action=set rewrites a single line in place (keeping every other byte, with a .bak copy). set REFUSES while Studio is running because Studio rewrites the file from memory when it exits — close Studio first, or pass force=true when you know the change is meant to be transient.",
+      "Read — and, with care, set — Insta360 Studio's own settings, which live in one plain INI file (`startup.ini` under %LOCALAPPDATA%\\Insta360\\Insta360 Studio). This is where the locations the manual calls `Project File Save Path` and the media/export folders really are ([preference]: workspace_location, footage_project_location, project_location, export_location, last_visit_dir), together with the codec and hardware switches that decide how an export is rendered ([codec]: hardware_decoding_preview, hardware_encoding_export, hardware_encoding_h265_export, cuda_accel, hardaware_model), the UI language and theme ([ui], [preference] lang). action=read dumps the sections, action=paths gives the five locations with each directory's existence checked, action=get resolves one key, action=set rewrites a single line in place (keeping every other byte, with a .bak copy). set REFUSES while Studio is running because Studio rewrites the file from memory when it exits — close Studio first, or pass force=true when you know the change is meant to be transient. action=audio answers the audio question the same way: Studio 6.0.9 persists audio settings nowhere readable (measured — not in startup.ini, not in the nle JSON files, not in the CEF storage), so it reports which files it searched and what each one really holds, plus the documented rows and how to read the live values, instead of returning an empty object that looks like 'no settings'.",
     inputSchema: {
-      action: z.enum(["read", "paths", "get", "set"]).optional().describe("What to do (default read)"),
+      action: z.enum(["read", "paths", "get", "set", "audio"]).optional().describe("What to do (default read)"),
       section: z.string().optional().describe("INI section, e.g. preference, codec, ui (read/get/set)"),
       key: z.string().optional().describe("Setting name (get/set)"),
       value: z.string().optional().describe("New value (set)"),
@@ -179,6 +180,56 @@ tool(
         if (value === undefined) throw new Error("value is required for action=set");
         return setPref(key, value, { file, section, force });
       }
+      case "audio": {
+        // Measured on 6.0.9 (2026-11-26): audio settings are persisted **nowhere** an
+        // agent would look. Rather than return an empty object — which reads like "no
+        // settings to see" — this walks the witnesses and reports what each one actually
+        // holds, so the next person does not hunt for a file that does not exist.
+        const root = path.dirname(file); // %LOCALAPPDATA%\Insta360\Insta360 Studio
+        const witness = (p, holds) => {
+          const full = path.join(root, p);
+          if (!existsSync(full)) return { file: p, exists: false, holds };
+          let keys = null;
+          try {
+            const parsed = JSON.parse(readFileSync(full, "utf8"));
+            keys = Array.isArray(parsed)
+              ? [`<array of ${parsed.length}>`]
+              : Object.keys(parsed).slice(0, 12);
+          } catch {
+            keys = null; // INI or binary: the section list says enough
+          }
+          return { file: p, exists: true, holds, topLevelKeys: keys };
+        };
+
+        // readPrefs returns a wrapper around a missing section (`sectionMissing: true`,
+        // `sections: {}`) — counting its keys would report "persisted" for a section
+        // that does not exist. Measured: on 6.0.9 there is no [audio] section at all.
+        const iniAudio = readPrefs({ file, section: "audio" });
+        const iniValues = iniAudio?.sections?.audio ?? iniAudio?.values ?? {};
+        const persisted = !iniAudio?.sectionMissing && Object.keys(iniValues).length > 0;
+        return {
+          persisted,
+          iniSection: { name: "[audio]", values: iniValues },
+          searched: [
+            witness("startup.ini", "Ausgabepfade, Codec-/Hardware-Schalter, UI-Sprache, Theme — keine Audio-Schlüssel"),
+            witness(path.join("nle", "user_preference.json"), "Vorschau-Hardwarebeschleunigung und Projekt-fps der Sitzung"),
+            witness(path.join("nle", "video_export_preset_model.json"), "Export-Dialog: Codec/Farbraum/fps/Auflösung/Bitrate je Slot"),
+            witness(path.join("nle", "pro.insproj"), "Projekt-Index: Name, Seitenverhältnis, fps, Frames, Trim, Wasserzeichen"),
+          ],
+          documented: {
+            source: "Handbuch operation-guide/preference-settings/audio-settings (+ en-US.json)",
+            rows: [
+              "Hintergrundmusik: Musik-Symbol → Online-Musikbibliothek oder eigene MP3/WAV importieren",
+              "Volume + Fade In / Fade Out auf der Audiospur",
+              "Denoise: Media-Seite → Audio Settings („Voice Focus\" / „Noise Reduction\"); Projekt-Seite → Audio → Denoise",
+              "Stummschalten des Originaltons über den Volume-Knopf der Videospur",
+              "Grenzen: nur EINE Audiospur (kein Mehrspur-Schnitt), keine direkte Tonaufnahme, eigene Musik nur MP3/WAV",
+            ],
+          },
+          readVia:
+            "Die Werte gelten je Projekt/Clip und stehen nur in der laufenden Sitzung — sie sind nicht auf der Platte. Live lesen: die Zeilen der Projekt-/Media-Seite mit studio_ui_ocr (Region wie beim Export-Dialog) oder, für Clips, studio_project_read. Dieses Werkzeug liefert bewusst nur den belegten Ist-Zustand, keine erfundenen Zahlen.",
+        };
+      }
       default:
         return { ...readPrefs({ file, section }), studio: studioGuiRunning(), knownLocationKeys: LOCATION_KEYS };
     }
@@ -189,10 +240,10 @@ tool(
   "studio_logs",
   {
     description:
-      "Read Insta360 Studio's own logs. action=list summarises each log area (studio, detector, quick_look, setup) and says how much of it is readable, including how many of the encrypted containers the recovered keystream still opens; action=sessions lists recent Studio starts with their files; action=read returns the tail of one file; action=grep searches the logs; action=window (at=ISO time) returns what Studio was doing around a moment — the session is found from the time, and dates are reconstructed from the session directory, so a stall can be placed in absolute time. Studio writes its main/export/thumbnail/quick_look logs as an XOR container — those are decrypted transparently (the keystream is verified against pid and start time from the file name on every read) and reported as encrypted only when that verification fails, so a caller can tell 'nothing wrong' apart from 'cannot see'. Use studio_dumps for hang/crash minidumps.",
+      "Read Insta360 Studio's own logs. action=list summarises each log area (studio, detector, quick_look, setup) and says how much of it is readable, including how many of the encrypted containers the recovered keystream still opens; action=sessions lists recent Studio starts with their files; action=read returns the tail of one file; action=grep searches the logs; action=explain reads the logs *for* you — it searches with the classifier's own pattern and answers in sentences: which findings can be acted on (a frame that will not decode and shows as the red \"Corrupted Frame\" placeholder, a preview that never came up, an expired cloud token), which alarming-looking lines are normal in every session, and which decoder the session used (hardware or software); action=window (at=ISO time) returns what Studio was doing around a moment — the session is found from the time, and dates are reconstructed from the session directory, so a stall can be placed in absolute time. Studio writes its main/export/thumbnail/quick_look logs as an XOR container — those are decrypted transparently (the keystream is verified against pid and start time from the file name on every read) and reported as encrypted only when that verification fails, so a caller can tell 'nothing wrong' apart from 'cannot see'. Use studio_dumps for hang/crash minidumps.",
     inputSchema: {
       action: z
-        .enum(["list", "sessions", "read", "grep", "window"])
+        .enum(["list", "sessions", "read", "grep", "window", "explain"])
         .optional()
         .describe("What to do (default list)"),
       area: z.enum(LOG_AREAS).optional().describe("Log area (list/sessions default studio; grep defaults to all areas)"),
@@ -233,6 +284,31 @@ tool(
         return readLogWindow({ env, at, minutes: minutes ?? 5, session, areas: area ? [area] : undefined, limit: limit ?? 400 });
       case "grep":
         return grepLogs({ env, pattern, days, areas: area ? [area] : undefined, limit: limit ?? 100, decrypt: decrypt ?? true });
+      case "explain": {
+        // Search with the classifier's own pattern, then put what came back into plain
+        // language (src/media-errors.mjs) — the point being that a stuck import/preview
+        // page usually has a sentence behind it, and that most alarming-looking lines
+        // are normal in every session.
+        const search = pattern ?? explainPattern();
+        const found = await grepLogs({
+          env,
+          pattern: search,
+          days: days === 7 ? 2 : days,
+          areas: area ? [area] : undefined,
+          limit: limit ?? 400,
+          decrypt: decrypt ?? true,
+        });
+        const matches = found.matches ?? [];
+        const classified = classifyLogText(matches.map((m) => m.text ?? m.line ?? "").join("\n"));
+        return {
+          days: days === 7 ? 2 : days,
+          searchedWith: search === explainPattern() ? "classifier table" : "caller pattern",
+          matchedLines: matches.length,
+          unreadable: found.skippedEncryptedFiles?.length ?? 0,
+          truncated: found.truncated ?? false,
+          ...classified,
+        };
+      }
       default:
         throw new Error(`unknown action: ${action}`);
     }
@@ -1073,10 +1149,27 @@ tool(
     if (!dir || !existsSync(dir)) return { studioDir: dir, exists: false, ...studioInfo() };
     const entries = await readdir(dir, { withFileTypes: true });
     const files = entries.filter((e) => e.isFile()).map((e) => e.name);
+    const info = studioInfo();
+    // Both version numbers, measured: the executable's FileVersion ("6.0.9.0", four
+    // parts) and what the app writes into startup.ini [General] ("6.0.9", three) — the
+    // same release in two notations, so compare loosely and never treat one as canonical.
+    let installer = null;
+    try {
+      installer = getPref("version", { section: "General" });
+    } catch {
+      installer = null;
+    }
     return {
       studioDir: dir,
       exists: true,
-      ...studioInfo(),
+      ...info,
+      appVersion: { exe: info.version, startupIni: installer },
+      update: {
+        checkForUpdatesVia: "Studio-Menü ▸ Hilfe ▸ Auf Updates prüfen (dort auch das Thumbnail-Plugin)",
+        warning:
+          "Nur melden, niemals auslösen: der Launcher legt die Installation an eine andere Stelle (siehe `layout`: per-user ≥ 6.0.9 vs. Program Files ≤ 6.0.8) und entwertet damit jeden gemessenen Offset und Pfad, auf dem dieses MCP aufsetzt.",
+        evidence: "startup.ini [updater] auto_download_reported=true — Studio lädt Updates selbst herunter",
+      },
       executables: files.filter((f) => f.toLowerCase().endsWith(".exe")),
       helperServices: files.filter((f) => /service/i.test(f)),
       fileCount: files.length,
