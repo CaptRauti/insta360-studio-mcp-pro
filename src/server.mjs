@@ -62,6 +62,7 @@ import {
   analyzeShot,
   capture as uiCapture,
   click as uiClick,
+  scroll as uiScroll,
   moveWindow as uiMoveWindow,
   runExport,
   sendKeys as uiSendKeys,
@@ -1144,6 +1145,26 @@ tool(
     },
   },
   async ({ x, y, double = false, title }) => uiClick({ title: title ?? "Insta360 Studio", x, y, double }),
+);
+
+tool(
+  "studio_ui_scroll",
+  {
+    description:
+      "Scroll the Studio window at a window-relative point, in wheel notches (negative = down the list). " +
+      "The export panel is taller than the window: its lower rows (KI Effekte, Hochpräzises Stitching, " +
+      "Körnung entfernen, Exportmodus, Teilen auf) only appear after scrolling, so reading the dialog " +
+      "without scrolling misses them. A short list box scrolls too — the Voreinstellung list holds more " +
+      "entries than fit, and only the visible ones can be read. Delivered as WM_MOUSEWHEEL, so it works " +
+      "in quiet mode and does not take the operator's pointer or focus.",
+    inputSchema: {
+      x: z.number().int().describe("X relative to the window's left edge"),
+      y: z.number().int().describe("Y relative to the window's top edge"),
+      notches: z.number().int().optional().describe("Wheel notches; negative scrolls down (default -3)"),
+      title: z.string().optional(),
+    },
+  },
+  async ({ x, y, notches = -3, title }) => uiScroll({ title: title ?? "Insta360 Studio", x, y, notches }),
 );
 
 tool(

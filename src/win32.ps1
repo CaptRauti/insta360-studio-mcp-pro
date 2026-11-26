@@ -20,6 +20,9 @@ param(
   [string]$Keys = "",
   [string]$Key = "",
   [int]$Repeat = 1,
+  # Wheel delta for -Action scroll, in the units WM_MOUSEWHEEL takes: multiples of
+  # 120, positive away from the user (up), negative towards them (down).
+  [int]$Delta = -120,
   [string]$Text = "",
   [string]$Out = "",
   [int]$SleepMs = 120,
@@ -69,6 +72,9 @@ public class W32 {
   [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint pid);
   [DllImport("user32.dll")] public static extern bool EnumWindows(EnumProc cb, IntPtr l);
   [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool IsWindowEnabled(IntPtr h);
+  [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr h, uint cmd);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)] public static extern int GetClassName(IntPtr h, StringBuilder s, int n);
   [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
   [DllImport("user32.dll")] public static extern IntPtr SetFocus(IntPtr h);
   [DllImport("user32.dll")] public static extern IntPtr MonitorFromWindow(IntPtr h, uint flags);
@@ -129,10 +135,58 @@ function Find-Target {
   return [IntPtr]::Zero
 }
 
+function Get-BlockingModal([IntPtr]$top) {
+  # The native dialog that makes $top disabled, if there is one.
+  #
+  # Windows disables a window while a modal dialog owned by it is up, and then
+  # *silently discards* its mouse and keyboard input: SendMessage/PostMessage
+  # still return normally, so a caller checking only for errors concludes the
+  # click landed. Everything the automation does looks fine and nothing happens.
+  # Measured with Studio's folder picker ("Ordner öffnen", class #32770): while
+  # it was up, opening a list box failed in every one of four attempts at every
+  # x across the row, and pixel-diffing the export dialog showed nothing --
+  # because PrintWindow of the parent does not include the picker.
+  #
+  # Owned windows are enumerated rather than assuming class #32770: a Qt dialog
+  # of the same process counts too. Titles are read for the message.
+  $script:modal = $null
+  $cb = [W32+EnumProc]{
+    param($hw, $l)
+    if ($hw -eq $top) { return $true }
+    if (-not [W32]::IsWindowVisible($hw)) { return $true }
+    if ([W32]::GetWindow($hw, 4) -ne $top) { return $true }   # GW_OWNER must be the target
+    $len = [W32]::GetWindowTextLength($hw)
+    $sb = New-Object System.Text.StringBuilder ([Math]::Max($len + 2, 2))
+    [void][W32]::GetWindowText($hw, $sb, $sb.Capacity)
+    $cls = New-Object System.Text.StringBuilder 256
+    [void][W32]::GetClassName($hw, $cls, 256)
+    $script:modal = @{ hwnd = [int64]$hw; title = $sb.ToString(); cls = $cls.ToString() }
+    return $false
+  }
+  [void][W32]::EnumWindows($cb, [IntPtr]::Zero)
+  return $script:modal
+}
+
 $h = Find-Target
 if ($h -eq [IntPtr]::Zero) {
   Write-Output (@{ ok = $false; error = "window not found"; title = $Title } | ConvertTo-Json -Compress)
   exit 1
+}
+
+# Input sent to a disabled window is discarded by Windows without an error, so
+# every input action checks first and refuses loudly. Reading (capture, find,
+# uia) stays allowed: a modal blocker is exactly when a screenshot is wanted.
+if ($Action -in @("click", "dblclick", "scroll", "rightdrag", "atkeys", "keymsg", "keys", "type")) {
+  if (-not [W32]::IsWindowEnabled($h)) {
+    $modal = Get-BlockingModal $h
+    $err = if ($modal) {
+      "window is disabled while the modal ""$($modal.title)"" (class $($modal.cls), hwnd $($modal.hwnd)) is open; Windows discards input to a disabled window, so $Action cannot land -- close the modal first"
+    } else {
+      "window is disabled and no window it owns was found; Windows discards input to a disabled window, so $Action cannot land"
+    }
+    Write-Output (@{ ok = $false; blocked = $true; action = $Action; modal = $modal; error = $err } | ConvertTo-Json -Compress)
+    exit 4
+  }
 }
 
 # Restoring a minimised window would push it in front of the user's work, so in
@@ -279,6 +333,27 @@ function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double, 
     [void][W32]::SendMessage($child, $upMsg, [IntPtr]::Zero, $lp)
   }
   return @{ mode = $style; child = [int64]$child; cx = $cx; cy = $cy }
+}
+
+# Wheel as a window message, so a scrollable list can be read without taking the
+# pointer or the foreground. Two details differ from the click above: WM_MOUSEWHEEL
+# carries *screen* coordinates in lParam (every other mouse message carries client
+# ones, and passing client coordinates scrolls whatever sits at that screen point),
+# and the delta lives in the high word of wParam.
+function Send-MessageWheel([IntPtr]$top, [int]$relX, [int]$relY, [int]$delta, [int]$repeat = 1) {
+  $WM_MOUSEWHEEL = 0x020A
+  $found = Resolve-ChildPinned $top $relX $relY
+  $child = $found.child
+  $sx = $found.screenX
+  $sy = $found.screenY
+  $wParam = [IntPtr]((($delta -band 0xFFFF) -shl 16))
+  # lParam is screen-relative and *wraps*: pack the low 16 bits of each axis.
+  $lp = [IntPtr](((($sy -band 0xFFFF) -shl 16) -bor ($sx -band 0xFFFF)))
+  for ($i = 0; $i -lt $repeat; $i++) {
+    [void][W32]::SendMessage($child, $WM_MOUSEWHEEL, $wParam, $lp)
+    Start-Sleep -Milliseconds 40
+  }
+  return @{ child = [int64]$child; screenX = $sx; screenY = $sy; delta = $delta; repeat = $repeat }
 }
 
 # Right-button drag as window messages: DOWN, a stream of MOVEs with the button held,
@@ -470,6 +545,32 @@ switch ($Action) {
     Start-Sleep -Milliseconds $SleepMs
     $info.action = "dblclick"
     $info.clicked = @{ x = $ax; y = $ay; relx = $X; rely = $Y }
+    if (-not $Pin) { Clear-Topmost $h }
+    Write-Output ($info | ConvertTo-Json -Compress)
+  }
+  "scroll" {
+    if ($X -lt 0 -or $Y -lt 0) {
+      Write-Output (@{ ok = $false; error = "scroll needs -X and -Y (window-relative point over the list)" } | ConvertTo-Json -Compress)
+      break
+    }
+    if ($Quiet) {
+      $res = Send-MessageWheel $h $X $Y $Delta $Repeat
+      $info.action = "scroll"
+      $info.scrolled = $res
+      $info.style = "message"
+      Write-Output ($info | ConvertTo-Json -Compress)
+      break
+    }
+    Set-Foreground $h
+    Start-Sleep -Milliseconds 120
+    [void][W32]::SetCursorPos(($rect.Left + $X), ($rect.Top + $Y))
+    Start-Sleep -Milliseconds 60
+    for ($i = 0; $i -lt $Repeat; $i++) {
+      [W32]::mouse_event(0x0800, 0, 0, [uint32]($Delta -band 0xFFFF), [IntPtr]::Zero)   # MOUSEEVENTF_WHEEL
+      Start-Sleep -Milliseconds 60
+    }
+    $info.action = "scroll"
+    $info.scrolled = @{ relx = $X; rely = $Y; delta = $Delta; repeat = $Repeat }
     if (-not $Pin) { Clear-Topmost $h }
     Write-Output ($info | ConvertTo-Json -Compress)
   }

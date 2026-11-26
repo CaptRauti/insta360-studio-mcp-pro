@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  optionMatch,
   dropClippedRows,
   matches,
   optionRows,
@@ -50,6 +51,76 @@ test("rowFor ignores unrelated text far right on the same line", () => {
   assert.ok(!row.value.includes("erscha_"), `value swallowed stray text: ${row.value}`);
   assert.equal(row.click.x, 657, "click x must stay in the value column");
   assert.equal(row.click.y, 554);
+});
+
+test("rowFor prefers the dialog's column when the label is read twice", () => {
+  // Measured on 6.0.9 with a 360 project open: the project-info panel behind the
+  // export dialog carries its own "Rahmen" row (the project's frame rate), at
+  // x~1150 with its value at x~1205 -- while the dialog's controls are at x~478.
+  // Both rows read "60fps", so only the x tells them apart. The first-match
+  // version clicked x=1287 into the panel and the list box never opened.
+  const ocr = {
+    words: [
+      { text: "Rahmen", x: 1152, y: 276, w: 58, h: 14 },
+      { text: "60fps", x: 1218, y: 276, w: 38, h: 13 },
+      { text: "Rahmen", x: 478, y: 276, w: 58, h: 14 },
+      { text: "60fps", x: 545, y: 276, w: 38, h: 13 },
+    ],
+  };
+  const row = rowFor(ocr, "Rahmen");
+  assert.ok(row, "row not found");
+  assert.equal(row.value, "60fps");
+  assert.equal(row.click.x, 627, "click must land in the dialog's value column, not the info panel");
+  assert.ok(row.click.x < 1000, `click escaped the dialog: x=${row.click.x}`);
+});
+
+test("rowFor skips a label match whose row has no value cells", () => {
+  const ocr = {
+    words: [
+      { text: "Rahmen", x: 1152, y: 276, w: 58, h: 14 }, // panel label with no cells right of it
+      { text: "Rahmen", x: 478, y: 276, w: 58, h: 14 },
+      { text: "30fps", x: 545, y: 276, w: 38, h: 13 },
+    ],
+  };
+  const row = rowFor(ocr, "Rahmen");
+  assert.ok(row, "the dialog row must still be found");
+  assert.equal(row.value, "30fps");
+});
+
+test("optionMatch accepts an option the list box elided", () => {
+  // The list box truncates long options the same way the label column does.
+  assert.equal(optionMatch("Quellauflösung überneh...", "Quellauflösung übernehmen"), true);
+  assert.equal(optionMatch("Voreinstellu...", "Voreinstellung"), true);
+  assert.equal(optionMatch("Empfohlen", "Empfohlen"), true);
+});
+
+test("optionMatch tolerates the l/1 and o/0 OCR confusions", () => {
+  assert.equal(optionMatch("Rec.709 IObit", "Rec.709 10bit"), true);
+});
+
+test("optionMatch refuses near misses", () => {
+  // A shared six-character prefix is not enough on its own: these differ in the
+  // characters that carry the meaning, and picking the wrong codec silently is
+  // worse than reporting no match.
+  assert.equal(optionMatch("h265", "h264"), false);
+  assert.equal(optionMatch("Youtube-Pano", "TikTok-Pano"), false);
+  assert.equal(optionMatch("Rec.709 10bit", "Rec.709 8bit"), false);
+});
+
+test("rowFor finds a label the QML elided", () => {
+  // The left column elides long labels, so the OCR sees "Exportmod..." and an
+  // exact-label match finds nothing -- the panel then reads as eight controls
+  // when it has nine.
+  const ocr = {
+    words: [
+      { text: "Exportmod...", x: 478, y: 300, w: 78, h: 14 },
+      { text: "Einzelnes", x: 570, y: 300, w: 60, h: 13 },
+      { text: "Segment", x: 634, y: 300, w: 44, h: 13 },
+    ],
+  };
+  const row = rowFor(ocr, "Exportmodus");
+  assert.ok(row, "elided label must still match");
+  assert.equal(row.value, "Einzelnes Segment");
 });
 
 test("rowFor joins multi-word values", () => {

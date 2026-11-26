@@ -171,7 +171,24 @@ export function click({ title = DEFAULT_WINDOW_TITLE, x, y, double = false, butt
   // reach the helper; it is not a detail the caller can drop.
   if (button && button !== "left") args.push("-Button", button);
   const r = runPs(WIN32_PS1, args);
-  if (!r || r.ok === false) throw new Error(`click failed at ${x},${y}`);
+  if (!r || r.ok === false) throw new Error(`click failed at ${x},${y}: ${r?.error ?? "no output"}`);
+  return r;
+}
+
+/**
+ * Scroll at a window-relative point, in wheel notches (negative = towards the user,
+ * i.e. content moves up / down the list). The export panel is taller than the
+ * window, so its lower rows — KI Effekte, Hochpräzises Stitching, Exportmodus —
+ * only exist on screen after a scroll; a reader that never scrolls concludes the
+ * dialog has eight controls and silently misses half the matrix.
+ */
+export function scroll({ title = DEFAULT_WINDOW_TITLE, x, y, notches = 3 } = {}) {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error("scroll needs numeric x and y");
+  const repeat = Math.abs(Math.round(notches)) || 1;
+  const delta = (notches > 0 ? 1 : -1) * 120;
+  const args = ["-Action", "scroll", "-Title", title, "-X", String(Math.round(x)), "-Y", String(Math.round(y)), "-Delta", String(delta), "-Repeat", String(repeat)];
+  const r = runPs(WIN32_PS1, args);
+  if (!r || r.ok === false) throw new Error(`scroll failed at ${x},${y}: ${r?.error ?? "no output"}`);
   return r;
 }
 
@@ -237,7 +254,7 @@ export function sendKeys({ title = DEFAULT_WINDOW_TITLE, keys } = {}) {
   const single = quiet() ? plainKey(keys) : null;
   if (single) return { ...keyMsg({ title, key: single }), translated: `{${single}}` };
   const r = runPs(WIN32_PS1, ["-Action", "keys", "-Title", title, "-Keys", keys]);
-  if (!r || r.ok === false) throw new Error(`key "${keys}" failed`);
+  if (!r || r.ok === false) throw new Error(`key "${keys}" failed: ${r?.error ?? "no output"}`);
   return r;
 }
 
@@ -249,7 +266,7 @@ export function sendKeys({ title = DEFAULT_WINDOW_TITLE, keys } = {}) {
  */
 export function typeText({ title = DEFAULT_WINDOW_TITLE, text } = {}) {
   const r = runPs(WIN32_PS1, ["-Action", "type", "-Title", title, "-Text", text]);
-  if (!r || r.ok === false) throw new Error(`typing failed`);
+  if (!r || r.ok === false) throw new Error(`typing failed: ${r?.error ?? "no output"}`);
   return r;
 }
 
