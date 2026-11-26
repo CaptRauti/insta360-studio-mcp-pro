@@ -47,6 +47,8 @@ import {
   writeProject,
 } from "./project.mjs";
 import { addKeyframe, hasKeyframes, listKeyframes, removeKeyframe, toDegrees, toRadians, transitionNodes } from "./keyframes.mjs";
+import { readTransitionManifest, scanTransitionAssets, transitionRoot, transitionState } from "./transitions.mjs";
+import { clearFilter, filterRoot, filterState, readFilterManifest, scanInstalledFilters, setFilter } from "./filters.mjs";
 import {
   removeThumbnail,
   requestThumbnail,
@@ -564,6 +566,135 @@ tool(
     const result = removeKeyframe(c, { time });
     const written = await writeProject(projectPath, data, { backup });
     return { ...written, ...result, keyframes: listKeyframes(c), nodeTypes: (c.key_frame_track?.node_list ?? []).map((n) => n.node_type) };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Filters (looks)
+// ---------------------------------------------------------------------------
+
+tool(
+  "studio_filters",
+  {
+    description:
+      "List the colour filters installed on this machine, from Studio's own download tree " +
+      "(filter/<id>/<version>/<id>.cube.binary, a 64³ binary LUT). The id is the directory name — " +
+      "Studio's display name for a filter is not on disk anywhere (the applied specimen's id is " +
+      "\"HD Fireworks\" while its UI name is \"Fireworks I\"), so a caller supplies the name when setting it.",
+    inputSchema: {
+      dir: z.string().optional().describe("Filter root (default: Studio's Download/filter, or INSTA360_FILTER_DIR)"),
+    },
+  },
+  async ({ dir }) => {
+    const root = filterRoot(dir);
+    const filters = scanInstalledFilters(root);
+    const catalog = readFilterManifest(root);
+    return {
+      root,
+      count: filters.length,
+      filters,
+      catalogCount: catalog.length,
+      catalogNotDownloaded: catalog.filter((c) => !c.installed).map((c) => c.name),
+    };
+  },
+);
+
+tool(
+  "studio_clip_filter",
+  {
+    description: "Read a clip's colour filter: the four effect_filter values, whether one is applied, and whether its LUT file is on disk.",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      track: z.number().int().optional(),
+      clip: z.number().int().optional(),
+    },
+  },
+  async ({ path: projectPath, track = 0, clip = 0 }) => {
+    const data = await readProject(projectPath);
+    const c = clipAt(data, track, clip);
+    return { ...filterState(c), enableEffects: data.enableEffects };
+  },
+);
+
+tool(
+  "studio_clip_filter_set",
+  {
+    description:
+      "Apply a colour filter to a clip, or clear it by passing an empty id. The four-key effect_filter block is " +
+      "mutated in place so Studio's key order survives, and clearing restores Studio's own empty form " +
+      "(empty strings, opacity 70) rather than deleting the block — every clip in the corpus carries one. " +
+      "If only an id is given, the LUT path is resolved from the installed filter tree. Writes a .bak backup first.",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      track: z.number().int().optional(),
+      clip: z.number().int().optional(),
+      id: z.string().describe("Filter id = the directory name under Download/filter; \"\" clears the filter"),
+      name: z.string().optional().describe("Display name (defaults to the id; Studio keeps its own, which is not on disk)"),
+      opacity: z.number().optional().describe("Filter strength, 0-100 (default 70, Studio's own)"),
+      resourcePath: z.string().optional().describe("Explicit .cube.binary path; resolved from the installed tree when omitted"),
+      dir: z.string().optional().describe("Filter root to resolve ids against"),
+      backup: z.boolean().optional().describe("Write a .bak copy before saving (default true)"),
+    },
+  },
+  async ({ path: projectPath, track = 0, clip = 0, id, name, opacity, resourcePath, dir, backup = true }) => {
+    const data = await readProject(projectPath);
+    const c = clipAt(data, track, clip);
+    const result = id === "" ? clearFilter(c) : setFilter(c, { id, name, opacity, resourcePath, root: filterRoot(dir) });
+    const written = result.changed ? await writeProject(projectPath, data, { backup }) : { written: false };
+    return { ...written, ...result, id, enableEffects: data.enableEffects };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Transitions (read side; no writer until a specimen exists)
+// ---------------------------------------------------------------------------
+
+tool(
+  "studio_transitions",
+  {
+    description:
+      "List the transition assets Studio has downloaded: resourceId, the name from the asset's own info.json " +
+      "(English) and its Chinese-localised name, the supported aspect ratios, the .videotransition payload and " +
+      "its cover. Also reports the manifest, which announces more transitions than are on disk. " +
+      "There is no tool that *applies* a transition yet: no project on this machine carries one, so the entry " +
+      "shape is only recorded (docs/ASSET_CATALOG.md §2.2) and a writer would be built against a doc.",
+    inputSchema: {
+      dir: z.string().optional().describe("Transition root (default: Studio's Download/transition, or INSTA360_TRANSITION_DIR)"),
+      manifestOnly: z.boolean().optional().describe("Skip walking the assets; just the manifest entries"),
+    },
+  },
+  async ({ dir, manifestOnly = false }) => {
+    const root = transitionRoot(dir);
+    const manifest = readTransitionManifest(root);
+    if (manifestOnly) return { root, manifestCount: manifest.length, manifest };
+    const assets = scanTransitionAssets(root);
+    const installed = new Set(assets.map((a) => a.resourceId));
+    return {
+      root,
+      count: assets.length,
+      assets,
+      manifestCount: manifest.length,
+      announcedNotDownloaded: manifest.filter((m) => !installed.has(m.resourceId)).map((m) => m.resourceId),
+    };
+  },
+);
+
+tool(
+  "studio_clip_transitions",
+  {
+    description:
+      "Read the transitions a clip carries (its `transitions` array), with every field and whether the payload " +
+      "it names is on disk. Read-only: no project on this machine has a transition, so the shape has never been " +
+      "confirmed against a live test case and this tool deliberately does not write it.",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      track: z.number().int().optional(),
+      clip: z.number().int().optional(),
+    },
+  },
+  async ({ path: projectPath, track = 0, clip = 0 }) => {
+    const data = await readProject(projectPath);
+    return transitionState(clipAt(data, track, clip));
   },
 );
 
