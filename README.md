@@ -78,6 +78,7 @@ anything the UI or an `.insproj` hands it.
 | `studio_track_transitions` | Read a track's transitions (where they actually live) |
 | `studio_track_transition_add` | Add or update a transition between two adjacent clips |
 | `studio_track_transition_remove` | Remove a transition from a track |
+| `studio_project_check` | Preflight: Studio's own rules against a project, with what it could not ask |
 | `studio_transitions` | List downloaded transition assets |
 
 ### gRPC services
@@ -560,7 +561,7 @@ All of these were run and the outputs checked with `ffprobe` / `file` — the si
 ## Tests
 
 ```bash
-npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads, log/dump reader, keyframe track, colour filters, transitions — 158 tests, plus 19 clip-metadata and 10 prefs checks
+npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads, log/dump reader, keyframe track, colour filters, transitions, preflight — 188 tests, plus 19 clip-metadata and 10 prefs checks
 npm run check           # syntax-check every module
 npm run test:nvap       # NVAP extractor self-test (hybrid headers, 44/44 containers)
 npm run probe           # live MCP handshake, tool list, gRPC port discovery
@@ -632,7 +633,7 @@ The probe scripts that got us there are in `research/grpc-probes/`.
 | File | What it holds |
 |---|---|
 | `docs/FEATURE_SURVEY.md` | Studio's documented feature set, per-page manual URLs, per-model applicability — the source list for what can be automated at all |
-| `docs/DEVELOPMENT_BACKLOG.md` | Manual-vs-server coverage audit: what Studio documents, what these 45 tools cover, and the ranked list of functions still to build |
+| `docs/DEVELOPMENT_BACKLOG.md` | Manual-vs-server coverage audit: what Studio documents, what these 46 tools cover, and the ranked list of functions still to build |
 | `docs/INSPROJ_SCHEMA.md` | The measured `.insproj` schema, including the frame arithmetic `len(c) = source_total_frames − leftTrim − rightTrim` |
 | `docs/ASSET_CATALOG.md` | Asset library and unpacked NVAP contents |
 

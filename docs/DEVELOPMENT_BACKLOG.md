@@ -113,6 +113,7 @@ the GUI — 178,569,151 bytes, H.264 1920×1080, 1652 frames / 27.53 s + AAC. §
 | 15 | Stats / Dashboard (`dashboard-function`) | ✗ | ✗ — template, units, GPS source, GPX/FIT import |
 | 16 | Plug-ins (Premiere, QuickLook, LUT, FCPX) | — | **out of scope** |
 | 17 | Automation surface | — | our product; Insta360 documents none |
+| 18 | Studio's own constraints, as a preflight | ✓ `studio_project_check` | 19 rules from `movement` / `dashboard-function` / `auto-frame` / `deep-tracking-function` / `watermark` / `audio-settings` / `keyframe` / `clip-management`, each reported with its source — plus which rules it could **not** ask and why |
 
 ---
 
@@ -187,21 +188,39 @@ None are reachable as APIs (`ExportClipInfo` has no listener; see the skill). Al
 | F3 | Auto Edit (`auto_cut`) | L | Studio 6.0; needs ≥ 3 clips or > 30 s total, min clip 4 s. Long run, but the single biggest "edit a folder of footage" win |
 | F4 | Remove Grain / AquaVision | M | `file-management/ai-processing-image-noise-reduction`; AquaVision is an AI preset + re-analyse |
 
-### G. Rule engine — encode Studio's own constraints
+### G. Rule engine — Studio's own constraints
 
-Studio refuses or silently degrades impossible combinations, and the manual states them. A preflight tool turns a
-lost export into an immediate answer.
+**Built 2026-11-26** as `studio_project_check` (`src/preflight.mjs`, 30 tests). It reports each rule against
+the project, and — because that is where a preflight lies — separates `dormant` rules (real, but their trigger
+cannot exist in this file) from `unverifiable` ones (the manual states them, no measured field carries them).
+Three of the rules below were **rewritten after running over all 13 projects on this machine**, which is the
+measurement that makes them trustworthy:
 
-| # | Rule | Source |
-|---|---|---|
-| G1 | Movement cannot be combined with Deep Track or keyframes on the same clip | `edit-function/movement` |
-| G2 | Movement requires a flat aspect ratio (≠ 2:1); 2:1 is required for VR export | `movement`, `instructions-for-vr-...` |
-| G3 | Stats export works with flat video only, and not for Timelapse/Starlapse/TimeShift/Slow Motion/Bullet Time | `dashboard-function` |
-| G4 | Auto Frame: 360 video, > 10 s, not Timelapse/Bullet Time/Slow Motion | `edit-function/auto-frame` |
-| G5 | Deep Track: 360 video only, not Bullet Time/Timelapse | `deep-tracking-function` |
-| G6 | Watermark: original camera media only | `edit-function/watermark` |
-| G7 | Audio: one track, MP3/WAV, no recording | `preference-settings/audio-settings` |
-| G8 | Project files must not be renamed; storage locations and user name must match | `clip-management` |
+- `g3-dashboard-flat` first read `dashboard_setting.enableDashboard` — and flagged 2 clips of a real project,
+  because that flag is `true` with empty data in Studio's own files. The signal is a *configured* dashboard
+  (`dashboardDataId`/`dashboardStyle` non-empty). Now dormant on every project here.
+- A `ratio`/`aspect_ratio_info` consistency rule was **dropped**: the schema's "they mirror each other" came
+  from one observation and 21 real clips falsify it (source ratio vs display ratio are different enums).
+- `markTrimEnd`/`markTrimIn` were not the constants §1 recorded. They are the export range, so a short marker
+  became rule `export-range` (warning) rather than an arithmetic error — and it immediately found a real case.
+
+| # | Rule | Status | Source / evidence |
+|---|---|---|---|
+| G1 | Movement cannot be combined with Deep Track or keyframes on the same clip | ✓ error · dormant here | `edit-function/movement` |
+| G2 | Movement requires a flat aspect ratio (≠ 2:1) | ✓ error · dormant here | `movement` |
+| G3 | Stats works with flat video only | ✓ error (configured dashboard only) | `dashboard-function` |
+| G4 | Auto Frame: 360 video > 10 s | ✓ warning (length half only) | `edit-function/auto-frame` |
+| G5 | Deep Track: 360 video only | ✓ error · dormant here | `deep-tracking-function` |
+| G6 | Watermark: original camera media only | ✗ **unverifiable** — no field distinguishes original from re-encoded | `edit-function/watermark` |
+| G7 | Audio: one track, MP3/WAV, no recording | ◐ the track count is checked; the BGM container does not appear in any observed file | `preference-settings/audio-settings` |
+| G8 | Project files must not be renamed; storage locations must match | ✓ identity/path/deep-track-path rules (warnings) | `clip-management` FW 4 |
+| A1′ | Keyframes require a flat aspect ratio | ✓ error · dormant here | `edit-function/keyframe` |
+| — | Timeline arithmetic, media/LUT/transition payloads on disk, the measured 12-key transition shape | ✓ (three of these found real defects in our own output) | §0, §5, §6, ASSET_CATALOG §2.2 |
+
+The unverifiable half is the part worth remembering: **nothing in the file says "this is a TimeShift clip"**
+(`play_rate_track` is `{}` in every clip, `supplement_frame_type` is unexplained), so "Stats/Deep Track/Auto
+Frame are not for Timelapse or TimeShift" stays unchecked until a clip from such a mode is harvested. `npm run
+check` and the scan (`research/preflight_scan.mjs`) report that rather than passing it.
 
 ### H. Deliberately out of scope
 
@@ -220,8 +239,8 @@ lost export into an immediate answer.
 
 1. ~~**D1 + D2** (log/dump reader)~~ — **done 2026-11-24**: `src/logs.mjs`, `studio_logs` + `studio_dumps`, 8 tests, 93 total. Later expanded: Studio's main log **does** decode now (keystream recovered from the ciphertext, verified per file) and dumps are correlated with it, so a dump says *why* it exists — see §0.
 2. ~~**§0 investigation**~~ — **closed 2026-11-25**: the album (`project_album_info.data`, all four parts) is what makes a built clip attach, and a built project now exports (178 MB, H.264 1652 frames). See the top of §0.
-3. **A1, A2, A3** (keyframes, colour, transitions) — the reframing/editing core, file-based, no GUI risk. A1 is done (`docs/INSPROJ_SCHEMA.md` §7 holds the measured schema); A2 and A3 are next.
-4. **G1–G8** (preflight) — cheap, and it stops every AI/export path from failing late.
+3. ~~**A1, A2, A3** (keyframes, colour, transitions)~~ — **done**: A1 keyframes, A2 filters (`color_adjust_setting` was the wrong target; `effect_filter` is the real one), A3 transitions (the container is the **track**, and Studio's acceptance of a hand-written entry is measured).
+4. ~~**G1–G8** (preflight)~~ — **done 2026-11-26**: `studio_project_check` / `src/preflight.mjs`, 19 rules + 30 tests. Running it over all 13 projects on this machine rewrote three of the rules and found three real defects (a stale Deep Track path in two projects, an export marker that drops the tail of `StefanTest` and `mcpKey`, and the clip framing in our own clones).
 5. **C1, C3, C4** (finish the export matrix) + **B1/B2** (Media page + watermark).
 6. **A4–A8, B3–B5, E2** (E1, E3, E4 are done — `studio_prefs`).
 7. **F1–F4** — one at a time, each is a project in its own right.

@@ -51,8 +51,8 @@ a real value quoted from a real file.
 | `isPanoramic` | boolean | `false` (mcpTest), `true` (360Timelapse) | 360/panoramic project flag. |
 | `lastModifiedTime` | string | `"2026.11.23 22:15:46"` (mcpTest) | Local-time last-save stamp. |
 | `mainMagnetizable` | boolean | `true` | Main-track magnet/snap flag. Exact behaviour **unknown**. |
-| `markTrimEnd` | number | `3441` (mcpTest) | Timeline end marker frame. Equals `frames` in every observed non-empty project. |
-| `markTrimIn` | number | `0` | Timeline in marker frame. `0` in every observed project. |
+| `markTrimEnd` | number | `3441` (mcpTest) | Timeline end marker — the **export range ends here**. It equals `frames` in the projects §1 saw, but **1651 vs 2325 frames** in `StefanTest` and **2216 vs 2270** in `mcpKey`, so a shorter marker is a deliberate export range, not corruption (see §6). |
+| `markTrimIn` | number | `0` | Timeline in marker frame — the **export range starts here**. `0` in most projects, but **67** in `mcpTest`, so it is a settable marker rather than a constant (see §6). |
 | `markTrimVisible` | boolean | `false` | Whether trim markers are shown. |
 | `name` | string | `"mcpTest"` | Project display name (= project folder name). |
 | `projectPath` | string | `"D:/Dokumente/Insta360/Studio/TimelineProject/mcpTest"` | Absolute project directory, **forward slashes**. |
@@ -156,7 +156,7 @@ none added; conversely the older clip is **missing** `asteroidPitchOffset`,
 | `source_left_trim` | number | `0` | Left trim already baked into the source (0 in every observed clip). |
 | `source_right_trim` | number | `0` | Right trim already baked into the source (0 in every observed clip). |
 | `fps` | number | `30` | Source frame rate. |
-| `ratio` | number | `8` | Source/display aspect-ratio enum (mirrors `aspect_ratio_info.current_aspect_ratio`). |
+| `ratio` | number | `8` | Source/display aspect-ratio enum. **Not** a mirror of `aspect_ratio_info.current_aspect_ratio` — an earlier note said it was, on one observation, and 21 real clips falsify it (Lamspringe clip 1 is `ratio:8` with `current_aspect_ratio:3`; mcpMin is `4` with `8`). They are two different enums; do not derive one from the other. |
 | `aspect_ratio_info` | object | `{currentAspectRatio:"8", current_aspect_ratio:8, supportAspectRatios:null, support_aspect_ratios:[8]}` | Aspect-ratio metadata; `current*` is a string enum, `support*` is the allowed list. |
 | `type` | number | `1` | Clip media type. `1` in every observed clip; other values **unknown**. |
 | `subtype` | number | `0` | Clip sub-type. `0` everywhere; **unknown**. |
@@ -403,9 +403,24 @@ Then, for clips `[0..n]` on the video track **in array order**:
 startFrame[0] = 0
 startFrame[k] = startFrame[k-1] + len(clip[k-1])
 frames         = Σ len(clip[k])          (project-level)
-markTrimEnd    = frames
-markTrimIn     = 0
 ```
+
+`markTrimIn`/`markTrimEnd` are **not** part of that arithmetic — they are the *export range*. §1 recorded
+`markTrimEnd = frames` and `markTrimIn = 0` on the projects then at hand; later measurements falsify both as
+constants:
+
+| Project | Σ len = `frames` | `markTrimIn` | `markTrimEnd` | What the markers mean |
+|---|---|---|---|---|
+| mcpTest (all trims 0) | 3441 | 0 | 3441 | whole timeline |
+| mcpAuto | 2652 | 0 | 2652 | whole timeline |
+| Lamspringe (21 clips) | 73281 | 0 | 73281 | whole timeline |
+| StefanTest | 2325 | 0 | **1651** | export stops after the first clip — 674 frames of the timeline are not exported |
+| mcpKey | 2270 | 0 | **2216** | the third clip (2216..2270) sits outside the export range |
+| mcpTest (later state) | 3441 | **67** | 3441 | the export starts 67 frames in |
+
+So a project whose markers are narrower than `frames` is not corrupt — it exports a **subset**, silently. That
+is exactly the kind of thing a preflight has to say out loud (rule `export-range`), and the arithmetic rule
+(Σ len = `frames`, `startFrame` = running sum) is what catches real corruption.
 
 Verified with zero drift on every populated project:
 

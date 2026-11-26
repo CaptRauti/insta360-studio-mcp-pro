@@ -48,6 +48,7 @@ import {
 } from "./project.mjs";
 import { addKeyframe, hasKeyframes, listKeyframes, removeKeyframe, toDegrees, toRadians, transitionNodes } from "./keyframes.mjs";
 import { clipOrder, readTransitionManifest, removeTransition, scanTransitionAssets, setTransition, transitionRoot, transitionState } from "./transitions.mjs";
+import { checkProject, RULES, UNVERIFIABLE } from "./preflight.mjs";
 import { clearFilter, filterRoot, filterState, readFilterManifest, scanInstalledFilters, setFilter } from "./filters.mjs";
 import {
   removeThumbnail,
@@ -758,6 +759,45 @@ tool(
     const result = removeTransition(t, { id, prevClip, nextClip });
     const written = result.removed ? await writeProject(projectPath, data, { backup }) : { written: false };
     return { ...written, ...result, transitions: transitionState(t).transitions };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Preflight — Studio's own rules, checked before the export finds them
+// ---------------------------------------------------------------------------
+
+tool(
+  "studio_project_check",
+  {
+    description:
+      "Check a project against Studio's own rules *before* an export or an AI step fails late. Returns " +
+      "violations with the manual page or measurement each rule comes from, and — just as important — " +
+      "separates what it could not ask: `dormant` rules whose trigger cannot exist in this file, and " +
+      "`unverifiable` rules the manual states but no measured field carries (e.g. nothing in the file " +
+      "says \"this is a TimeShift clip\"). A rule that was not evaluated is never reported as passing. " +
+      "Error-severity findings fail an export or produce a wrong file; warnings are drift (a stale " +
+      "Deep Track path, an export marker that drops the tail, misplaced projectPath). Read-only. " +
+      "Pass rules=true to get the whole catalogue without a project.",
+    inputSchema: {
+      path: z.string().optional().describe("Absolute path to the .insproj file"),
+      paths: z.boolean().optional().describe("Also compare against startup.ini [preference] paths (default true)"),
+      rules: z.boolean().optional().describe("Return the rule catalogue instead of checking a project"),
+      minSeverity: z.enum(["error", "warning"]).optional().describe("Only report findings at this level or above (default warning = all)"),
+    },
+  },
+  async ({ path: projectPath, paths = true, rules = false, minSeverity = "warning" }) => {
+    if (rules) {
+      return {
+        rules: RULES.map((r) => ({ ...r, checkable: true })),
+        unverifiable: UNVERIFIABLE.map((u) => ({ ...u, checkable: false })),
+        counts: { rules: RULES.length, unverifiable: UNVERIFIABLE.length },
+      };
+    }
+    if (!projectPath) throw new Error("path is required (or pass rules=true for the catalogue)");
+    const data = await readProject(projectPath);
+    const result = checkProject(data, { file: projectPath, paths });
+    const violations = minSeverity === "error" ? result.violations.filter((v) => v.severity === "error") : result.violations;
+    return { ...result, violations, summary: { ...result.summary, errors: violations.filter((v) => v.severity === "error").length, warnings: violations.filter((v) => v.severity === "warning").length } };
   },
 );
 

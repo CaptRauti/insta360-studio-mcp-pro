@@ -506,6 +506,22 @@ export function reId(clip, id) {
   return next;
 }
 
+/**
+ * Re-point a clip's Deep Track cache at the project it now belongs to.
+ *
+ * Measured rule: `deep_track.save_path` is `<projectPath>/<name>/<clipId>`, and Studio re-points it when it
+ * opens a project somewhere else (docs/INSPROJ_SCHEMA.md §3(b)). A clone inherits the *template's* path —
+ * the template's project name and the template clip's id — so a project we build would otherwise point its
+ * tracking cache at a directory that belongs to another project. Studio fixes that on open; writing it
+ * right costs nothing and the preflight can then hold every project to the rule.
+ */
+export function repointDeepTrack(clip, { projectPath: projectDir, name } = {}) {
+  if (!clip || !projectDir) return clip;
+  if (!clip.deep_track) return clip;
+  clip.deep_track.save_path = `${projectPath(projectDir)}/${name ?? ""}/${clip.id ?? ""}`;
+  return clip;
+}
+
 /** Attach an external effect/filter package to a clip. */
 export function setEffect(clip, { id, name, resourcePath, opacity = 70 } = {}) {
   clip.effect_filter = {
@@ -745,11 +761,12 @@ export function newProjectFrom(template, { name, projectPath: projectDir, source
   // Cloned clips inherit the template's AI-tracking cache path, which points at
   // the template's project directory. Studio rewrites it on first save; writing
   // the correct path here keeps the file honest before Studio ever sees it.
-  const basePath = (base.projectPath || "").replace(/\\/g, "/").replace(/\/$/, "");
+  //
+  // The last segment must be **the clip's own id** — measured: `<projectPath>/<name>/<clipId>`, and every
+  // Studio-written clip agrees. This used to write a fresh random uuid instead, which matched no clip: the
+  // preflight found two projects carrying such a path (`mcpalb`, `mcpDLrv`).
+  for (const c of video.clips) repointDeepTrack(c, { projectPath: base.projectPath, name: base.name });
   for (const c of video.clips) {
-    if (c.deep_track && typeof c.deep_track === "object") {
-      c.deep_track.save_path = `${basePath}/${base.name}/${crypto.randomUUID().toUpperCase()}`;
-    }
     // Everything below is per-clip *editing* state, not source metadata. The
     // template clip carries whatever was applied to it, and a clone would
     // silently inherit it — measured: a template with a filter on clip 0 made
