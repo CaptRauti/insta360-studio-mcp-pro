@@ -47,7 +47,7 @@ import {
   writeProject,
 } from "./project.mjs";
 import { addKeyframe, hasKeyframes, listKeyframes, removeKeyframe, toDegrees, toRadians, transitionNodes } from "./keyframes.mjs";
-import { readTransitionManifest, scanTransitionAssets, transitionRoot, transitionState } from "./transitions.mjs";
+import { clipOrder, readTransitionManifest, removeTransition, scanTransitionAssets, setTransition, transitionRoot, transitionState } from "./transitions.mjs";
 import { clearFilter, filterRoot, filterState, readFilterManifest, scanInstalledFilters, setFilter } from "./filters.mjs";
 import {
   removeThumbnail,
@@ -476,6 +476,12 @@ const clipAt = (data, track, clip) => {
   return c;
 };
 
+const trackAt = (data, track) => {
+  const t = data.tracks?.[track];
+  if (!t) throw new Error(`No track ${track}; the project has ${data.tracks?.length ?? 0}`);
+  return t;
+};
+
 tool(
   "studio_clip_keyframes",
   {
@@ -680,21 +686,78 @@ tool(
 );
 
 tool(
-  "studio_clip_transitions",
+  "studio_track_transitions",
   {
     description:
-      "Read the transitions a clip carries (its `transitions` array), with every field and whether the payload " +
-      "it names is on disk. Read-only: no project on this machine has a transition, so the shape has never been " +
-      "confirmed against a live test case and this tool deliberately does not write it.",
+      "Read the transitions a **track** carries. The container is the track, not the clip: the documented " +
+      "spec said a clip's `transitions` array, but a scan of 13 projects / 60 clips found none there and the " +
+      "entry Studio actually wrote when a transition was added lives at track.transitions[]. Reports every " +
+      "field, whether the payload it names is on disk, and the track's clip ids in order (the two ends of a " +
+      "transition are adjacent clips on that track).",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      track: z.number().int().optional().describe("Track index (default 0)"),
+    },
+  },
+  async ({ path: projectPath, track = 0 }) => {
+    const data = await readProject(projectPath);
+    const t = trackAt(data, track);
+    return { ...transitionState(t), track, clipIds: clipOrder(t) };
+  },
+);
+
+tool(
+  "studio_track_transition_add",
+  {
+    description:
+      "Add a transition between two adjacent clips on a track, or update the one already on that gap. " +
+      "The entry is written to track.transitions with the twelve keys Studio writes (frames defaulting to 14, " +
+      "the asset's path resolved from resourceId, a fresh instance id). Both clip ids must be adjacent on that " +
+      "track. Note: Studio's own insert also grew the clip list by one (a copy of the following clip) while " +
+      "adding this entry — this tool touches track.transitions and nothing else, so whether Studio needs that " +
+      "extra clip is still unverified. Writes a .bak backup first.",
     inputSchema: {
       path: z.string().describe("Absolute path to the .insproj file"),
       track: z.number().int().optional(),
-      clip: z.number().int().optional(),
+      prevClip: z.string().describe("Id of the earlier clip (clip.id, not the media file)"),
+      nextClip: z.string().describe("Id of the later clip"),
+      resourceId: z.string().describe("Transition asset uuid — see studio_transitions"),
+      frames: z.number().int().optional().describe("Length in frames, 6..60 (default 14)"),
+      dir: z.string().optional().describe("Transition root to resolve the asset against"),
+      backup: z.boolean().optional().describe("Write a .bak copy before saving (default true)"),
     },
   },
-  async ({ path: projectPath, track = 0, clip = 0 }) => {
+  async ({ path: projectPath, track = 0, prevClip, nextClip, resourceId, frames, dir, backup = true }) => {
     const data = await readProject(projectPath);
-    return transitionState(clipAt(data, track, clip));
+    const t = trackAt(data, track);
+    const result = setTransition(t, { prevClip, nextClip, resourceId, frames, root: transitionRoot(dir) });
+    if (!result.ok) return result;
+    const written = result.changed ? await writeProject(projectPath, data, { backup }) : { written: false };
+    return { ...written, ...result, count: transitionState(t).count };
+  },
+);
+
+tool(
+  "studio_track_transition_remove",
+  {
+    description:
+      "Remove a transition from a track, by its instance id or by the pair of clips it joins. " +
+      "Touches track.transitions only. Writes a .bak backup first when something was removed.",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      track: z.number().int().optional(),
+      id: z.string().optional().describe("Transition instance id (transition.id)"),
+      prevClip: z.string().optional().describe("Or: the earlier clip's id"),
+      nextClip: z.string().optional().describe("Or: the later clip's id"),
+      backup: z.boolean().optional(),
+    },
+  },
+  async ({ path: projectPath, track = 0, id, prevClip, nextClip, backup = true }) => {
+    const data = await readProject(projectPath);
+    const t = trackAt(data, track);
+    const result = removeTransition(t, { id, prevClip, nextClip });
+    const written = result.removed ? await writeProject(projectPath, data, { backup }) : { written: false };
+    return { ...written, ...result, transitions: transitionState(t).transitions };
   },
 );
 

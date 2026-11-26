@@ -99,28 +99,40 @@ Example metadata (`0D4E05B5-…json`, read verbatim):
 ```
 (`素材名称`=asset name, `素材类型`=type, `素材大小`=size, `最低支持SDK版本`=min SDK version.)
 
-`.insproj` reference shape — an entry in the clip's `transitions` array (real entry from `mcpAcceptance.insproj`):
+`.insproj` reference shape — an entry in the **track's** `transitions` array:
+
+**Corrected 2026-11-26.** This section used to say a clip's `transitions` array. That is wrong on two
+counts: a scan of 13 projects / 60 clips finds **no** clip-level array, and when a transition was added
+in the editor it appeared at `tracks[i].transitions[]`. A track's keys are
+`audible, clips, id, locked, transitions, type, visible, z`. The entry below was harvested from
+`TimelineProject/mcpKey` minutes after that edit (identical 12 keys to the earlier recorded one, with
+`frames: 14` rather than 60):
 
 ```json
 {
     "defaultFrames": 14,
-    "frames": 60,
-    "id": "4db93c6b-1904-4ecb-bc92-ea16c7191cbf",
+    "frames": 14,
+    "id": "45ba6275-7b7a-4ac1-8930-a62f8b4a8a36",
     "maximumFrames": 60,
     "minimumFrames": 6,
     "name": "",
-    "nextClip": "2f242419-d096-4a83-8b48-31d740a7be51",
+    "nextClip": "A43D8637-4AEC-4775-B23B-0F2DA94B7F20",
     "path": "D:/Dokumente/Insta360/Studio/Download/transition/B9AE47D4-71E3-41F5-A5AA-E605AD3EF092/1794456470000/B9AE47D4-71E3-41F5-A5AA-E605AD3EF092/B9AE47D4-71E3-41F5-A5AA-E605AD3EF092.2.videotransition",
-    "prevClip": "3eaa5081-9bd9-431a-b9d8-d5abf57ee119",
+    "prevClip": "E500ED05-3B4C-4F6F-B514-9307C45BED10",
     "resourceId": "B9AE47D4-71E3-41F5-A5AA-E605AD3EF092",
     "state": 0,
     "type": 2
 }
 ```
 
-`id`/`prevClip`/`nextClip` are per-instance clip UUIDs; `resourceId` is the asset UUID and `path` points
-straight at the `.videotransition` payload. 134 entries in `transition_resource_manifest.json` map
-UUID → version/timestamp.
+`id`/`prevClip`/`nextClip` are per-instance clip UUIDs (and note: clip ids in this file are mixed case —
+`E500ED05-…` next to `8ec0a88e-…` — so never normalise them); `prevClip`/`nextClip` are the two
+**adjacent clips on that track**; `resourceId` is the asset UUID and `path` points straight at the
+`.videotransition` payload. `frames` sits between `minimumFrames` and `maximumFrames` and starts at
+`defaultFrames`. 8 of the 134 manifest entries have a payload on this machine
+(`transition_resource_manifest.json`). The same edit also appended a copy of the following clip to the
+track (2 clips -> 3, project `frames` 2216 -> 2270); the entry does not reference that clip, so whether
+Studio requires it is **unverified**.
 
 ### 2.3 Effects / video FX (`effect\`)
 

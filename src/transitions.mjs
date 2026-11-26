@@ -1,19 +1,24 @@
 /**
- * Clip-to-clip transitions.
+ * Clip-to-clip transitions — **on the track, not on the clip**.
  *
- * **There is no writer here on purpose.** The shape below is recorded from a real entry that an
- * earlier pass found in `mcpAcceptance.insproj` (docs/ASSET_CATALOG.md §2.2), but that project is
- * gone: a scan of all 13 projects / 60 clips on this machine finds **zero** transitions, so a
- * writer would be built against a doc rather than a live file — exactly the mistake that cost a
- * whole pass on `key_frame_track` ("empty in all 25 projects" turned out to be a parser looking in
- * the wrong place). To unblock it: add one transition in Studio's editor (two adjacent clips on a
- * track, click the gap), then harvest the entry.
+ * The recorded spec (docs/ASSET_CATALOG.md §2.2) placed the entry in a clip's `transitions` array.
+ * That is wrong: a scan of all 13 projects and 60 clips finds none there, and when the operator added
+ * a transition in the editor the entry appeared at **`tracks[i].transitions[]`**. A track's keys are
+ * `audible, clips, id, locked, transitions, type, visible, z`, and the file grew by 15 KB. Two earlier
+ * passes looked for `clip.transitions` and a project-level `transitions` — both empty — which is how a
+ * feature got written off as "never used on this machine". Reach for `track.transitions`.
  *
- * The recorded entry, verbatim — 13 keys, all of which a reader must carry through:
+ * The real entry, harvested from mcpKey after that edit (12 keys, matching the recorded shape):
  *
- *   { "defaultFrames": 14, "frames": 60, "id": "<uuid>", "maximumFrames": 60, "minimumFrames": 6,
- *     "name": "", "nextClip": "<uuid of the following clip>", "path": ".../<UUID>.<version>.videotransition",
- *     "prevClip": "<uuid of the preceding clip>", "resourceId": "<asset uuid>", "state": 0, "type": 2 }
+ *   { "defaultFrames": 14, "frames": 14, "id": "45ba6275-…", "maximumFrames": 60, "minimumFrames": 6,
+ *     "name": "", "nextClip": "A43D8637-…", "path": ".../<UUID>.<version>.videotransition",
+ *     "prevClip": "E500ED05-…", "resourceId": "<asset uuid>", "state": 0, "type": 2 }
+ *
+ * `prevClip`/`nextClip` are the ids of two **adjacent clips on that track**; `frames` sits between the
+ * asset's own `minimumFrames` and `maximumFrames` and starts at its `defaultFrames`; `id` is a fresh
+ * uuid per instance while `resourceId` names the asset. The same edit also appended a copy of the
+ * following clip to the track (2 clips -> 3), so an insert is not purely additive to one array —
+ * see `setTransition`'s note.
  *
  * The assets themselves are real and present: `Download/transition/<UUID>/<version>/<UUID>/<UUID>.<version>.videotransition`
  * (an NVAP container) with a cover image, a `.lic`, an **`info.json`** — English `name`
@@ -21,6 +26,7 @@
  * second json that is the same asset's Chinese-localised metadata (`素材名称` = "从右到左-叠化").
  * The English one is preferred; the localised one is kept as a fallback.
  */
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -156,12 +162,11 @@ export function scanTransitionAssets(root = transitionRoot()) {
 }
 
 /**
- * The transitions a clip carries, normalised. Empty on every project here, so this is a reader
- * waiting for its first specimen — it is written to the recorded shape and says plainly whether the
- * payload it names is on disk.
+ * The transitions a **track** carries, normalised. This is the container the file uses; reading a clip
+ * is kept working only to show that the clip has none (see `clipTransitionsAreWrong`).
  */
-export function transitionState(clip) {
-  const list = Array.isArray(clip?.transitions) ? clip.transitions : [];
+export function transitionState(track) {
+  const list = Array.isArray(track?.transitions) ? track.transitions : [];
   return {
     count: list.length,
     transitions: list.map((t) => ({
@@ -181,4 +186,113 @@ export function transitionState(clip) {
       keys: Object.keys(t),
     })),
   };
+}
+
+/** Clip ids in timeline order, which is the order a transition's two ends must be read from. */
+export function clipOrder(track) {
+  return (track?.clips ?? []).map((c) => c.id);
+}
+
+/**
+ * Frames limits. These are **Studio's own values as observed on the one specimen**
+ * (`minimumFrames: 6, maximumFrames: 60, defaultFrames: 14`), not metadata: a transition asset's
+ * `info.json` carries no frame limits at all (category, name, minSdkVersion, supportedAspectRatio,
+ * packageSize, version — that is all), so a caller may override them and this module does not pretend
+ * they come from the asset.
+ */
+export const FRAME_LIMITS = { minimumFrames: 6, maximumFrames: 60, defaultFrames: 14 };
+
+/**
+ * Add or update a transition between two adjacent clips on a track.
+ *
+ * `frames` defaults to `FRAME_LIMITS.defaultFrames` and must sit between the minimum and the maximum.
+ * The two clip ids must be **adjacent on that track**: a transition is by definition between
+ * neighbours, and Studio's own entry names them as `prevClip`/`nextClip`. An entry already between the
+ * same pair is updated in place (its `id` kept), so a caller can change the length without leaving two
+ * transitions on one gap.
+ *
+ * Note on the clip list: Studio's own edit also appended a copy of the following clip (2 clips -> 3,
+ * project frames 2216 -> 2270) while inserting the transition between clips 0 and 1. That extra clip is
+ * **not** referenced by the entry, so it is unclear from one observation whether the app does that or
+ * the operator did — this function therefore touches `track.transitions` and *nothing else*, and says
+ * so in its result rather than guessing.
+ */
+export function setTransition(track, { prevClip, nextClip, resourceId, frames, limits = {}, root } = {}) {
+  if (!track || typeof track !== "object") throw new Error("setTransition needs a track object");
+  const order = clipOrder(track);
+  const pi = order.indexOf(prevClip);
+  const ni = order.indexOf(nextClip);
+  if (pi < 0 || ni < 0) {
+    return { ok: false, error: `both clips must be on this track; it has ${order.length}: ${order.join(", ")}` };
+  }
+  if (ni !== pi + 1) {
+    return { ok: false, error: `a transition joins adjacent clips, but ${prevClip} is at ${pi} and ${nextClip} at ${ni}` };
+  }
+  const asset = scanTransitionAssets(root).find((a) => a.resourceId === resourceId);
+  if (!asset) {
+    const known = scanTransitionAssets(root).map((a) => a.resourceId);
+    return { ok: false, error: `no installed transition with resourceId ${resourceId}`, known };
+  }
+  const { minimumFrames: min, maximumFrames: max, defaultFrames: def } = { ...FRAME_LIMITS, ...limits };
+  const wanted = frames ?? def;
+  if (wanted < min || wanted > max) {
+    return { ok: false, error: `frames must be between ${min} and ${max} for this asset, got ${wanted}` };
+  }
+
+  if (!Array.isArray(track.transitions)) track.transitions = [];
+  const existing = track.transitions.find((t) => t.prevClip === prevClip && t.nextClip === nextClip);
+  if (existing) {
+    const before = JSON.stringify(existing);
+    existing.frames = wanted;
+    existing.resourceId = asset.resourceId;
+    existing.path = asset.payload;
+    return {
+      ok: true,
+      changed: before !== JSON.stringify(existing),
+      updated: existing.id,
+      transition: existing,
+      clipCountChanged: false,
+      note: "updated the transition already on this gap; the clip list was not touched",
+    };
+  }
+
+  const entry = {
+    defaultFrames: def,
+    frames: wanted,
+    id: crypto.randomUUID(),
+    maximumFrames: max,
+    minimumFrames: min,
+    name: "",
+    nextClip,
+    path: asset.payload,
+    prevClip,
+    resourceId: asset.resourceId,
+    state: 0,
+    type: 2,
+  };
+  track.transitions.push(entry);
+  return {
+    ok: true,
+    changed: true,
+    added: entry.id,
+    transition: entry,
+    assetName: asset.name,
+    clipCountChanged: false,
+    note:
+      "added to track.transitions only. Studio's own insert also grew the clip list by one (a copy of the " +
+      "following clip); whether the app requires that is unverified, so the next step is a read-back after " +
+      "Studio opens this project",
+  };
+}
+
+/** Remove a transition, by id or by the clip pair it joins. */
+export function removeTransition(track, { id, prevClip, nextClip } = {}) {
+  if (!Array.isArray(track?.transitions)) return { ok: true, removed: 0, count: 0 };
+  const before = track.transitions.length;
+  track.transitions = track.transitions.filter((t) => {
+    if (id) return t.id !== id;
+    if (prevClip && nextClip) return !(t.prevClip === prevClip && t.nextClip === nextClip);
+    return true;
+  });
+  return { ok: true, removed: before - track.transitions.length, count: track.transitions.length };
 }
