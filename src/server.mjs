@@ -46,6 +46,7 @@ import {
   trimClip,
   writeProject,
 } from "./project.mjs";
+import { addKeyframe, hasKeyframes, listKeyframes, removeKeyframe, toDegrees, toRadians, transitionNodes } from "./keyframes.mjs";
 import {
   removeThumbnail,
   requestThumbnail,
@@ -456,6 +457,113 @@ tool(
     const trim = trimClip(data, { track, clip }, { leftTrim, rightTrim });
     const written = await writeProject(projectPath, data, { backup });
     return { ...written, ...trim };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// 360 view keyframes
+//
+// The track is Studio's own `key_frame_track.node_list`, measured from a project Studio
+// wrote with the right-drag gesture (docs/INSPROJ_SCHEMA.md §7). Keyframes are addressed
+// by their time on the clip, in frames.
+// ---------------------------------------------------------------------------
+
+const clipAt = (data, track, clip) => {
+  const c = data.tracks?.[track]?.clips?.[clip];
+  if (!c) throw new Error(`No clip at track ${track} index ${clip}`);
+  return c;
+};
+
+tool(
+  "studio_clip_keyframes",
+  {
+    description:
+      "List the 360 view keyframes on a clip, with the transition nodes between them. Angles are returned " +
+      "in radians and in degrees; `time` is a frame number on the clip. An empty list means no keyframes.",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      track: z.number().int().optional().describe("Track index (default 0)"),
+      clip: z.number().int().optional().describe("Clip index within the track (default 0)"),
+    },
+  },
+  async ({ path: projectPath, track = 0, clip = 0 }) => {
+    const data = await readProject(projectPath);
+    const c = clipAt(data, track, clip);
+    const keyframes = listKeyframes(c);
+    return {
+      path: projectPath,
+      track,
+      clip,
+      url: c.url,
+      enableUserKeyframe: c.enable_user_keyframe ?? null,
+      hasKeyframes: hasKeyframes(c),
+      count: keyframes.length,
+      keyframes,
+      transitions: transitionNodes(c).map((t) => ({ name: t.name, from: t.from, to: t.to, type: t.type })),
+      raw: c.key_frame_track ?? {},
+    };
+  },
+);
+
+tool(
+  "studio_clip_keyframe_add",
+  {
+    description:
+      "Add a 360 view keyframe to a clip, or update the one already at that time. Inserting between two " +
+      "keyframes splits their transition node in two, mirroring what Studio does itself; a transition node " +
+      "that already exists between a surviving pair is kept unchanged, because its point values are the only " +
+      "per-transition data in the file. Writes a .bak backup first.",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      track: z.number().int().optional(),
+      clip: z.number().int().optional(),
+      time: z.number().describe("Frame number on the clip — the keyframe's identity"),
+      pan: z.number().describe("Horizontal view angle (yaw)"),
+      tilt: z.number().describe("Vertical view angle (pitch)"),
+      roll: z.number().optional().describe("Roll angle (default 0)"),
+      fov: z.number().optional().describe("Field of view (default 75° converted to radians)"),
+      distance: z.number().optional().describe("Camera distance (default 0.6, Studio's own)"),
+      degrees: z.boolean().optional().describe("Treat pan/tilt/roll/fov as degrees instead of radians"),
+      backup: z.boolean().optional().describe("Write a .bak copy before saving (default true)"),
+    },
+  },
+  async ({ path: projectPath, track = 0, clip = 0, time, pan, tilt, roll, fov, distance, degrees = false, backup = true }) => {
+    const data = await readProject(projectPath);
+    const c = clipAt(data, track, clip);
+    const conv = degrees ? toRadians : (v) => v;
+    const result = addKeyframe(c, {
+      time,
+      pan: conv(pan),
+      tilt: conv(tilt),
+      roll: degrees && roll != null ? toRadians(roll) : roll,
+      fov: degrees && fov != null ? toRadians(fov) : fov,
+      distance,
+    });
+    const written = await writeProject(projectPath, data, { backup });
+    return { ...written, ...result, keyframes: listKeyframes(c), nodeTypes: (c.key_frame_track?.node_list ?? []).map((n) => n.node_type) };
+  },
+);
+
+tool(
+  "studio_clip_keyframe_remove",
+  {
+    description:
+      "Remove the 360 view keyframe at a time on a clip, together with the transition nodes that pointed at " +
+      "it, and link the surviving neighbours. Writes a .bak backup first.",
+    inputSchema: {
+      path: z.string().describe("Absolute path to the .insproj file"),
+      track: z.number().int().optional(),
+      clip: z.number().int().optional(),
+      time: z.number().describe("Frame number on the clip"),
+      backup: z.boolean().optional(),
+    },
+  },
+  async ({ path: projectPath, track = 0, clip = 0, time, backup = true }) => {
+    const data = await readProject(projectPath);
+    const c = clipAt(data, track, clip);
+    const result = removeKeyframe(c, { time });
+    const written = await writeProject(projectPath, data, { backup });
+    return { ...written, ...result, keyframes: listKeyframes(c), nodeTypes: (c.key_frame_track?.node_list ?? []).map((n) => n.node_type) };
   },
 );
 
