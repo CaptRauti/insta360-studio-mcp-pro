@@ -163,11 +163,35 @@ export function capture({ title = DEFAULT_WINDOW_TITLE, mode = "print", out } = 
 }
 
 /** Click at window-relative coordinates. */
-export function click({ title = DEFAULT_WINDOW_TITLE, x, y, double = false } = {}) {
+export function click({ title = DEFAULT_WINDOW_TITLE, x, y, double = false, button = "left" } = {}) {
   if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error("click needs numeric x and y");
   const action = double ? "dblclick" : "click";
-  const r = runPs(WIN32_PS1, ["-Action", action, "-Title", title, "-X", String(Math.round(x)), "-Y", String(Math.round(y))]);
+  const args = ["-Action", action, "-Title", title, "-X", String(Math.round(x)), "-Y", String(Math.round(y))];
+  // Studio creates a view keyframe from a right-button gesture, so the button has to
+  // reach the helper; it is not a detail the caller can drop.
+  if (button && button !== "left") args.push("-Button", button);
+  const r = runPs(WIN32_PS1, args);
   if (!r || r.ok === false) throw new Error(`click failed at ${x},${y}`);
+  return r;
+}
+
+/**
+ * Right-button drag, which is how Studio sets a view keyframe.
+ *
+ * A right click alone only raises the context menu: the gesture that writes a
+ * keyframe is press-drag-release over the preview ("Halte die rechte Maustaste
+ * gedrückt und ziehe, um die Ansicht mit Keyframes festzulegen"), so the moves
+ * between the two are the operation, not padding.
+ */
+export function rightDrag({ title = DEFAULT_WINDOW_TITLE, from, to, settleMs = 1500 } = {}) {
+  if (!from || !to) throw new Error("rightDrag needs {from:{x,y}, to:{x,y}}");
+  const r = runPs(WIN32_PS1, [
+    "-Action", "rightdrag", "-Title", title,
+    "-X", String(Math.round(from.x)), "-Y", String(Math.round(from.y)),
+    "-ToX", String(Math.round(to.x)), "-ToY", String(Math.round(to.y)),
+    "-SleepMs", String(settleMs),
+  ]);
+  if (!r || r.ok === false) throw new Error(`rightDrag failed ${from.x},${from.y} -> ${to.x},${to.y}`);
   return r;
 }
 

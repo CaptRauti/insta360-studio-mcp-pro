@@ -288,7 +288,7 @@ export async function openProjectAt(target, { title = DEFAULT_WINDOW_TITLE, sett
       const ready = await waitForLibrary({ title });
       if (!ready.ok) return { ok: false, error: ready.error, registered: true };
     }
-    const opened = await openProjectGui(name, { title, settleMs });
+    const opened = await openProjectGui(name, { title, settleMs, verifyFile: resolved.file });
     return { ...opened, registered: true, restarted: false, name };
   }
 
@@ -332,7 +332,7 @@ export async function openProjectAt(target, { title = DEFAULT_WINDOW_TITLE, sett
   const ready = await waitForLibrary({ title });
   if (!ready.ok) return { ok: false, error: ready.error, registered: true, name, registration: reg };
 
-  const opened = await openProjectGui(name, { title, settleMs });
+  const opened = await openProjectGui(name, { title, settleMs, verifyFile: resolved.file });
   return {
     ...opened,
     registered: true,

@@ -29,7 +29,13 @@ param(
   # WindowFromPoint z-order lookup. Use when an always-on-top window covers the
   # target (the lookup then resolves the coverer however often the target is
   # re-pinned), or to verify the message sequence against a window of your own.
-  [switch]$Direct
+  [switch]$Direct,
+  # "left" (default) or "right". Studio creates a view keyframe from a right-button
+  # gesture, so the button is part of the gesture and not a detail of the caller.
+  [ValidateSet("left", "right")][string]$Button = "left",
+  # Drag destination, client coordinates, for -Action rightdrag.
+  [int]$ToX = -1,
+  [int]$ToY = -1
 )
 
 $ErrorActionPreference = "Stop"
@@ -231,16 +237,17 @@ function Set-Topmost($hwnd) {
 # Click by message instead of by cursor. The user keeps their mouse: nothing
 # moves the pointer, nothing takes the foreground, and the click still lands
 # because the messages are delivered to the window under the point.
-function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double, [bool]$direct = $false) {
+function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double, [bool]$direct = $false, [string]$button = "left") {
   $WM_MOUSEMOVE = 0x0200
-  $WM_LBUTTONDOWN = 0x0201
-  $WM_LBUTTONUP = 0x0202
+  # Left and right are different messages, not different wParam values.
+  $downMsg = $(if ($button -eq "right") { 0x0204 } else { 0x0201 })   # WM_(R|L)BUTTONDOWN
+  $upMsg = $(if ($button -eq "right") { 0x0205 } else { 0x0202 })     # WM_(R|L)BUTTONUP
+  $downState = $(if ($button -eq "right") { [IntPtr]2 } else { [IntPtr]1 })
   # A double click is a *message*, not two clicks: the OS raises
   # WM_LBUTTONDBLCLK only for real mouse input, and CEF/Qt widgets that act on a
   # double click wait for exactly that message. Sending DOWN/UP twice looks like
   # two single clicks and opens nothing.
   $WM_LBUTTONDBLCLK = 0x0203
-  $MK_LBUTTON = [IntPtr]1
   if ($direct) {
     # -Direct: the caller named the window, so the point is already client-relative
     # and the z-order lookup is skipped. Needed when an always-on-top window covers
@@ -262,16 +269,60 @@ function Send-MessageClick([IntPtr]$top, [int]$relX, [int]$relY, [bool]$double, 
   $lp = [IntPtr]((($cy -band 0xFFFF) -shl 16) -bor ($cx -band 0xFFFF))
   [void][W32]::SendMessage($child, $WM_MOUSEMOVE, [IntPtr]::Zero, $lp)
   Start-Sleep -Milliseconds 30
-  [void][W32]::SendMessage($child, $WM_LBUTTONDOWN, $MK_LBUTTON, $lp)
+  [void][W32]::SendMessage($child, $downMsg, $downState, $lp)
   Start-Sleep -Milliseconds 45
-  [void][W32]::SendMessage($child, $WM_LBUTTONUP, [IntPtr]::Zero, $lp)
-  if ($double) {
+  [void][W32]::SendMessage($child, $upMsg, [IntPtr]::Zero, $lp)
+  if ($double -and $button -eq "left") {
     Start-Sleep -Milliseconds 60
-    [void][W32]::SendMessage($child, $WM_LBUTTONDBLCLK, $MK_LBUTTON, $lp)
+    [void][W32]::SendMessage($child, $WM_LBUTTONDBLCLK, $downState, $lp)
     Start-Sleep -Milliseconds 45
-    [void][W32]::SendMessage($child, $WM_LBUTTONUP, [IntPtr]::Zero, $lp)
+    [void][W32]::SendMessage($child, $upMsg, [IntPtr]::Zero, $lp)
   }
   return @{ mode = $style; child = [int64]$child; cx = $cx; cy = $cy }
+}
+
+# Right-button drag as window messages: DOWN, a stream of MOVEs with the button held,
+# UP. The moves are what make it a drag rather than a click -- Studio's own guide says
+# "Halte die rechte Maustaste gedrückt und ziehe, um die Ansicht mit Keyframes
+# festzulegen", so the gesture *is* the operation and a right click alone only gives
+# the context menu. Steps of ~8px are enough for CEF, which samples the pointer path.
+function Send-MessageRightDrag([IntPtr]$top, [int]$relX, [int]$relY, [int]$toX, [int]$toY, [bool]$direct = $false) {
+  $WM_MOUSEMOVE = 0x0200
+  $WM_RBUTTONDOWN = 0x0204
+  $WM_RBUTTONUP = 0x0205
+  $MK_RBUTTON = [IntPtr]2
+  if ($direct) {
+    $child = $top
+    $baseX = 0
+    $baseY = 0
+    $style = "direct"
+  } else {
+    $found = Resolve-ChildPinned $top $relX $relY
+    $child = $found.child
+    $cr = Get-WinRect $child
+    $baseX = $cr.Left
+    $baseY = $cr.Top
+    $style = $(if ($found.pinned) { "message-pinned" } else { "message" })
+  }
+  $sx = $relX - $baseX
+  $sy = $relY - $baseY
+  $ex = $toX - $baseX
+  $ey = $toY - $baseY
+  $lpAt = { param($x, $y) [IntPtr](((($y) -band 0xFFFF) -shl 16) -bor (($x) -band 0xFFFF)) }
+  [void][W32]::SendMessage($child, $WM_MOUSEMOVE, [IntPtr]::Zero, (& $lpAt $sx $sy))
+  Start-Sleep -Milliseconds 40
+  [void][W32]::SendMessage($child, $WM_RBUTTONDOWN, $MK_RBUTTON, (& $lpAt $sx $sy))
+  Start-Sleep -Milliseconds 60
+  $steps = [Math]::Max(6, [int]([Math]::Sqrt([Math]::Pow($ex - $sx, 2) + [Math]::Pow($ey - $sy, 2)) / 8))
+  for ($i = 1; $i -le $steps; $i++) {
+    $x = [int][Math]::Round($sx + ($ex - $sx) * $i / $steps)
+    $y = [int][Math]::Round($sy + ($ey - $sy) * $i / $steps)
+    [void][W32]::SendMessage($child, $WM_MOUSEMOVE, $MK_RBUTTON, (& $lpAt $x $y))
+    Start-Sleep -Milliseconds 25
+  }
+  Start-Sleep -Milliseconds 60
+  [void][W32]::SendMessage($child, $WM_RBUTTONUP, [IntPtr]::Zero, (& $lpAt $ex $ey))
+  return @{ mode = $style; child = [int64]$child; from = @{ x = $sx; y = $sy }; to = @{ x = $ex; y = $ey }; steps = $steps }
 }
 
 # Type text into the window under a point as WM_CHAR messages.
@@ -372,7 +423,7 @@ switch ($Action) {
   }
   "click" {
     if ($Quiet) {
-      $res = Send-MessageClick $h $X $Y $false $Direct
+      $res = Send-MessageClick $h $X $Y $false $Direct $Button
       Start-Sleep -Milliseconds $SleepMs
       $info.action = "click"
       $info.clicked = @{ relx = $X; rely = $Y; child = $res.child; cx = $res.cx; cy = $res.cy }
@@ -397,7 +448,7 @@ switch ($Action) {
   }
   "dblclick" {
     if ($Quiet) {
-      $res = Send-MessageClick $h $X $Y $true $Direct
+      $res = Send-MessageClick $h $X $Y $true $Direct $Button
       Start-Sleep -Milliseconds $SleepMs
       $info.action = "dblclick"
       $info.clicked = @{ relx = $X; rely = $Y; child = $res.child; cx = $res.cx; cy = $res.cy }
@@ -419,6 +470,43 @@ switch ($Action) {
     Start-Sleep -Milliseconds $SleepMs
     $info.action = "dblclick"
     $info.clicked = @{ x = $ax; y = $ay; relx = $X; rely = $Y }
+    if (-not $Pin) { Clear-Topmost $h }
+    Write-Output ($info | ConvertTo-Json -Compress)
+  }
+  "rightdrag" {
+    if ($ToX -lt 0 -or $ToY -lt 0) {
+      Write-Output (@{ ok = $false; error = "rightdrag needs -ToX and -ToY" } | ConvertTo-Json -Compress)
+      break
+    }
+    if ($Quiet) {
+      $res = Send-MessageRightDrag $h $X $Y $ToX $ToY $Direct
+      Start-Sleep -Milliseconds $SleepMs
+      $info.action = "rightdrag"
+      $info.drag = @{ from = $res.from; to = $res.to; steps = $res.steps; child = $res.child }
+      $info.style = $res.mode
+      Write-Output ($info | ConvertTo-Json -Compress)
+      break
+    }
+    Set-Foreground $h
+    Start-Sleep -Milliseconds 120
+    $ax = $rect.Left + $X
+    $ay = $rect.Top + $Y
+    $bx = $rect.Left + $ToX
+    $by = $rect.Top + $ToY
+    [void][W32]::SetCursorPos($ax, $ay)
+    Start-Sleep -Milliseconds 60
+    [W32]::mouse_event(0x0008, 0, 0, 0, [IntPtr]::Zero)   # RIGHTDOWN
+    Start-Sleep -Milliseconds 80
+    $steps = [Math]::Max(6, [int]([Math]::Sqrt([Math]::Pow($bx - $ax, 2) + [Math]::Pow($by - $ay, 2)) / 8))
+    for ($i = 1; $i -le $steps; $i++) {
+      [void][W32]::SetCursorPos($ax + [int](($bx - $ax) * $i / $steps), $ay + [int](($by - $ay) * $i / $steps))
+      Start-Sleep -Milliseconds 25
+    }
+    Start-Sleep -Milliseconds 60
+    [W32]::mouse_event(0x0010, 0, 0, 0, [IntPtr]::Zero)   # RIGHTUP
+    Start-Sleep -Milliseconds $SleepMs
+    $info.action = "rightdrag"
+    $info.drag = @{ from = @{ x = $ax; y = $ay }; to = @{ x = $bx; y = $by }; steps = $steps }
     if (-not $Pin) { Clear-Topmost $h }
     Write-Output ($info | ConvertTo-Json -Compress)
   }

@@ -52,7 +52,7 @@ if (tab) {
 }
 
 screen = readScreen({});
-const label = findLabel(screen.words, name, { yMin: 250 }) ?? findWord(screen.words, name, { exact: false, yMin: 250 });
+const label = findLabel(screen.words, name, { yMin: 150 }) ?? findWord(screen.words, name, { exact: false, yMin: 150 });
 if (!label) {
   console.log(`no card label for ${name}: ${(screen.words ?? []).map((w) => `${Math.round(w.x)},${Math.round(w.y)}:${w.text}`).join(" | ")}`);
   process.exit(1);

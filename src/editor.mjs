@@ -194,20 +194,60 @@ export function findLabel(found, text, { yMin = 0, yTol = 8, maxGap = 60 } = {})
  * empty space above the card and nothing happened). The card centre is derived
  * from the label box, `heightAbove` up from the label's top.
  */
-export async function openProject(name, { title = DEFAULT_WINDOW_TITLE, cardOffsets = [21, 30, 40, 55], settleMs = 12000 } = {}) {
-  // Make sure the library is showing.
+export async function openProject(name, { title = DEFAULT_WINDOW_TITLE, cardOffsets = [21, 30, 40, 55], settleMs = 12000, verifyFile = null } = {}) {
+  const existsSync = (await import("node:fs")).existsSync;
+  const statSync = (await import("node:fs")).statSync;
+  const mtimeOf = (f) => {
+    try {
+      return f && existsSync(f) ? statSync(f).mtimeMs : null;
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * The card to click, preferring the library grid over the page list.
+   *
+   * The left sidebar also shows project names (it is the project list), and clicking
+   * there switches project as a side effect — so a naive first match can click the
+   * wrong thing. The grid sits right of the list, which is what the x-sort encodes.
+   * The y floor is 120: on the 1384x900 layout the first card row is at y≈242, and a
+   * 250 floor (taken from a taller window) filtered every card out.
+   */
+  const pickCard = (words) => {
+    const cands = [];
+    const span = findLabel(words, name, { yMin: 120 });
+    if (span) cands.push(span);
+    for (const w of findAll(words, name, { exact: false })) {
+      if ((w.raw?.y ?? 0) > 120) cands.push(w);
+    }
+    if (!cands.length) return null;
+    cands.sort((a, b) => b.x - a.x);
+    return cands[0];
+  };
+
+  // Make sure the library grid is showing. The page can be anywhere — the editor, the
+  // media library — and "Projektbibliothek" is on screen in the *sidebar* even then,
+  // so its presence alone does not prove the grid is up (it used to be treated as if
+  // it did). Click the entry and look again.
   let screen = readScreen({ title });
   if (!screen.ok) return { ok: false, error: screen.error };
-
-  if (!findWord(screen.words, "Projektbibliothek", { exact: false })) {
-    return { ok: false, error: "project library not on screen" };
-  }
-  // A card caption can be split across words by the OCR, so try the spanning
-  // match first and keep the single-word lookup as a fallback.
-  const label = findLabel(screen.words, name, { yMin: 250 }) ?? findWord(screen.words, name, { exact: false, yMin: 250 });
+  let wentToLibrary = false;
+  let label = pickCard(screen.words);
   if (!label) {
-    const names = screen.words.filter((w) => w.y > 250 && w.y < 500).map((w) => w.text);
-    return { ok: false, error: `project "${name}" not in library`, visible: names };
+    const entry = findAll(screen.words, "Projektbibliothek", { exact: false })[0];
+    if (entry) {
+      click({ title, x: entry.x, y: entry.y });
+      await sleep(3000);
+      screen = readScreen({ title });
+      if (!screen.ok) return { ok: false, error: screen.error };
+      label = pickCard(screen.words);
+      wentToLibrary = true;
+    }
+  }
+  if (!label) {
+    const visible = (screen.words ?? []).filter((w) => w.y > 120).map((w) => w.text);
+    return { ok: false, error: `project "${name}" not in library`, visible, wentToLibrary };
   }
 
   // The caption sits *below* the thumbnail, so the click target is above the
@@ -216,15 +256,48 @@ export async function openProject(name, { title = DEFAULT_WINDOW_TITLE, cardOffs
   // between thumbnail and caption and opens nothing, while label.y-21 is inside
   // the thumbnail and opens the project. Offsets are tried in order and each one
   // is verified, so a layout change costs time instead of silently failing.
+  //
+  // "Is the editor up" is not enough: with the library list still on screen a click
+  // that lands one row off opens a *different* project and the editor appears anyway
+  // — observed, and it reported "opened ✓" for the wrong project. So each attempt
+  // must also show the requested name, or rewrite the requested project file (Studio
+  // autosaves a project it has loaded, which dates the file).
   const cardX = label.x;
   const tried = [];
-  for (const dy of cardOffsets) {
+  const mtimeBefore = mtimeOf(verifyFile);
+
+  // The thumbnail sits above the caption by half the row pitch, not by a constant.
+  // The same 21px caption offset that opens a project on the start page does nothing
+  // on the library page, where the grid is tall cards 170px apart and the card centre
+  // is ~85px above the caption — measured on the 1384x900 window: 82 opened the
+  // project, 16…31 did not. So derive the pitch from the neighbouring captions in the
+  // same column and keep the fixed list as the fallback for a single-row grid.
+  const columnY = [
+    ...new Set(
+      (screen.words ?? [])
+        .filter((w) => Math.abs(w.x + (w.w ?? 0) / 2 - cardX) < 70 && w.y > 150)
+        .map((w) => Math.round(w.y)),
+    ),
+  ].sort((a, b) => a - b);
+  const gaps = [];
+  for (let i = 1; i < columnY.length; i++) gaps.push(columnY[i] - columnY[i - 1]);
+  const pitch = gaps.filter((g) => g > 60 && g < 300).sort((a, b) => a - b)[0];
+  const offsets = pitch ? [Math.round(pitch / 2), ...cardOffsets] : [...cardOffsets];
+
+  for (const dy of offsets) {
     const cardY = Math.round(label.raw.y - dy);
     const reply = click({ title, x: cardX, y: cardY, double: true });
     await sleep(settleMs);
     screen = readScreen({ title });
     if (!screen.ok) return { ok: false, error: screen.error };
-    if (looksLikeEditor(screen.words)) {
+    if (!looksLikeEditor(screen.words)) {
+      tried.push(cardY);
+      continue;
+    }
+    const named = (screen.words ?? []).some((w) => String(w.text).toLowerCase().includes(name.toLowerCase()));
+    const mtimeAfter = mtimeOf(verifyFile);
+    const rewritten = mtimeBefore != null && mtimeAfter != null && mtimeAfter > mtimeBefore;
+    if (named || rewritten) {
       // `style` says how the click was delivered: "message" is the plain quiet
       // path, "message-pinned" means another window covered the card and the
       // window had to be pinned topmost for the click (see Resolve-ChildPinned).
@@ -234,6 +307,8 @@ export async function openProject(name, { title = DEFAULT_WINDOW_TITLE, cardOffs
         clicked: { x: cardX, y: cardY },
         offset: dy,
         style: reply?.style ?? null,
+        verifiedBy: named ? "project name on screen" : "project file rewritten",
+        wentToLibrary: wentToLibrary || undefined,
         text: screen.text.slice(0, 400),
       };
     }
@@ -245,6 +320,7 @@ export async function openProject(name, { title = DEFAULT_WINDOW_TITLE, cardOffs
     error: `project "${name}" did not open`,
     label: { x: cardX, y: Math.round(label.raw.y) },
     tried,
+    wentToLibrary: wentToLibrary || undefined,
     text: screen.text.slice(0, 400),
   };
 }
