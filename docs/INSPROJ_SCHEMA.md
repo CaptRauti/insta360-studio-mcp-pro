@@ -189,7 +189,7 @@ none added; conversely the older clip is **missing** `asteroidPitchOffset`,
 | `original_camera_transform` | object | identical to `camera_transform` in mcpTest | Pre-edit camera transform (baseline for reset). |
 | `camera_movement` | object | see below | Camera-movement template container. |
 | `head_track` | object | see below | Head-tracking container. |
-| `key_frame_track` | object | `{}` | User keyframes. **Empty `{}` in all 25 projects on this machine** — see the section below for the candidate schema recovered from the binary. |
+| `key_frame_track` | object | `{}` | User keyframes, as `{ node_list: [...] }`. `{}` on a clip that has none. **Measured** — see the section below for the real shape and how it was written. |
 | `play_rate_track` | object | `{}` | Speed/slow-motion track. **Empty `{}` in every observed clip** — semantics **unknown**. |
 | `deep_track` | object | see below | AI tracking cache, keyed to the project directory. |
 | `time_watermark` | object | `{enableTimeWatermark:false, timeWatermarkFormat:2, timeWatermarkTransparency:100}` | Per-clip time watermark. |
@@ -494,44 +494,81 @@ mismatch shifts or overlaps clips.)
   (`D:\\Dokumente\\…\\HD Fireworks.cube.binary` in mcpAuto/mcpE2E/mcpAcceptance).
   Expect Studio to normalise separators on save.
 
-### `key_frame_track` — candidate schema, recovered from the binary (unverified)
+### `key_frame_track` — measured, from a project Studio wrote itself
 
-**Status: hypothesis, not measurement.** `key_frame_track` is `{}` in all 25 projects on
-this machine, so there is no row to read. What exists is the string table of
-`Insta360 Studio.exe` — the `.insproj` is written by Studio's own C++ serialiser, so
-every JSON key is a literal in that binary, and the literals of one struct sit together.
-`research/jsonkey_neighbours.py` prints a literal's neighbourhood; the table at
-`0x077ca2xx` (a view/pose) and `0x077ca5xx` (a track) is adjacent to `collectComments`,
-a `jsoncpp` member, which is what identifies the region as a JSON parser's key set:
+**Status: measurement.** Studio's `node_list` is the whole structure. Written by driving
+the real gesture — a right-drag over the preview (`-Action rightdrag`, verified at the
+message level by `npm run probe:click-spy`) — on `mcpKey`'s 360 clip, with the playhead
+walked 237 frames between the two drags:
 
+```json
+{
+  "node_list": [
+    { "auto_fov": 0, "distance": 0.6, "fov": 1.3089969158172607, "is_headtrack": 0,
+      "name": "2d10b3d2-13d3-4e6f-9340-7ab44ae11427", "node_type": 0,
+      "pan": 5.8697829246521, "roll": 0, "src_time": 0, "state": 7,
+      "tilt": 1.8574974536895752, "time": 0 },
+    { "name": "2d10b3d2-…-6f34bd2c-7a8c-413d-85d6-1c1310c161a7", "node_type": 1,
+      "point1X": 0.5, "point1Y": 0.5, "point2X": 0.5, "point2Y": 0.5, "type": 1 },
+    { "auto_fov": 0, "distance": 0.6, "fov": 1.3089969158172607, "is_headtrack": 0,
+      "name": "6f34bd2c-7a8c-413d-85d6-1c1310c161a7", "node_type": 0,
+      "pan": 6.187706470489502, "roll": 0, "src_time": 237, "state": 7,
+      "tilt": 1.716198444366455, "time": 237 }
+  ]
+}
 ```
-id, fov, distance, yaw, pitch, roll            → a view (the same names as camera_transform)
-timeRatio, target, states, to, version,
-startTime, linear, endTime, targets,
-transitions, smooth                             → a track/stage
-slip_in_slip_out, fade_in_fade_out,
-slip_in_fade_out, fade_in_slip_out              → transition curve names
-```
 
-The last four match the `clip.keyframe.*` entries in `translations/de-DE.json`
-(`Nichts`, `Gleichmäßige Überblendung` are the remaining curves), so they are almost
-certainly this struct's `transitions` values.
+Facts this settles, all of them things the earlier hypothesis got wrong:
 
-**Do not write a builder against this yet.** Two traps the skill has already been bitten
-by apply here: a plausible-looking key set silently mis-serialises, and a track whose
-real shape is `states[]`/`targets[]` may need more than per-keyframe poses. Harvest the
-truth first — a project Studio wrote with keyframes is the authority, and
-`research/keyframe_probe.mjs` finds it and prints the keys flat:
+- The container is `node_list`, **not** `target`/`targets`/`states`. There is no
+  `timeRatio` and no top-level `version`.
+- A view keyframe is `node_type: 0` with **`pan`, `tilt`, `roll`** — the same names
+  `camera_transform` uses inside a different wrapper, and **radians**, not the
+  `eulers.{pitch,yaw,roll}` sub-objects of `camera_transform`. `pan` is the yaw.
+- The transition between two keyframes is a **separate node in the same list**:
+  `node_type: 1` with `point1X/Y`, `point2X/Y` (all `0.5`, the centre) and `type: 1`.
+  Its `name` is **`"<fromUuid>-<toUuid>"`** — the two neighbouring keyframes' names joined
+  by a hyphen, which is how a track knows what follows what. The trajectory lives between
+  the two `node_type: 0` entries, not in a side list.
+- `time` and `src_time` are **frame numbers on the clip** (237 after walking 237 frames),
+  and the first node is at 0. They are equal in both nodes.
+- Per-node camera: `distance` (0.6) and `fov` (1.3089969158172607 = exactly 75°), `state: 7`,
+  `auto_fov: 0`, `is_headtrack: 0`. `name` is a fresh UUID for each keyframe node.
+- `clip.enable_user_keyframe` was `true` on the clip that carries a track — a clip with
+  keyframes says so, so a reader should check both.
+- `key_frame_track` is `{}` on a clip with no keyframes (which is every clip before the
+  first drag), so "empty" means "no keyframes", not "unreadable".
+
+The transition **curve** (`slip_in_slip_out`, `fade_in_fade_out`, … from the binary's
+literal table and `translations/de-DE.json`) did **not** appear in this track: it has one
+keyframe pair, and Studio wrote the identity transition node. Where the curve name lives —
+most likely here or in the clipping `transitions` track — is still open. The binary's
+literals were right about the curve names and wrong about the container, which is exactly
+why the file was the authority.
+
+Reproduce with:
 
 ```bash
-node research/keyframe_probe.mjs    # scans every project, prints any non-empty key_frame_track
+node research/project_inventory.mjs                         # clips live in tracks[].clips
+node research/keyframe_specimen.mjs <projectDir> [frames]   # write them, then read them back
+node research/keyframe_truth.mjs <projectDir>               # read-only dump
 ```
+
+Two traps this cost time to find and which any reader must respect:
+
+- **The window must be inside the desktop.** While Studio's window sat at x=2796 on a
+  2048-wide monitor — entirely off-screen — no right-drag did anything at all. The same
+  gesture wrote a keyframe as soon as the window was moved on-screen. Check
+  `windowInfo().left/top` against the monitor's bounds before blaming the gesture.
+- **The file's mtime means nothing: Studio autosaves continuously.** A drag that writes
+  nothing still changes the mtime, so only the keyframe content is evidence.
 
 The `key_frame_track.cpp` symbol table in `studio_worker.dll` adds two names —
 `RemoveKeyFrameInsideArea`, `RemoveHeadTrackModeKeyFrame`, and the literal
 `head_track_start_keyframe` — so Deep Track's own keyframes share this track's type
 space (see `ViewData.KeyFrameType` in `src/proto/export.proto`: `kKeyFrame`,
-`kDeepTrackStart`, `kDeepTrackEnd`, `kViewFinderStart`, `kViewFinderEnd`, `kNone`).
+`kDeepTrackStart`, `kDeepTrackEnd`, `kViewFinderStart`, `kViewFinderEnd`, `kNone`), which
+is consistent with `is_headtrack` sitting on each view node.
 
 ---
 
@@ -540,9 +577,12 @@ space (see `ViewData.KeyFrameType` in `src/proto/export.proto`: `kKeyFrame`,
 - Exact meaning of `type` (clip, `=1`), `subtype`, `viewType`, `state`, `online`,
   `highlight_data`, `default_factor`, `roughTrimmed`, `lastTrimEditTime`,
   `baseViewAutoApplied`, `asteroidPitchOffset`, `inAsteroidMode`.
-- `key_frame_track` and `play_rate_track` are **empty `{}` in every observed clip**;
-  their populated shape is unknown. Likewise `camera_movement.camera_movement_models`,
-  `head_track.head_track_list`, `deep_track.deep_track_list`.
+- `play_rate_track` is **empty `{}` in every observed clip**; its populated shape is
+  unknown (unlike `key_frame_track`, which is now measured — see §7). Likewise
+  `camera_movement.camera_movement_models`, `head_track.head_track_list`,
+  `deep_track.deep_track_list`.
+- Where the keyframe transition **curve** is recorded (identity node observed, so the
+  curve name has not been seen in a file yet).
 - Track `type:1` never occurs in any sampled file.
 - `autoFps`, `mainMagnetizable`, `adsorbable`, `previewable`, `projectMediaType`,
   `lowQualityProxyType` semantics are inferred only from presence/location.

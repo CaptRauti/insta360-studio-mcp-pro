@@ -183,14 +183,20 @@ export function click({ title = DEFAULT_WINDOW_TITLE, x, y, double = false, butt
  * gedrückt und ziehe, um die Ansicht mit Keyframes festzulegen"), so the moves
  * between the two are the operation, not padding.
  */
-export function rightDrag({ title = DEFAULT_WINDOW_TITLE, from, to, settleMs = 1500 } = {}) {
+export function rightDrag({ title = DEFAULT_WINDOW_TITLE, from, to, settleMs = 1500, direct = false } = {}) {
   if (!from || !to) throw new Error("rightDrag needs {from:{x,y}, to:{x,y}}");
-  const r = runPs(WIN32_PS1, [
+  const args = [
     "-Action", "rightdrag", "-Title", title,
     "-X", String(Math.round(from.x)), "-Y", String(Math.round(from.y)),
     "-ToX", String(Math.round(to.x)), "-ToY", String(Math.round(to.y)),
     "-SleepMs", String(settleMs),
-  ]);
+  ];
+  // -Direct names the window and sends client coordinates, skipping the z-order lookup.
+  // Without it a covering window makes the point resolve to another process and the
+  // helper refuses (correctly) — which is the normal case here, since the operator's
+  // own windows sit over Studio.
+  if (direct) args.push("-Direct");
+  const r = runPs(WIN32_PS1, args);
   if (!r || r.ok === false) throw new Error(`rightDrag failed ${from.x},${from.y} -> ${to.x},${to.y}`);
   return r;
 }

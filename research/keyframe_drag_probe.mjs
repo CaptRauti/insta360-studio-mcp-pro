@@ -10,7 +10,7 @@
 //
 //   node research/keyframe_drag_probe.mjs <project.insproj> [name]
 import fs from "node:fs";
-import { rightDrag, sendKeys } from "../src/ui.mjs";
+import { rightDrag } from "../src/ui.mjs";
 import { readScreen } from "../src/editor.mjs";
 import { readProject } from "../src/project.mjs";
 
@@ -24,13 +24,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const trackOf = async () => {
   const d = await readProject(file);
-  const clips = d.clips ?? d.mediaClips ?? [];
+  // Clips live in tracks[].clips — a top-level clips/mediaClips lookup reports 0 for every
+  // project on this machine and quietly makes the whole probe meaningless.
+  const clips = (d.tracks ?? []).flatMap((t) => t.clips ?? []);
   const out = [];
   for (const c of clips) {
     const t = c.key_frame_track ?? c.keyFrameTrack;
     if (t && (Array.isArray(t) ? t.length : Object.keys(t).length)) out.push(t);
   }
-  return { clips: clips.length, tracks: out, mtime: fs.statSync(file).mtimeMs };
+  // Not the file mtime: Studio autosaves continuously, so the mtime changes after every
+  // drag whether or not anything was written. Only the keyframe content is evidence.
+  return { clips: clips.length, tracks: out };
 };
 
 const before = await trackOf();
@@ -45,20 +49,13 @@ for (const y of [200, 300, 400, 500]) {
 
 let hit = null;
 for (const p of points) {
-  const r = rightDrag({ from: p, to: { x: p.x + 220, y: p.y + 70 } });
+  const r = rightDrag({ from: p, to: { x: p.x + 220, y: p.y + 70 }, direct: true });
   await sleep(3500);
   const now = await trackOf();
-  const changed = now.mtime !== before.mtime;
-  console.log(`drag ${p.x},${p.y} -> style=${r?.style} clips=${now.clips} keyframed=${now.tracks.length} fileChanged=${changed}`);
+  console.log(`drag ${p.x},${p.y} -> style=${r?.style} clips=${now.clips} keyframed=${now.tracks.length}`);
   if (now.tracks.length) {
     hit = { p, track: now.tracks[0] };
     break;
-  }
-  if (changed) {
-    // Something responded; it may have been a clip move rather than a keyframe.
-    console.log("  (file changed but no keyframe track — likely not the preview)");
-    sendKeys({ keys: "{ESC}" });
-    await sleep(800);
   }
 }
 
