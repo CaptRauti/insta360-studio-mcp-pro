@@ -1,7 +1,7 @@
 # Development backlog — what Studio can do that this server cannot (yet)
 
 Built 2026-11-24 from the official online manual (every row cites its page), `docs/FEATURE_SURVEY.md`, and the
-measured behaviour of the 35 tools. Coverage legend: **✓** covered · **◐** partial / read-only · **✗** missing.
+measured behaviour of the 38 tools. Coverage legend: **✓** covered · **◐** partial / read-only · **✗** missing.
 
 Base URL for all manual links: `https://onlinemanual.insta360.com/studio/en-us/`
 
@@ -97,7 +97,7 @@ the GUI — 178,569,151 bytes, H.264 1920×1080, 1652 frames / 27.53 s + AAC. §
 | # | Studio area (manual) | Our tools | Missing |
 |---|---|---|---|
 | 1 | Import / media management (`creative-import`, `clip-management`) | ✓ `studio_ui_open_media` | **Clip create / copy / delete** (Studio 6.0 edits several clips from one media file and switches between schemes) ✗; import-error classification ✗ |
-| 2 | 360 reframing: keyframes, FOV presets, Reorient (`keyframe`, `adjust-the-perspective`) | ◐ `studio_clip_transform` / `_set_transform` (static transform only) | **Keyframes** ✗ (`key_frame_track` is `{}` in all 25 projects on this machine — schema must be harvested from a Studio-written project), **named FOV presets** (Crystal Ball, Tiny Planet, UltraWide, Linear…) ✗, Reorient ✗, 360 Monitor ✗ |
+| 2 | 360 reframing: keyframes, FOV presets, Reorient (`keyframe`, `adjust-the-perspective`) | ◐ `studio_clip_transform` / `_set_transform` (static transform only) | **Keyframes** ✓ (`studio_clip_keyframes` / `_keyframe_add` / `_keyframe_remove`; schema measured from a Studio-written project and Studio's acceptance of a hand-written track verified), **named FOV presets** (Crystal Ball, Tiny Planet, UltraWide, Linear…) ✗, Reorient ✗, 360 Monitor ✗ |
 | 3 | AI: Deep Track, Auto Frame, Auto Edit, Remove Grain, AquaVision (`deep-tracking-function`, `auto-frame`, `ai-processing-image-noise-reduction`) | ✗ | all of it ✗ |
 | 4 | Filters / looks / manual colour (`en-US.json`; no manual page) | ✗ | ✗ — `color_adjust_setting` exists in the clip schema but no tool writes it |
 | 5 | Transitions (v6.0 asset) | ✗ | ✗ — `transitions[]` sits in the project file |
@@ -124,7 +124,7 @@ Effort: **S** ≤ half a day · **M** ~1–3 days · **L** > 3 days (or needs a 
 
 | # | Function | What it is | Effort | Notes |
 |---|---|---|---|---|
-| A1 | `studio_clip_keyframe_*` (add / set / move / delete) | Keyframes are Studio's core reframing mechanism: a transform pinned to a time | M | Manual: `edit-function/keyframe`. Encode the documented limits: requires flat aspect ratio; "too many keyframes and the camera stops following them" |
+| A1 | ~~`studio_clip_keyframe_*` (add / set / move / delete)~~ | Keyframes are Studio's core reframing mechanism: a transform pinned to a time | M | **Done.** `studio_clip_keyframes` (read), `_add` (insert or update an existing time), `_remove`. "Move" is remove + add — a keyframe's identity *is* its time, so there is nothing to move in place. The schema was harvested from a project Studio wrote (docs/INSPROJ_SCHEMA.md §7), and Studio accepting a hand-written track is verified (`research/keyframe_readback.mjs`): measured after the operator opened the project, Studio rewrote `tracks` and kept our node verbatim. Still to encode as a preflight rule: keyframes require a flat aspect ratio, and "too many keyframes and the camera stops following them" (manual: `edit-function/keyframe`). |
 | A2 | `studio_clip_colour` (read/write) | Filters, exposure, WB, tone — `color_adjust_setting` in the clip | S | Manual has no page; the schema is in the recovered descriptors + `docs/INSPROJ_SCHEMA.md` |
 | A3 | `studio_project_transition` | Add/change/remove a transition between two clips | S | `transitions[]` in the project |
 | A4 | `studio_project_text` | Text/title clips: content, timing, style | M | `text_clips[]` |
@@ -220,7 +220,7 @@ lost export into an immediate answer.
 
 1. ~~**D1 + D2** (log/dump reader)~~ — **done 2026-11-24**: `src/logs.mjs`, `studio_logs` + `studio_dumps`, 8 tests, 93 total. Later expanded: Studio's main log **does** decode now (keystream recovered from the ciphertext, verified per file) and dumps are correlated with it, so a dump says *why* it exists — see §0.
 2. ~~**§0 investigation**~~ — **closed 2026-11-25**: the album (`project_album_info.data`, all four parts) is what makes a built clip attach, and a built project now exports (178 MB, H.264 1652 frames). See the top of §0.
-3. **A1, A2, A3** (keyframes, colour, transitions) — the reframing/editing core, file-based, no GUI risk. For A1 the first step is a measurement, not code: `key_frame_track` is `{}` in **all 25 projects on this machine**, so its schema has to be harvested from a project Studio wrote with keyframes (see `references/project-and-effects.md`).
+3. **A1, A2, A3** (keyframes, colour, transitions) — the reframing/editing core, file-based, no GUI risk. A1 is done (`docs/INSPROJ_SCHEMA.md` §7 holds the measured schema); A2 and A3 are next.
 4. **G1–G8** (preflight) — cheap, and it stops every AI/export path from failing late.
 5. **C1, C3, C4** (finish the export matrix) + **B1/B2** (Media page + watermark).
 6. **A4–A8, B3–B5, E2** (E1, E3, E4 are done — `studio_prefs`).

@@ -69,6 +69,9 @@ anything the UI or an `.insproj` hands it.
 | `studio_clip_set_transform` | Write a clip's transform |
 | `studio_clip_trim` | Change a clip's in/out points |
 | `studio_clip_repoint` | Point a clip at a different source file |
+| `studio_clip_keyframes` | List a clip's 360 view keyframes (radians + degrees) |
+| `studio_clip_keyframe_add` | Add a view keyframe, or update the one at that time |
+| `studio_clip_keyframe_remove` | Remove a view keyframe and relink its neighbours |
 
 ### gRPC services
 
@@ -550,7 +553,7 @@ All of these were run and the outputs checked with `ffprobe` / `file` — the si
 ## Tests
 
 ```bash
-npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads, log/dump reader — 111 tests, plus 19 clip-metadata and 10 prefs checks
+npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads, log/dump reader, keyframe track — 123 tests, plus 19 clip-metadata and 10 prefs checks
 npm run check           # syntax-check every module
 npm run test:nvap       # NVAP extractor self-test (hybrid headers, 44/44 containers)
 npm run probe           # live MCP handshake, tool list, gRPC port discovery
@@ -622,7 +625,7 @@ The probe scripts that got us there are in `research/grpc-probes/`.
 | File | What it holds |
 |---|---|
 | `docs/FEATURE_SURVEY.md` | Studio's documented feature set, per-page manual URLs, per-model applicability — the source list for what can be automated at all |
-| `docs/DEVELOPMENT_BACKLOG.md` | Manual-vs-server coverage audit: what Studio documents, what these 35 tools cover, and the ranked list of functions still to build |
+| `docs/DEVELOPMENT_BACKLOG.md` | Manual-vs-server coverage audit: what Studio documents, what these 38 tools cover, and the ranked list of functions still to build |
 | `docs/INSPROJ_SCHEMA.md` | The measured `.insproj` schema, including the frame arithmetic `len(c) = source_total_frames − leftTrim − rightTrim` |
 | `docs/ASSET_CATALOG.md` | Asset library and unpacked NVAP contents |
 
