@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  clickableRow,
   optionMatch,
   dropClippedRows,
   matches,
@@ -419,4 +420,34 @@ test("parseDialogDir refuses anything that cannot be a folder", () => {
   assert.equal(parseDialogDir(null), "");
   // The label instead of the value, which is what a misread row looks like.
   assert.equal(parseDialogDir("Pfad"), "");
+});
+
+// Measured on the 2026-11-26 option sweep: the `Auflösung` list box came back with the
+// right labels but no positions, and the pick died inside `click` with a message that
+// named neither the control nor the option.
+
+const row = (text, x, y, h = 20) => ({ text, x, y, h });
+
+test("clickableRow picks the matching row that has coordinates", () => {
+  const rows = [row("1080P - 1080 x 1920", undefined, undefined), row("1080P - 1080 x 1920", 486, 700)];
+  assert.deepEqual(clickableRow(rows, "1080P - 1080 x 1920"), row("1080P - 1080 x 1920", 486, 700));
+});
+
+test("clickableRow keeps an exact match over a looser one", () => {
+  const rows = [row("2160P", 486, 660), row("1080P", 486, 700)];
+  assert.equal(clickableRow(rows, "1080P").text, "1080P");
+});
+
+test("clickableRow returns null when nothing matching can be clicked", () => {
+  assert.equal(clickableRow([row("2160P", undefined, undefined)], "2160P"), null);
+  assert.equal(clickableRow([row("2160P", 1, 2)], "1080P"), null, "no match at all");
+  assert.equal(clickableRow([], "1080P"), null);
+  assert.equal(clickableRow(undefined, "1080P"), null);
+});
+
+test("clickableRow does not invent a position from a half-filled row", () => {
+  // Only one of x/y is a bug, not a position: clicking at NaN is exactly the failure
+  // this guards against.
+  assert.equal(clickableRow([row("H.265", 486, undefined)], "H.265"), null);
+  assert.equal(clickableRow([row("H.265", undefined, 700)], "H.265"), null);
 });

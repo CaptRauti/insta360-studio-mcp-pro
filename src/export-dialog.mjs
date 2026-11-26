@@ -526,8 +526,28 @@ export async function selectOption({ title = "Insta360 Studio", label, text } = 
     return { ok: false, error: `no option matching "${text}"`, options: opened.options };
   }
 
+  // A row only counts as clickable if the OCR gave it a position. When a list box is
+  // read without coordinates (measured on a nested `Auflösung` popup), the row itself is
+  // still matched by text — and clicking it used to fail from deep inside `click` with
+  // "click needs numeric x and y", naming neither the control nor the option.
+  const target = clickableRow(opened.rows, text);
+  if (!target) {
+    click({ title, x: opened.click.x, y: opened.click.y });
+    await sleep(900);
+    return {
+      ok: false,
+      reason: "row-without-coordinates",
+      error:
+        `the list box for "${label}" lists "${option.text}" but the row carries no coordinates ` +
+        `(matched row: ${JSON.stringify(option)}), so there is nothing to click — the box was read ` +
+        "without positions; close and reopen the dialog, then retry, or pick another option",
+      options: opened.options,
+      row: option,
+    };
+  }
+
   // A row is ~36 px tall; its text box is the most reliable click target.
-  click({ title, x: option.x + 30, y: option.y + Math.max(6, Math.round(option.h / 2)) });
+  click({ title, x: target.x + 30, y: target.y + Math.max(6, Math.round(target.h / 2)) });
   await sleep(1000);
 
   const after = readDialog({ title });
@@ -535,7 +555,7 @@ export async function selectOption({ title = "Insta360 Studio", label, text } = 
   return {
     ok: true,
     label,
-    picked: option.text,
+    picked: target.text,
     before: opened.current,
     after: now,
     changed: now !== opened.current,
@@ -671,6 +691,21 @@ const sameOption = (text, want) =>
 export function preferExact(rows, want) {
   const hits = (rows ?? []).filter((r) => optionMatch(r.text, want));
   return hits.find((r) => sameOption(r.text, want)) ?? hits[0] ?? null;
+}
+
+/**
+ * The row to click for `want`, or null when there is none that can be clicked.
+ *
+ * Text matching alone is not enough: a list box can be read with the right labels but no
+ * positions (measured on a nested `Auflösung` popup), which used to end in a bare
+ * "click needs numeric x and y" from deep inside `click`. Here a coordinate-less match is
+ * only returned when no other row with the same text carries a position.
+ */
+export function clickableRow(rows, want) {
+  const hasPosition = (r) => Number.isFinite(r?.x) && Number.isFinite(r?.y);
+  const best = preferExact(rows, want);
+  if (!best) return null;
+  return hasPosition(best) ? best : preferExact((rows ?? []).filter(hasPosition), want);
 }
 
 /**
