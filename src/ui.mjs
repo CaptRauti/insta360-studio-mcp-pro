@@ -524,6 +524,7 @@ export async function runExport({
   outDir = null,
   stage = "full",
   settings = null,
+  verify = false,
   settleMs = 1200,
   timeoutMs = 15 * 60 * 1000,
   pollMs = 2000,
@@ -579,6 +580,23 @@ export async function runExport({
     if (failed.length) log.push({ step: "settings-not-applied", failed });
   }
 
+  // The dialog is the only place the promise exists ("Rahmen 25.00"), and it is
+  // gone once the export runs -- so snapshot it *now* and hand it to the file
+  // probe later. Readback alone was never evidence; see src/export-verify.mjs.
+  let promised = null;
+  if (verify) {
+    try {
+      const { readDialog } = await import("./export-dialog.mjs");
+      const d = readDialog({ title });
+      promised = d.ok
+        ? Object.fromEntries(Object.entries(d.fields ?? {}).map(([k, v]) => [k, v?.value ?? null]))
+        : null;
+    } catch {
+      promised = null;
+    }
+    log.push({ step: "verify-snapshot", settings: promised });
+  }
+
   if (stage === "dialog") {
     return {
       ok: true,
@@ -590,6 +608,7 @@ export async function runExport({
       outDirSource: dialogDir ? "dialog" : "argument",
       outDirMismatch: mismatch,
       settings: applied,
+      verify: verify ? { ok: null, skipped: "stage=dialog produces no file" } : null,
       log,
     };
   }
@@ -619,7 +638,7 @@ export async function runExport({
         candidate = newest;
         if (stable >= stableFor && newest.size >= minBytes) {
           log.push({ step: "done", file: newest.file, size: newest.size });
-          return {
+          const reply = {
             ok: true,
             stage,
             dialogOpen: false,
@@ -630,8 +649,15 @@ export async function runExport({
             outDirSource: dialogDir ? "dialog" : "argument",
             outDirMismatch: mismatch,
             settings: applied,
+            verify: null,
             log,
           };
+          if (verify) {
+            const { compareExport, probeMedia } = await import("./export-verify.mjs");
+            reply.verify = compareExport(promised, probeMedia(newest.file));
+            log.push({ step: "verify", ok: reply.verify.ok, checks: reply.verify.checks });
+          }
+          return reply;
         }
         if (stable === stableFor) {
           log.push({ step: "too-small", file: newest.file, size: newest.size });

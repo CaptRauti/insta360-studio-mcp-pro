@@ -1228,13 +1228,23 @@ tool(
             '"Kodierung":"H.264"}. Applied with studio_ui_export_set and each one read back, so the reply ' +
             "reports which actually took. The destination folder is not settable this way: it is a folder picker.",
         ),
+      verify: z
+        .boolean()
+        .optional()
+        .describe(
+          "When true, probe the produced file (ffprobe) and compare it with the dialog's own readback: frame " +
+            "rate, pixel size, codec, ProRes tag, container. The reply's `verify.checks` lists what matched and " +
+            "`verify.unverifiable` what the dialog does not promise in comparable form (a preset framerate, " +
+            "Benutzerdefiniert). Readback alone is not evidence — measured: a row reading `25.00` next to a file " +
+            "that had to be 50 on a 50 fps source.",
+        ),
       timeoutMs: z.number().int().optional().describe("How long to wait for the finished file (default 900000)"),
       pollMs: z.number().int().optional().describe("Polling interval (default 2000)"),
       title: z.string().optional(),
     },
   },
-  async ({ outDir, stage = "full", settings = null, timeoutMs = 900000, pollMs = 2000, title }) =>
-    runExport({ title: title ?? "Insta360 Studio", outDir, stage, settings, timeoutMs, pollMs }),
+  async ({ outDir, stage = "full", settings = null, verify = false, timeoutMs = 900000, pollMs = 2000, title }) =>
+    runExport({ title: title ?? "Insta360 Studio", outDir, stage, settings, verify, timeoutMs, pollMs }),
 );
 
 tool(
