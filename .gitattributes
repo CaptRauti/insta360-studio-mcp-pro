@@ -1,0 +1,4 @@
+# Studio writes LF, and the .insprj fixtures are compared byte-for-byte against what our own
+# serialiser reproduces (tests/insprj-write.test.mjs). With core.autocrlf they would come back as
+# CRLF on a Windows checkout and the round trip would fail for a reason that is not the app's.
+*.insprj text eol=lf
