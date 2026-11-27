@@ -82,6 +82,12 @@ anything the UI or an `.insproj` hands it.
 | `studio_project_check` | Preflight: Studio's own rules against a project, with what it could not ask |
 | `studio_transitions` | List downloaded transition assets |
 
+### Media page (`.insprj` — one clip's own project)
+
+| Tool | What it does |
+|---|---|
+| `studio_media_read` | Read the Media page's project file for a media file: per-clip colour, denoise/motion blur, watermark, the Stats/Dashboard template, audio, stitching, and the speed (TimeShift) track. Pass `file`, or `media`/`name` and it looks the project up first (the parent directory is `md5(media path)` for Studio 6 files). Reports which encoding it found (`json` = 6.x, `xml` = 5.x) and, for XML, its own field names under `legacy` with the measured name/unit differences. Read-only — see `docs/INSPRJ_SCHEMA.md` |
+
 ### gRPC services
 
 | Tool | What it does |

@@ -94,6 +94,7 @@ import { readQueue, addToQueue, clearQueue, clickQueueButton } from "./export-qu
 import { classifyLogText, explainPattern } from "./media-errors.mjs";
 import { decodePreset, describePreset, readPresetModel } from "./export-model.mjs";
 import { openProjectAt } from "./pipeline.mjs";
+import { findMediaProjects, readMediaProject, summariseMediaProject } from "./insprj.mjs";
 
 // The install directory is resolved at call time (see studio-path.mjs): Studio
 // 6.0.9 moved from Program Files to %LOCALAPPDATA%\Insta360\Apps, and the old
@@ -1688,6 +1689,92 @@ tool(
         action === "run"
           ? "the button was clicked; confirm an export actually started via the session log (progress lines) or studio_ui_export {verify:true}"
           : "the button was clicked; a paused job's status should read `Pausiert` in the re-read queue",
+    };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Media page project file
+// ---------------------------------------------------------------------------
+
+tool(
+  "studio_media_read",
+  {
+    description:
+      "Read the **Media page's** project file (`.insprj`) for a media file -- the settings that " +
+      "belong to no `.insproj`: per-clip manual colour, denoise/motion blur, watermark, the " +
+      "Stats/Dashboard template, audio, stitching, and the speed (TimeShift) track. This is the " +
+      "read half of the Media-page work; there is no writer yet. " +
+      "Pass `file`, or `media`/`name` and the project is looked up first: the parent directory is " +
+      "**md5 of the media path** -- measured on 920/920 of the JSON-era files on this machine " +
+      "(research/insprj_lookup.mjs), so the lookup is exact. Files Studio 5.x wrote are XML with the " +
+      "same extension and their directory is only *sometimes* that md5 (10/371 by `cloud_media_id`, " +
+      "46/406 by folder + file name), so those are found by file name or by the path inside the file; " +
+      "every candidate says how it was found (`hash`/`name`/`content`). " +
+      "The reply names the encoding (`json` = 6.x, `xml` = 5.x) and, for XML, reports its own field " +
+      "names under `legacy` plus `translationNotes` for the measured differences -- e.g. " +
+      "`preference.audio.volume` reads 0.5 where the JSON `audio.currentVolume` reads 100, and " +
+      "`preference.trim_start/_end` are milliseconds where the JSON `leftTrim/rightTrim` are frames. " +
+      "No equivalence between the two encodings is claimed beyond `dashboard_setting`, which is the " +
+      "one name that agrees. " +
+      "Honest scope: this reads and reports; it changes nothing. Two things a caller must not infer " +
+      "from it: the presence of a configured resource (a watermark path) does not mean the feature is " +
+      "on -- the toggle is separate and this reader reports both; and the TimeShift track's `end` is " +
+      "not a timeline length (one specimen has `end: 8184` against `sourceFrames: 2046` at rate 4), " +
+      "so its timebase is still unresolved and must be measured before anything writes it.",
+    inputSchema: {
+      file: z.string().optional().describe("Path to a .insprj file (read directly)"),
+      media: z.string().optional().describe("Media file path -- its project is looked up under the configured roots"),
+      name: z.string().optional().describe("Media file name, when the path is unknown"),
+      raw: z.boolean().optional().describe("Include the untouched JSON/XML tree (default false)"),
+      findOnly: z.boolean().optional().describe("Return the lookup result only, without reading a file"),
+    },
+  },
+  async ({ file, media, name, raw = false, findOnly = false }) => {
+    let target = file;
+    let lookup;
+    if (!target && (media || name)) {
+      lookup = findMediaProjects({ media: media ?? name, name });
+      if (!lookup.ok) {
+        return {
+          ok: false,
+          lookup: { hash: lookup.hash, hashMatched: false, candidates: [] },
+          note: `${lookup.note}; pass \`file\` if the location is already known`,
+        };
+      }
+      if (findOnly) return { ok: true, lookup, note: "lookup only -- nothing was read" };
+      // A hash match is a certainty; a name/content match is the best available guess, so prefer the
+      // former when both are present and report the alternatives either way.
+      const preferred = lookup.matches.find((m) => m.match === "hash") ?? lookup.matches[0];
+      target = preferred.path;
+    }
+    if (!target) return { ok: false, note: "pass `file`, or `media`/`name` to look the project up" };
+
+    const project = readMediaProject(target, { includeRaw: raw });
+    const summary = summariseMediaProject(project);
+    const ambiguous = (lookup?.matches?.length ?? 0) > 1;
+    return {
+      ...summary,
+      readFrom: target,
+      lookup: lookup
+        ? {
+            hash: lookup.hash,
+            hashMatched: lookup.hashMatched,
+            candidates: lookup.matches.map((m) => ({ path: m.path, family: m.family, match: m.match })),
+          }
+        : undefined,
+      ambiguous: ambiguous || undefined,
+      note: [
+        "read-only: nothing was changed.",
+        ambiguous
+          ? `${lookup.matches.length} candidates matched; the ${lookup.matches.some((m) => m.match === "hash") ? "hash" : "first"} match was read -- check \`lookup.candidates\` if that is not the one you meant.`
+          : undefined,
+        project.ok
+          ? undefined
+          : project.note,
+      ]
+        .filter(Boolean)
+        .join(" "),
     };
   },
 );

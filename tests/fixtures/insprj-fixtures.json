@@ -1,0 +1,27 @@
+{
+ "generatedFrom": [
+  "D:/Dokumente/Insta360/Studio/FootageProject",
+  "D:/Dokumente/Insta360/Studio/Project"
+ ],
+ "fixtures": {
+  "media-project-json.insprj": {
+   "source": "D:/Dokumente/Insta360/Studio/FootageProject/52434dd0f4c7a158e8e34a1b96a1db57/footage_project.insprj",
+   "sourceBytes": 13291,
+   "fixtureBytes": 6398,
+   "trimmed": "projects[] reduced to the first item",
+   "mediaId": "F:/X6/Camera01/VID_20261116_221835_00_089.mp4",
+   "dirHash": "52434dd0f4c7a158e8e34a1b96a1db57",
+   "hashMatches": true,
+   "itemCount": 1
+  },
+  "media-project-legacy-xml.insprj": {
+   "source": "D:/Dokumente/Insta360/Studio/Project/3cc9e7310a8d75d2a043918a0d728407/.insprj",
+   "sourceBytes": 5401,
+   "fixtureBytes": 2867,
+   "trimmed": "schemes reduced to the first scheme",
+   "mediaId": "D:/DCIM/Camera01/IMG_20240916_164919_00_001.jpg",
+   "dirHash": "3cc9e7310a8d75d2a043918a0d728407",
+   "hashMatches": true
+  }
+ }
+}
