@@ -24,7 +24,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { ocrImage } from "./ocr.mjs";
-import { capture, clearField, click, sleep, typeAt, windowInfo } from "./ui.mjs";
+import { capture, clearField, click, redraw, sleep, typeAt, windowInfo } from "./ui.mjs";
 
 const FFMPEG = path.join(
   os.homedir(), "AppData", "Local", "hermes", "tools", "ffmpeg-9.0.1-win32-x64", "bin", "ffmpeg.exe",
@@ -302,7 +302,271 @@ export function readDialog({ title = "Insta360 Studio" } = {}) {
     const row = rowFor(frame.ocr, name, { png: frame.planeFile });
     if (row) fields[name] = { value: row.value, click: row.click };
   }
-  return { ok: true, window: windowInfo(title), screenshot: frame.planeFile, fields, words: frame.ocr.words };
+  // The `Medienverarbeitung:` group is read from the same frame: its rows are
+  // checkboxes and carry no value cell, so `rowFor` cannot see them, and a second
+  // capture would let the dialog change between the two reads.
+  const group = parseProcessingGroup({ words: frame.ocr.words });
+  if (group.ok) {
+    for (const row of group.rows) {
+      row.mean = +meanRegion(frame.plane, row.box).toFixed(1);
+      row.state = checkState(row.mean);
+    }
+  }
+  return {
+    ok: true,
+    window: windowInfo(title),
+    screenshot: frame.planeFile,
+    fields,
+    processing: group,
+    words: frame.ocr.words,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Checkbox rows: the `Medienverarbeitung:` group
+// ---------------------------------------------------------------------------
+
+/**
+ * The `Medienverarbeitung:` group's rows are **checkboxes**, and a checkbox row is
+ * shaped unlike every other row in this dialog: it has no value cell on its right.
+ * The box is drawn ~20 px left of a caption that itself sits *in the value column*,
+ * while the label column carries the group's name. That is why `rowFor` never saw
+ * them -- it looks for value cells right of a label, and these rows have none.
+ *
+ * Measured on 6.0.9 with raw dual-lens `.insv` sources open -- the gate is the
+ * media, not the project's support flags (see C4 in the backlog): the label reads
+ * `Medienvera._.` at x 479, the caption `Optimierung der unteren Naht` starts at
+ * x 586, and the box spans x 566-584, y 633-646. So `caption.x - 20` to
+ * `caption.x - 2`, and the click point is `caption.x - 11`, `caption.y + 6`.
+ *
+ * Checked is a **filled** box, and the fill is what is measured: 141.4-142.6 mean gray inside it
+ * when checked, against 42.2-72.0 when unchecked (ffmpeg's 8-bit gray plane, the same one
+ * `readProcessingGroup` reads; a first pass through the RGB path read 136.0 vs 69.2 for the same
+ * pixels). Both states were confirmed by clicking the box and reading it back, and the toggle
+ * reproduced in both directions. The threshold sits at 100, roughly midway: the narrower side of
+ * the margin is 28 (72.0 -> 100), the wider 41. The box is drawn in both states, so it stays
+ * findable — only its fill changes, and the tick is never relied on.
+ */
+export const PROCESSING_GROUP = "Medienverarbeitung";
+/** Mean gray at or above which the box counts as filled. Measured 141.4 checked vs 72.0 unchecked. */
+export const CHECKBOX_MEAN_ABOVE = 100;
+/** The caption's left edge relative to the group label's (measured 586 - 479). */
+const CAPTION_OFFSET = { min: 95, max: 125 };
+/** How far consecutive captions may drift from the first one before the group ends. */
+const CAPTION_ALIGN = 10;
+/** The gap that ends the group: below it the dialog's own footer starts. */
+const CAPTION_GAP = 60;
+
+/** A filled box means checked; measured, not assumed. */
+export function checkState(mean) {
+  return mean >= CHECKBOX_MEAN_ABOVE ? "checked" : "unchecked";
+}
+
+/** The box rectangle and its click point, from the caption's measured position. */
+export function checkboxAt(caption) {
+  return {
+    box: { x: Math.round(caption.x) - 20, y: Math.round(caption.y) - 1, w: 18, h: 14 },
+    click: { x: Math.round(caption.x) - 11, y: Math.round(caption.y) + 6 },
+  };
+}
+
+// The OCR reads the box itself as a stray glyph and glues it onto the caption
+// ("O Optimierung der unteren Naht" when the box is empty, and a lone `o` at the
+// right when it is filled) -- the same marker noise `stripIndicators` removes from
+// the list rows. Real caption words are never a single glyph.
+const isBoxGlyph = (t) => /^[oO0°●✓✔*]+$/.test(t);
+
+/**
+ * Pure: the group's checkbox rows, from OCR words alone -- no pixels, so it is
+ * testable against a real capture (tests/fixtures/medienverarbeitung-words.json).
+ *
+ * The rows are found by walking the value column's lines from the group label
+ * down, anchored on the first caption that sits at the measured offset: a later
+ * line belongs to the group only while it starts where the first one did. That is
+ * what keeps the dialog's footer out of it -- `Größe:` is a bare 15 px left of the
+ * caption column and the buttons are 118 px right, so neither passes the test.
+ */
+export function parseProcessingGroup(ocr, { label = PROCESSING_GROUP, maxRows = 6 } = {}) {
+  const key = label.toLowerCase().slice(0, 8);
+  // The elided label ("Medienvera._.") shares all eight of those characters.
+  const lab = ocr.words
+    .filter((w) => w.text.toLowerCase().startsWith(key))
+    .sort((a, b) => a.x - b.x)[0];
+  if (!lab) {
+    return {
+      ok: false,
+      found: false,
+      label,
+      reason:
+        `no "${label}" label in this dialog. The group renders only for media whose sources are raw ` +
+        `dual-lens .insv -- on already-stitched .mp4 sources it is absent entirely`,
+    };
+  }
+
+  const lines = optionRows(ocr.words.filter((w) => w.x > lab.x + 80 && w.x < lab.x + 320));
+  const rows = [];
+  let anchorX = null;
+  for (const line of lines) {
+    if (line.y < lab.y - 4) continue;
+    // Anchor on the leftmost **real** word, never on the line's own left edge: the OCR reads the
+    // box itself as a glyph and, when the box is empty, places it left of the caption -- so the
+    // line's minimum x is the box's, and the measured caption offset would not match.
+    const parts = line.parts.filter((p) => !isBoxGlyph(p.text));
+    if (!parts.length) continue;
+    const [first] = parts;
+    if (anchorX === null) {
+      const off = first.x - lab.x;
+      if (off < CAPTION_OFFSET.min || off > CAPTION_OFFSET.max) continue;
+      anchorX = first.x;
+    } else {
+      if (Math.abs(first.x - anchorX) > CAPTION_ALIGN) break;
+      if (first.y - rows[rows.length - 1].captionY > CAPTION_GAP) break;
+    }
+    rows.push({
+      caption: parts.map((p) => p.text).join(" ").replace(/\s+/g, " ").trim(),
+      captionX: first.x,
+      captionY: first.y,
+      ...checkboxAt(first),
+    });
+    if (rows.length >= maxRows) break;
+  }
+  return {
+    ok: true,
+    found: true,
+    label,
+    labelY: lab.y,
+    labelX: lab.x,
+    rows,
+    note:
+      rows.length === 0
+        ? "the group label is there but no checkbox row rendered on this media"
+        : "checked means the box is filled — measured, not inferred from a glyph",
+  };
+}
+
+/**
+ * Read the group, pixels included: the same rows, each with its measured state.
+ * The box is located from the caption, so a half-filled box cannot be mistaken
+ * for a different row.
+ */
+export function readProcessingGroup({ title = "Insta360 Studio", label = PROCESSING_GROUP } = {}) {
+  const frame = snap(title);
+  const parsed = parseProcessingGroup({ words: frame.ocr.words }, { label });
+  if (!parsed.ok) return { ...parsed, screenshot: frame.planeFile };
+  for (const row of parsed.rows) {
+    row.mean = +meanRegion(frame.plane, row.box).toFixed(1);
+    row.state = checkState(row.mean);
+  }
+  return { ...parsed, screenshot: frame.planeFile };
+}
+
+/**
+ * Parse a checkbox request. Both languages the dialog mixes are accepted, because
+ * the UI is German ("an"/"aus") while the export job's own metadata is English
+ * ("checked"/"unchecked"): the caller should not have to guess which vocabulary this
+ * particular row speaks. Returns null for anything else, and the caller reports the
+ * accepted words rather than silently clicking something.
+ */
+export function parseCheckValue(value) {
+  const v = norm(value);
+  if (!v) return null;
+  if (["an", "ein", "checked", "check", "on", "true", "wahr", "ja", "aktiv", "aktiviert", "1"].includes(v)) {
+    return "checked";
+  }
+  if (["aus", "unchecked", "off", "false", "falsch", "nein", "inaktiv", "deaktiviert", "0"].includes(v)) {
+    return "unchecked";
+  }
+  return null;
+}
+
+export const CHECK_WORDS = { checked: ["an", "ein", "on", "true", "ja", "checked"], unchecked: ["aus", "off", "false", "nein", "unchecked"] };
+
+/**
+ * Set one of the group's checkboxes, and read it back.
+ *
+ * A row that already holds the wanted state is not clicked at all: clicking it would
+ * toggle it away, and the only way to know it was already right is to have read it
+ * first -- which is what this does, and why the reply carries `before`, `after` and
+ * `changed` rather than a bare ok.
+ *
+ * The read-back after the click is not a formality: a message click into a Studio
+ * window that is not composited can be *silently* ignored, and the position of the
+ * box is only known from this same reader, so "the click landed" cannot be assumed.
+ * When the state does not move, the reply says what it saw instead of claiming success.
+ */
+export async function setProcessingOption({ title = "Insta360 Studio", caption, value, label = PROCESSING_GROUP } = {}) {
+  const wanted = parseCheckValue(value);
+  const readOnce = () => {
+    const d = readDialog({ title });
+    if (!d.processing?.ok) return { ok: false, result: { ok: false, reason: "no-group", error: d.processing?.reason ?? "the group was not found" } };
+    const row = d.processing.rows.find((r) => matches(r.caption, caption));
+    if (!row) {
+      return {
+        ok: false,
+        result: {
+          ok: false,
+          reason: "no-row",
+          error: `the ${label} group has no row matching "${caption}"`,
+          rows: d.processing.rows.map((r) => ({ caption: r.caption, state: r.state })),
+        },
+      };
+    }
+    return { ok: true, row, window: d.window };
+  };
+
+  const first = readOnce();
+  if (!first.ok) return first.result;
+  if (!wanted) {
+    return {
+      ok: false,
+      reason: "unreadable-request",
+      error: `"${value}" is not a checkbox request for "${first.row.caption}"; it is currently ${first.row.state}`,
+      accepted: CHECK_WORDS,
+    };
+  }
+
+  const before = first.row.state;
+  if (before === wanted) {
+    return {
+      ok: true,
+      caption: first.row.caption,
+      state: before,
+      before,
+      after: before,
+      changed: false,
+      mean: first.row.mean,
+      note: "already in the requested state, so it was not clicked (a click would toggle it away)",
+    };
+  }
+
+  click({ title, x: first.row.click.x, y: first.row.click.y });
+  // A click is a message click here, and a window that is not composited keeps showing its
+  // last presented frame: without this nudge the read-back below sees the *old* fill and the
+  // setter would report "the click did not land" for a click that landed (measured).
+  redraw({ title });
+  await sleep(1200);
+
+  const second = readOnce();
+  if (!second.ok) return second.result;
+  const after = second.row.state;
+  return {
+    // ok is the state actually observed, never the click having been sent.
+    ok: after === wanted,
+    caption: second.row.caption,
+    state: after,
+    before,
+    after,
+    changed: after !== before,
+    mean: second.row.mean,
+    ...(after === wanted
+      ? {}
+      : {
+          reason: "state-did-not-move",
+          error:
+            `clicked (${first.row.click.x},${first.row.click.y}) but the box still reads ${after} ` +
+            `(mean ${second.row.mean}); the click was ignored -- Studio discards synthetic input in some states`,
+        }),
+  };
 }
 
 // ---------------------------------------------------------------------------

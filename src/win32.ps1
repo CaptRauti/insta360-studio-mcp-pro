@@ -112,27 +112,61 @@ function Get-MonitorInfo([IntPtr]$h) {
   }
 }
 
+# Pick the best of several candidate handles: visible first, then largest area.
+#
+# Area is what separates the real window from the placeholders: the real one measured
+# 1384x900, every placeholder 1x1. A minimised real window still wins (its iconic rect
+# is ~160x31), and `iconic` is reported separately so the caller can say so.
+function Select-BestWindow($candidates) {
+  $pick = $null
+  foreach ($pass in @("visible", "any")) {
+    foreach ($cand in @($candidates)) {
+      if ($null -eq $cand -or $cand -eq [IntPtr]::Zero) { continue }
+      if ($pass -eq "visible" -and -not [W32]::IsWindowVisible($cand)) { continue }
+      $r = Get-WinRect $cand
+      $area = ($r.Right - $r.Left) * ($r.Bottom - $r.Top)
+      if ($null -eq $pick -or $area -gt $pick.area) { $pick = @{ hwnd = $cand; area = $area } }
+    }
+    if ($null -ne $pick) { return [IntPtr]$pick.hwnd }
+  }
+  return [IntPtr]::Zero
+}
+
+# Find the Studio window by title.
+#
+# The title is *not* the unique handle it looks like. Measured with Studio 6.0.9 running:
+# 48 top-level windows carried exactly the title "Insta360 Studio" -- one real (1384x900,
+# visible) plus 47 invisible 1x1 Qt placeholders of class Qt6511QWindowOwnDCIcon, spread
+# over three processes. And FindWindow($null, "Insta360 Studio") returned 0 ten times out
+# of ten, so that call never resolved anything here; the substring fallback did, and it
+# took the first *visible* match in Z-order while ignoring its size. Measured cost: inside a
+# single script run, `find` reported hwnd 201322 at 2560x1440 while `capture` reported
+# 15272252 at 1384x900 -- two calls, two different handles. Window-relative coordinates then
+# mean different things, and because a click is resolved through WindowFromPoint, the same
+# click that had just toggled a checkbox stopped toggling it and moved the window instead.
+# So enumerate and choose deliberately: exact title first, visible only, largest area
+# (`Select-BestWindow`), and report how many windows shared the title.
 function Find-Target {
+  $script:titleMatches = 0
   if ($Hwnd -ne 0) { return [IntPtr]$Hwnd }
-  $h = [W32]::FindWindow($null, $Title)
-  if ($h -ne [IntPtr]::Zero) { return $h }
-  # fallback: substring match over visible top-level windows
-  $found = [IntPtr]::Zero
+  $script:exact = @()
+  $script:like = @()
   $cb = [W32+EnumProc]{
     param($hw, $l)
-    if ([W32]::IsWindowVisible($hw)) {
-      $len = [W32]::GetWindowTextLength($hw)
-      if ($len -gt 0) {
-        $sb = New-Object System.Text.StringBuilder ($len + 2)
-        [void][W32]::GetWindowText($hw, $sb, $sb.Capacity)
-        if ($sb.ToString() -like "*$Title*") { $script:found = $hw; return $false }
-      }
-    }
+    $len = [W32]::GetWindowTextLength($hw)
+    if ($len -le 0) { return $true }
+    $sb = New-Object System.Text.StringBuilder ($len + 2)
+    [void][W32]::GetWindowText($hw, $sb, $sb.Capacity)
+    $t = $sb.ToString()
+    if ($t -eq $Title) { $script:titleMatches++; $script:exact += $hw }
+    elseif ($t -like "*$Title*") { $script:like += $hw }
     return $true
   }
   [void][W32]::EnumWindows($cb, [IntPtr]::Zero)
-  if ($script:found -ne $null -and $script:found -ne [IntPtr]::Zero) { return $script:found }
-  return [IntPtr]::Zero
+  $h = Select-BestWindow $script:exact
+  if ($h -ne [IntPtr]::Zero) { return $h }
+  # No exact title match at all: fall back to a substring match over the same criteria.
+  return (Select-BestWindow $script:like)
 }
 
 function Get-BlockingModal([IntPtr]$top) {
@@ -483,6 +517,12 @@ $info = @{
   foreground = ([W32]::GetForegroundWindow() -eq $h)
   monitor = (Get-MonitorInfo $h)
   cursor = @{ x = $cursor.X; y = $cursor.Y }
+  # How many windows shared the title, and whether that made the pick a choice:
+  # measured 48 for "Insta360 Studio" (1 real + 47 placeholders), so a bare title is
+  # not a unique handle. Reported here rather than only in the docs, because a caller
+  # that automated the *wrong* window sees no error anywhere else.
+  titleMatches = $script:titleMatches
+  titleAmbiguous = ($script:titleMatches -gt 1)
 }
 
 switch ($Action) {

@@ -89,7 +89,18 @@ import {
   readLogWindow,
 } from "./logs.mjs";
 import { findText, ocrImage } from "./ocr.mjs";
-import { closeControl, isPickerField, isTextBox, openControl, readDialog, selectOption, setText } from "./export-dialog.mjs";
+import {
+  CONTROLS,
+  closeControl,
+  isPickerField,
+  isTextBox,
+  matches,
+  openControl,
+  readDialog,
+  selectOption,
+  setProcessingOption,
+  setText,
+} from "./export-dialog.mjs";
 import { readQueue, addToQueue, clearQueue, clickQueueButton } from "./export-queue.mjs";
 import { classifyLogText, explainPattern } from "./media-errors.mjs";
 import { decodePreset, describePreset, readPresetModel } from "./export-model.mjs";
@@ -1524,6 +1535,26 @@ tool(
   async ({ title, control, listOptions = false, keepOpen = false }) => {
     const windowTitle = title ?? "Insta360 Studio";
     if (control) {
+      // A checkbox row of the Medienverarbeitung group: neither a list box nor a text field,
+      // and not in the label column. Its value cell does not exist, so asking the fields map
+      // for it would return null for both states.
+      const isKnownLabel = CONTROLS.some((label) => matches(label, control));
+      if (!isTextBox(control) && !isKnownLabel && !listOptions) {
+        const processing = readDialog({ title: windowTitle }).processing;
+        const row = processing.ok ? processing.rows.find((r) => matches(r.caption, control)) : null;
+        if (row) {
+          return {
+            control,
+            checkbox: true,
+            caption: row.caption,
+            state: row.state,
+            mean: row.mean,
+            box: row.box,
+            click: row.click,
+            note: "checkbox row: state comes from the fill that was measured, not from glyphs; no value cell exists",
+          };
+        }
+      }
       // Text fields have no list box, so there is nothing to open: clicking one
       // four times looking for a panel would just be noise.
       if (listOptions && isTextBox(control)) {
@@ -1565,6 +1596,10 @@ tool(
       settings: Object.fromEntries(Object.entries(dialog.fields).map(([k, v]) => [k, v.value])),
       controls: dialog.fields,
       screenshot: dialog.screenshot,
+      // The `Medienverarbeitung:` group. Its rows are checkboxes and carry no value cell, so
+      // they are absent from `controls` above whatever their state -- reported separately, and
+      // with the fill that was measured, because "not listed" would otherwise read as "off".
+      processing: dialog.processing,
       // The dialog's state as Studio has it *on disk* (`nle/video_export_preset_model.json`).
       // Written when the dialog CLOSES, so an open dialog's own values can legitimately
       // differ (a pick only reaches the file on close) — and it is exact where the OCR
@@ -1588,18 +1623,34 @@ tool(
     description:
       "Change one setting in Studio's export dialog. The list boxes (Kodierung, Auflösung, Farbraum, Rahmen, " +
       "Bitrate, Voreinstellung) are opened and the matching entry clicked; the two text fields Dateiname and Pfad " +
-      "are typed into. Either way the field is read back afterwards, so the reply states whether the value " +
+      "are typed into; and the Medienverarbeitung checkboxes (e.g. 'Optimierung der unteren Naht') are clicked and " +
+      "their fill read back. Either way the field is read back afterwards, so the reply states whether the value " +
       "actually changed. Use studio_ui_export_settings first to see what the controls are called and what they " +
       "currently hold.",
     inputSchema: {
-      control: z.string().describe("Control label, e.g. 'Kodierung', 'Auflösung', 'Farbraum', 'Dateiname'"),
-      value: z.string().describe("Option to pick (case-insensitive substring), or the text to type"),
+      control: z
+        .string()
+        .describe("Control label, e.g. 'Kodierung', 'Auflösung', 'Farbraum', 'Dateiname', or a checkbox caption"),
+      value: z
+        .string()
+        .describe(
+          "Option to pick (case-insensitive substring), the text to type, or for a checkbox: checked/unchecked " +
+            "(an/aus, on/off, true/false also accepted)",
+        ),
       title: z.string().optional(),
       showOptions: z.boolean().optional().describe("Include the available options in the reply (default true)"),
     },
   },
   async ({ control, value, title, showOptions = true }) => {
     const windowTitle = title ?? "Insta360 Studio";
+    // A Medienverarbeitung checkbox is neither a list box nor a text field, and its name is
+    // not one of the dialog's labels -- so it is tried when the control names neither of those,
+    // rather than guessed at from the value (an option text could be anything).
+    const isKnownLabel = CONTROLS.some((label) => matches(label, control));
+    if (!isTextBox(control) && !isKnownLabel) {
+      const res = await setProcessingOption({ title: windowTitle, caption: control, value });
+      if (res.reason !== "no-row") return res;
+    }
     const res = isTextBox(control)
       ? await setText({ title: windowTitle, label: control, text: value })
       : await selectOption({ title: windowTitle, label: control, text: value });

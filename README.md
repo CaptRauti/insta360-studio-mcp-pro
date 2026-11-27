@@ -54,8 +54,8 @@ anything the UI or an `.insproj` hands it.
 | `studio_ui_analyze_shot` | Analyse an existing screenshot for buttons and player content |
 | `studio_ui_ocr` | Read the text on screen (Windows OCR) with window-relative boxes |
 | `studio_ui_click_text` | Find on-screen text by name and click it |
-| `studio_ui_export_settings` | Read the export dialog's settings — path, preset, resolution, frame rate, bitrate, codec, colour space — with the click coordinates of every control |
-| `studio_ui_export_set` | Change one of those settings by picking an option, then read the field back to prove it took |
+| `studio_ui_export_settings` | Read the export dialog's settings — path, preset, resolution, frame rate, bitrate, codec, colour space — with the click coordinates of every control, plus the `Medienverarbeitung` checkboxes |
+| `studio_ui_export_set` | Change one of those settings by picking an option, typing into a field, or clicking a checkbox — then read it back to prove it took |
 | `studio_export_queue` | The Task Center's export queue: list it, enqueue the open dialog's job (`add`), start/pause all, clear all (needs its confirmation). `run`/`pause` are located but not yet executed live |
 
 ### Projects (`.insproj` JSON)
@@ -260,6 +260,25 @@ Traps in that table:
 - **Check for modal windows before believing a control is inert.** Two controls here looked like they ignored
   input until `list_windows` showed a window of the *same process* sitting on top. The parent's capture cannot
   show it, so a screenshot-based check reports "nothing happened" either way.
+- **A checkbox row has no value cell, so the label/value reader cannot see it.** In the `Medienverarbeitung`
+  group the box is drawn ~20 px left of a *caption* that itself sits in the value column, while the label column
+  carries the group's name. `rowFor` looks for a value cell right of a label, so `controls` stayed silent about
+  these rows **whatever their state** — which reads exactly like "the option is off". They are read separately
+  (`processing`), the state comes from the box's **fill** (141.4-142.6 checked vs 42.2-72.0 unchecked, threshold
+  100, verified by clicking both ways) and never from a tick glyph, and the OCR trap is that the box itself comes
+  back as a glyph — *left of the caption* when the box is empty (`O Optimierung der unteren Naht`), a lone `o` at
+  the far right when it is filled. Anchoring a row on the line's minimum x therefore drops it; anchor on the
+  leftmost real word.
+- **The title was not a unique window handle, and it made clicks land elsewhere.** Measured: 48 top-level windows
+  carry exactly `Insta360 Studio` — one real (1384×900) plus 47 invisible 1×1 Qt placeholders — and
+  `FindWindow($null, "Insta360 Studio")` resolved **none** of them (0 ten times out of ten); the substring fallback
+  did the work and took the first *visible* match in Z-order, ignoring size. Within a single script run `find`
+  reported one handle at 2560×1440 while `capture` reported another at 1384×900, and because a click is resolved
+  through `WindowFromPoint` at `rect.Left + x`, the same click that had just toggled a checkbox stopped toggling and
+  moved the window instead. `Find-Target` now enumerates and picks deliberately (exact title, visible, largest
+  area), and every reply carries `titleMatches`/`titleAmbiguous` — check them first when an action "does nothing".
+  A message click also needs `redraw()` before the read-back: a window that is not in the foreground is not
+  composited, and the capture after a click was measured byte-identical to the one before it until it was nudged.
 
 Live, against Studio 6.0.9:
 
@@ -273,15 +292,32 @@ studio_ui_export_settings { control: "Kodierung", listOptions: true }
      options: H.264 | H.265 | ProRes 422 | ProRes 422LT
 studio_ui_export_set { control: "Auflösung", value: "4K - 3840 x 2160" }
   -> picked "4K - 3840 x 2160": "Benutzerdefiniert" -> "4K -3840 x 2160", changed true
+studio_ui_export_settings { control: "Optimierung der unteren Naht" }
+  -> checkbox true, state "checked", mean 142.6, box 566,633 18x14, click 575,640
+studio_ui_export_set { control: "Optimierung der unteren Naht", value: "aus" }
+  -> before "checked" -> after "unchecked", changed true, mean 72
 ```
+
+The `Medienverarbeitung` group (`Hochpräzises Stitching`, `HDR`, `Dolby Vision`) needs media whose sources are **raw
+dual-lens `.insv`** — on already-stitched `.mp4` sources it does not render, and both tools say so
+(`studio_ui_export_settings` returns `processing: {ok:false, reason: "... raw dual-lens .insv ..."}`). Its rows are
+**checkboxes with no value cell**: the box sits ~20 px left of a caption that lives in the value column, which is why
+they never appeared among `controls`. The state is read from the box's **fill** (checked mean gray 141.4-142.6,
+unchecked 42.2-72.0, threshold 100) rather than from a tick glyph, the click toggles it both ways, and a row already
+in the requested state is deliberately *not* clicked:
+
+```
+studio_ui_export_set { control: "Optimierung der unteren Naht", value: "an" }
+  -> ok true, changed false, note "already in the requested state, so it was not clicked"
+```
+
+`studio_ui_export_set` reads the field back after clicking, so its reply states whether the value actually changed: a click that lands beside an option reports `changed: false` rather than passing for success — and for a checkbox, `ok` is the state that was *observed* afterwards, never the click having been sent.
 
 `studio_ui_export` takes the same settings as a `settings` object and applies them between opening the dialog and clicking the button, so one call can export 4K H.264 instead of the default:
 
 ```
 studio_ui_export { settings: { Voreinstellung: "4K", Kodierung: "H.264" } }
 ```
-
-`studio_ui_export_set` reads the field back after clicking, so its reply states whether the value actually changed: a click that lands beside an option reports `changed: false` rather than passing for success.
 
 ---
 
