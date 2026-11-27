@@ -56,6 +56,7 @@ anything the UI or an `.insproj` hands it.
 | `studio_ui_click_text` | Find on-screen text by name and click it |
 | `studio_ui_export_settings` | Read the export dialog's settings — path, preset, resolution, frame rate, bitrate, codec, colour space — with the click coordinates of every control |
 | `studio_ui_export_set` | Change one of those settings by picking an option, then read the field back to prove it took |
+| `studio_export_queue` | The Task Center's export queue: list it, enqueue the open dialog's job (`add`), start/pause all, clear all (needs its confirmation). `run`/`pause` are located but not yet executed live |
 
 ### Projects (`.insproj` JSON)
 
@@ -561,7 +562,7 @@ All of these were run and the outputs checked with `ffprobe` / `file` — the si
 ## Tests
 
 ```bash
-npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, thumbnail payloads, log/dump reader, keyframe track, colour filters, transitions, preflight — 188 tests, plus 19 clip-metadata and 10 prefs checks
+npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, export queue, thumbnail payloads, log/dump reader, keyframe track, colour filters, transitions, preflight — 239 tests, plus the clip-metadata and pref checks (clip metadata skips when its F: fixtures are absent)
 npm run check           # syntax-check every module
 npm run test:nvap       # NVAP extractor self-test (hybrid headers, 44/44 containers)
 npm run probe           # live MCP handshake, tool list, gRPC port discovery

@@ -66,6 +66,7 @@ import {
   moveWindow as uiMoveWindow,
   runExport,
   sendKeys as uiSendKeys,
+  sleep as uiSleep,
   uiState,
   waitForExport,
   windowInfo as uiWindowInfo,
@@ -89,6 +90,7 @@ import {
 } from "./logs.mjs";
 import { findText, ocrImage } from "./ocr.mjs";
 import { closeControl, isPickerField, isTextBox, openControl, readDialog, selectOption, setText } from "./export-dialog.mjs";
+import { readQueue, addToQueue, clearQueue, clickQueueButton } from "./export-queue.mjs";
 import { classifyLogText, explainPattern } from "./media-errors.mjs";
 import { decodePreset, describePreset, readPresetModel } from "./export-model.mjs";
 import { openProjectAt } from "./pipeline.mjs";
@@ -1600,6 +1602,93 @@ tool(
       ? await setText({ title: windowTitle, label: control, text: value })
       : await selectOption({ title: windowTitle, label: control, text: value });
     return showOptions ? res : { ...res, options: undefined };
+  },
+);
+
+// ---------------------------------------------------------------------------
+// Export queue (Task Center)
+// ---------------------------------------------------------------------------
+
+tool(
+  "studio_export_queue",
+  {
+    description:
+      "Studio's export queue -- list, add, run, pause, clear. The export dialog has two buttons: " +
+      "`Exportieren` runs the job now, `Zur Warteschlange` enqueues it. That split is confirmed in the " +
+      "session log: `ExporterManager::EnqueueTask ... auto_start: 0` for the queued one and " +
+      "`auto_start: 1` for `Exportieren`, which then runs to completion. The queue itself lives in the " +
+      "Task Center view (`Aufgaben-Center`), reached by the title-bar icon; its rows read " +
+      "`Dateiname | Dateigröße | Status` with `Warteschlange` while waiting, an empty queue says " +
+      "`Es sind keine lokalen Exportaufgaben in Arbeit`, and its header buttons are `Alle starten`, " +
+      "`Alle pausieren`, `Alle löschen`. " +
+      "action 'list' opens that view and returns the count, rows and buttons; " +
+      "'add' clicks `Zur Warteschlange` in the open export dialog (open it with studio_ui_export " +
+      "{stage:'dialog'} first) and verifies by the dialog closing plus the queue count moving; " +
+      "'run'/'pause' click `Alle starten`/`Alle pausieren`; " +
+      "'clear' clicks `Alle löschen` and then its confirmation -- which is an English dialog " +
+      "(`Please confirm whether to delete all exporting tasks`, buttons `Löschen`/`Abbrechen`), and " +
+      "without that second click nothing is deleted. " +
+      "Honest scope: 'add', 'list' and 'clear' have been executed against a live Studio; " +
+      "'run'/'pause' have their buttons located and label-verified but were not executed, because a " +
+      "live run would export a duplicate file -- read their reply as \"the button was clicked\", not " +
+      "\"an export happened\". Every step re-reads the screen and returns ok:false with what it saw " +
+      "instead of assuming the click landed: Studio ignores synthetic input in some states.",
+    inputSchema: {
+      action: z
+        .enum(["list", "add", "run", "pause", "clear"])
+        .optional()
+        .describe("What to do (default list)"),
+      title: z.string().optional(),
+      verify: z
+        .boolean()
+        .optional()
+        .describe("add: re-read the queue afterwards to confirm the count moved (default true)"),
+      open: z
+        .boolean()
+        .optional()
+        .describe("list: open the Task Center first if it is not already up (default true)"),
+    },
+  },
+  async ({ action = "list", title, verify = true, open = true }) => {
+    const windowTitle = title ?? "Insta360 Studio";
+
+    if (action === "list") {
+      const q = readQueue({ title: windowTitle, open });
+      return {
+        ok: q.ok,
+        heading: q.heading,
+        sections: q.sections,
+        count: q.count,
+        countKnown: q.countKnown,
+        rows: q.rows,
+        empty: q.empty,
+        buttons: q.buttons,
+        icon: q.iconTried,
+        shot: q.shot,
+        note: q.note,
+      };
+    }
+
+    if (action === "add") return addToQueue({ title: windowTitle, verify });
+    if (action === "clear") return clearQueue({ title: windowTitle });
+
+    // run / pause: click, then re-read so the caller sees whether it took
+    const clicked = clickQueueButton({ title: windowTitle, label: action });
+    if (!clicked.ok) return clicked;
+    uiSleep(2500);
+    const after = readQueue({ title: windowTitle, open: false });
+    return {
+      ...clicked,
+      clickVerifiedByButtonLocation: true,
+      executedLive: false,
+      queue: after.ok
+        ? { count: after.count, rows: after.rows, empty: after.empty }
+        : { note: after.note },
+      note:
+        action === "run"
+          ? "the button was clicked; confirm an export actually started via the session log (progress lines) or studio_ui_export {verify:true}"
+          : "the button was clicked; a paused job's status should read `Pausiert` in the re-read queue",
+    };
   },
 );
 

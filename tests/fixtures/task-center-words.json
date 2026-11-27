@@ -1,0 +1,714 @@
+{
+  "_note": "Real OCR word lists captured from Studio's window on 2026-11-27 (window 1384x900 at screen 352,132). Nothing here is synthesised; coordinates are window-relative pixels.",
+  "_sources": {
+    "taskCenterTwoQueued": "plain OCR of the window showing the Task Center with two queued jobs (research/matrix/task-center-list.mjs)",
+    "taskCenterAfterClear": "plain OCR right after confirming the deletion (research/matrix/task-center-clear.mjs)",
+    "queueConfirmZoom": "4x zoom OCR of the confirmation dialog"
+  },
+  "taskCenterTwoQueued": [
+    {
+      "text": "Insta",
+      "x": 38,
+      "y": 20
+    },
+    {
+      "text": "Stud",
+      "x": 82,
+      "y": 20
+    },
+    {
+      "text": "iO",
+      "x": 105,
+      "y": 20
+    },
+    {
+      "text": "Projektbibliothek",
+      "x": 19,
+      "y": 66
+    },
+    {
+      "text": "Medienbibliothek",
+      "x": 19,
+      "y": 145
+    },
+    {
+      "text": "Lokale",
+      "x": 41,
+      "y": 175
+    },
+    {
+      "text": "Medi...",
+      "x": 83,
+      "y": 175
+    },
+    {
+      "text": "22:08:27",
+      "x": 227,
+      "y": 20
+    },
+    {
+      "text": "Automatisch",
+      "x": 278,
+      "y": 19
+    },
+    {
+      "text": "gespeichert",
+      "x": 354,
+      "y": 19
+    },
+    {
+      "text": "+",
+      "x": 180,
+      "y": 63
+    },
+    {
+      "text": "Importieren",
+      "x": 196,
+      "y": 63
+    },
+    {
+      "text": "O",
+      "x": 173,
+      "y": 100
+    },
+    {
+      "text": "Einige",
+      "x": 197,
+      "y": 95
+    },
+    {
+      "text": "Aufnahmen",
+      "x": 235,
+      "y": 95
+    },
+    {
+      "text": "können",
+      "x": 305,
+      "y": 95
+    },
+    {
+      "text": "aufgrund",
+      "x": 351,
+      "y": 95
+    },
+    {
+      "text": "geänderter",
+      "x": 196,
+      "y": 110
+    },
+    {
+      "text": "Dateipfade",
+      "x": 267,
+      "y": 110
+    },
+    {
+      "text": "nicht",
+      "x": 335,
+      "y": 110
+    },
+    {
+      "text": "gefunde.__",
+      "x": 366,
+      "y": 110
+    },
+    {
+      "text": "o",
+      "x": 904,
+      "y": 16
+    },
+    {
+      "text": "Exporti_",
+      "x": 1208,
+      "y": 20
+    },
+    {
+      "text": "Lokaler",
+      "x": 188,
+      "y": 209
+    },
+    {
+      "text": "Export",
+      "x": 234,
+      "y": 210
+    },
+    {
+      "text": "Cloud-Export",
+      "x": 187,
+      "y": 245
+    },
+    {
+      "text": "Download",
+      "x": 188,
+      "y": 281
+    },
+    {
+      "text": "Freigabe",
+      "x": 188,
+      "y": 317
+    },
+    {
+      "text": "verwalten",
+      "x": 241,
+      "y": 317
+    },
+    {
+      "text": "Aufgaben-Center",
+      "x": 631,
+      "y": 149
+    },
+    {
+      "text": "Alle",
+      "x": 369,
+      "y": 211
+    },
+    {
+      "text": "starten",
+      "x": 395,
+      "y": 212
+    },
+    {
+      "text": "@",
+      "x": 460,
+      "y": 210
+    },
+    {
+      "text": "Alle",
+      "x": 479,
+      "y": 211
+    },
+    {
+      "text": "pausieren",
+      "x": 506,
+      "y": 211
+    },
+    {
+      "text": "Alle",
+      "x": 605,
+      "y": 211
+    },
+    {
+      "text": "löschen",
+      "x": 631,
+      "y": 211
+    },
+    {
+      "text": "Export-Warteschlange",
+      "x": 339,
+      "y": 259
+    },
+    {
+      "text": "2",
+      "x": 498,
+      "y": 259
+    },
+    {
+      "text": "Export-Datensätze",
+      "x": 535,
+      "y": 259
+    },
+    {
+      "text": "3",
+      "x": 664,
+      "y": 259
+    },
+    {
+      "text": "Dateiname",
+      "x": 397,
+      "y": 354
+    },
+    {
+      "text": "(2).mp4",
+      "x": 623,
+      "y": 406
+    },
+    {
+      "text": "(3).mp4",
+      "x": 623,
+      "y": 474
+    },
+    {
+      "text": "Dateigröße",
+      "x": 762,
+      "y": 354
+    },
+    {
+      "text": "1.50GB",
+      "x": 762,
+      "y": 406
+    },
+    {
+      "text": "1.50GB",
+      "x": 762,
+      "y": 474
+    },
+    {
+      "text": "Status",
+      "x": 852,
+      "y": 354
+    },
+    {
+      "text": "Warteschlange",
+      "x": 856,
+      "y": 421
+    },
+    {
+      "text": "Warteschlange",
+      "x": 856,
+      "y": 489
+    },
+    {
+      "text": "Ansicht",
+      "x": 1051,
+      "y": 119
+    },
+    {
+      "text": "Abgeschlossen",
+      "x": 1087,
+      "y": 299
+    },
+    {
+      "text": "0%",
+      "x": 1178,
+      "y": 299
+    },
+    {
+      "text": "6",
+      "x": 1158,
+      "y": 402
+    },
+    {
+      "text": "6",
+      "x": 1158,
+      "y": 470
+    },
+    {
+      "text": "Video",
+      "x": 1325,
+      "y": 89
+    },
+    {
+      "text": "rung",
+      "x": 1330,
+      "y": 165
+    },
+    {
+      "text": "Stitching",
+      "x": 1318,
+      "y": 219
+    },
+    {
+      "text": "Wasserz",
+      "x": 1318,
+      "y": 408
+    },
+    {
+      "text": "eichen",
+      "x": 1324,
+      "y": 422
+    },
+    {
+      "text": "Dashboa",
+      "x": 1317,
+      "y": 472
+    },
+    {
+      "text": "rd",
+      "x": 1337,
+      "y": 487
+    },
+    {
+      "text": "erscha_.",
+      "x": 1318,
+      "y": 552
+    },
+    {
+      "text": "Mana.„",
+      "x": 1322,
+      "y": 618
+    },
+    {
+      "text": "5",
+      "x": 506,
+      "y": 775
+    },
+    {
+      "text": "Keyframe",
+      "x": 750,
+      "y": 777
+    },
+    {
+      "text": "Verfolgung",
+      "x": 850,
+      "y": 777
+    }
+  ],
+  "taskCenterAfterClear": [
+    {
+      "text": "Insta",
+      "x": 38,
+      "y": 20
+    },
+    {
+      "text": "Stud",
+      "x": 82,
+      "y": 20
+    },
+    {
+      "text": "iO",
+      "x": 105,
+      "y": 20
+    },
+    {
+      "text": "Projektbibliothek",
+      "x": 19,
+      "y": 66
+    },
+    {
+      "text": "Medienbibliothek",
+      "x": 19,
+      "y": 145
+    },
+    {
+      "text": "Lokale",
+      "x": 41,
+      "y": 175
+    },
+    {
+      "text": "Medi...",
+      "x": 83,
+      "y": 175
+    },
+    {
+      "text": "22:08:27",
+      "x": 227,
+      "y": 20
+    },
+    {
+      "text": "Automatisch",
+      "x": 278,
+      "y": 19
+    },
+    {
+      "text": "gespeichert",
+      "x": 354,
+      "y": 19
+    },
+    {
+      "text": "+",
+      "x": 180,
+      "y": 63
+    },
+    {
+      "text": "Importieren",
+      "x": 196,
+      "y": 63
+    },
+    {
+      "text": "O",
+      "x": 173,
+      "y": 100
+    },
+    {
+      "text": "Einige",
+      "x": 197,
+      "y": 95
+    },
+    {
+      "text": "Aufnahmen",
+      "x": 235,
+      "y": 95
+    },
+    {
+      "text": "können",
+      "x": 305,
+      "y": 95
+    },
+    {
+      "text": "aufgrund",
+      "x": 351,
+      "y": 95
+    },
+    {
+      "text": "geänderter",
+      "x": 196,
+      "y": 110
+    },
+    {
+      "text": "Dateipfade",
+      "x": 267,
+      "y": 110
+    },
+    {
+      "text": "nicht",
+      "x": 335,
+      "y": 110
+    },
+    {
+      "text": "gefunde.__",
+      "x": 366,
+      "y": 110
+    },
+    {
+      "text": "o",
+      "x": 904,
+      "y": 16
+    },
+    {
+      "text": "Exporti_",
+      "x": 1208,
+      "y": 20
+    },
+    {
+      "text": "Ansicht",
+      "x": 1051,
+      "y": 119
+    },
+    {
+      "text": "Lokaler",
+      "x": 188,
+      "y": 209
+    },
+    {
+      "text": "Export",
+      "x": 234,
+      "y": 210
+    },
+    {
+      "text": "Cloud-Export",
+      "x": 187,
+      "y": 245
+    },
+    {
+      "text": "Download",
+      "x": 188,
+      "y": 281
+    },
+    {
+      "text": "Freigabe",
+      "x": 188,
+      "y": 317
+    },
+    {
+      "text": "verwalten",
+      "x": 241,
+      "y": 317
+    },
+    {
+      "text": "Aufgaben-Center",
+      "x": 631,
+      "y": 149
+    },
+    {
+      "text": "Alle",
+      "x": 369,
+      "y": 211
+    },
+    {
+      "text": "starten",
+      "x": 396,
+      "y": 213
+    },
+    {
+      "text": "@",
+      "x": 460,
+      "y": 210
+    },
+    {
+      "text": "Alle",
+      "x": 479,
+      "y": 211
+    },
+    {
+      "text": "pausieren",
+      "x": 506,
+      "y": 212
+    },
+    {
+      "text": "Alle",
+      "x": 605,
+      "y": 211
+    },
+    {
+      "text": "löschen",
+      "x": 632,
+      "y": 211
+    },
+    {
+      "text": "Export-Warteschlange",
+      "x": 339,
+      "y": 259
+    },
+    {
+      "text": "Export-Datensätze",
+      "x": 522,
+      "y": 259
+    },
+    {
+      "text": "3",
+      "x": 651,
+      "y": 259
+    },
+    {
+      "text": "Es",
+      "x": 632,
+      "y": 563
+    },
+    {
+      "text": "sind",
+      "x": 648,
+      "y": 562
+    },
+    {
+      "text": "keine",
+      "x": 677,
+      "y": 562
+    },
+    {
+      "text": "lokalen",
+      "x": 711,
+      "y": 562
+    },
+    {
+      "text": "Exportaufgaben",
+      "x": 757,
+      "y": 562
+    },
+    {
+      "text": "in",
+      "x": 855,
+      "y": 562
+    },
+    {
+      "text": "Arbeit",
+      "x": 868,
+      "y": 562
+    },
+    {
+      "text": "Keyframe",
+      "x": 750,
+      "y": 777
+    },
+    {
+      "text": "Verfolgung",
+      "x": 850,
+      "y": 777
+    },
+    {
+      "text": "Video",
+      "x": 1325,
+      "y": 89
+    },
+    {
+      "text": "rung",
+      "x": 1330,
+      "y": 165
+    },
+    {
+      "text": "Stitching",
+      "x": 1318,
+      "y": 219
+    },
+    {
+      "text": "Wasserz",
+      "x": 1318,
+      "y": 408
+    },
+    {
+      "text": "eichen",
+      "x": 1324,
+      "y": 422
+    },
+    {
+      "text": "Dashboa",
+      "x": 1317,
+      "y": 472
+    },
+    {
+      "text": "rd",
+      "x": 1337,
+      "y": 487
+    },
+    {
+      "text": "erscha_.",
+      "x": 1318,
+      "y": 552
+    },
+    {
+      "text": "Mana.„",
+      "x": 1322,
+      "y": 618
+    }
+  ],
+  "queueConfirmZoom": [
+    {
+      "text": "O",
+      "x": 514,
+      "y": 398
+    },
+    {
+      "text": "Alarm",
+      "x": 540,
+      "y": 399
+    },
+    {
+      "text": "schlange",
+      "x": 892,
+      "y": 421
+    },
+    {
+      "text": "Please",
+      "x": 541,
+      "y": 429
+    },
+    {
+      "text": "confirm",
+      "x": 581,
+      "y": 429
+    },
+    {
+      "text": "whether",
+      "x": 629,
+      "y": 429
+    },
+    {
+      "text": "to",
+      "x": 679,
+      "y": 430
+    },
+    {
+      "text": "delete",
+      "x": 695,
+      "y": 429
+    },
+    {
+      "text": "all",
+      "x": 735,
+      "y": 429
+    },
+    {
+      "text": "exporting",
+      "x": 752,
+      "y": 429
+    },
+    {
+      "text": "tasks",
+      "x": 813,
+      "y": 429
+    },
+    {
+      "text": "Löschen",
+      "x": 688,
+      "y": 483
+    },
+    {
+      "text": "Abbrechen",
+      "x": 782,
+      "y": 483
+    },
+    {
+      "text": "schlange",
+      "x": 892,
+      "y": 489
+    }
+  ]
+}
