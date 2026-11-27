@@ -95,6 +95,7 @@ import { classifyLogText, explainPattern } from "./media-errors.mjs";
 import { decodePreset, describePreset, readPresetModel } from "./export-model.mjs";
 import { openProjectAt } from "./pipeline.mjs";
 import { findMediaProjects, readMediaProject, summariseMediaProject } from "./insprj.mjs";
+import { WRITABLE, writeMediaProject } from "./insprj-write.mjs";
 
 // The install directory is resolved at call time (see studio-path.mjs): Studio
 // 6.0.9 moved from Program Files to %LOCALAPPDATA%\Insta360\Apps, and the old
@@ -1704,7 +1705,8 @@ tool(
       "Read the **Media page's** project file (`.insprj`) for a media file -- the settings that " +
       "belong to no `.insproj`: per-clip manual colour, denoise/motion blur, watermark, the " +
       "Stats/Dashboard template, audio, stitching, and the speed (TimeShift) track. This is the " +
-      "read half of the Media-page work; there is no writer yet. " +
+      "read half of the Media-page work; `studio_media_write` is the writer, and it refuses the " +
+      "speed track and the trims until the open questions below are measured. " +
       "Pass `file`, or `media`/`name` and the project is looked up first: the parent directory is " +
       "**md5 of the media path** -- measured on 920/920 of the JSON-era files on this machine " +
       "(research/insprj_lookup.mjs), so the lookup is exact. Files Studio 5.x wrote are XML with the " +
@@ -1776,6 +1778,87 @@ tool(
         .filter(Boolean)
         .join(" "),
     };
+  },
+);
+
+tool(
+  "studio_media_write",
+  {
+    description:
+      "Write the **Media page's** per-clip settings into its project file (`.insprj`) -- the settings " +
+      "that belong to no `.insproj`: manual colour, the Stats/Dashboard template, the flat-logo " +
+      "watermark, audio. The counterpart of `studio_media_read`; read first, then write the one " +
+      "field you mean. " +
+      "`changes` is keyed by group, and each group's fields live in their own block of the clip " +
+      "(`colour`/`colourPlus`/`process` → `media_process`, `watermark` → `flat_logo_watermark`, " +
+      "`audio` → `audio_setting`, `dashboard` → `dashboard_setting`). " +
+      "**The write is surgical.** Studio's own JSON layout is reproduced exactly -- measured as a " +
+      "byte-identity on all 920 Studio-6 files on this machine (`research/insprj_format.mjs`): " +
+      "4-space indent, empty containers exploded, exponents padded to two digits, trailing newline. " +
+      "So editing one slider leaves every other field byte-for-byte as Studio wrote it, and the reply " +
+      "reports `changed` against `unchanged`. A `.bak` copy is kept beside the file. " +
+      "**What is refused, and why.** A value outside the field's own bounds (`…Min`/`…Max` in the " +
+      "file) is an error, not a clamp -- clamping is how a caller's intent becomes a different edit. " +
+      "Enabling a feature whose support flag is explicitly `false` (`supportLut`, `supportMixing`, …) " +
+      "is refused: that is Studio's own answer for this media. A field the clip does not carry is " +
+      "refused unless `allowNew` is passed, because Studio did not write a key there. XML-era files " +
+      "(Studio 5.x) are refused by name -- their element names and scales do not map onto these " +
+      "fields. A file whose layout is not the measured one is refused unless `force` is passed, since " +
+      "rewriting it would reformat every field. While **Studio is running** the write is refused " +
+      "unless `force`: Studio holds this file in memory and rewrites it on exit. " +
+      "**One refusal refuses the whole request** -- nothing is written, so a typo in one field cannot " +
+      "half-apply an edit. Use `dryRun` to see the exact change first. " +
+      "Not writable yet, and named as such: the speed (TimeShift) track -- its `endTime` timebase is " +
+      "unmeasured (`endTime` 8184 against `sourceFrames` 2046) -- and the trims, which no specimen in " +
+      "the corpus exercises.",
+    inputSchema: {
+      file: z.string().optional().describe("Path to a .insprj file (written directly)"),
+      media: z.string().optional().describe("Media file path -- its project is looked up first (md5-of-path directory)"),
+      name: z.string().optional().describe("Media file name, when the path is unknown"),
+      projectId: z.string().optional().describe("Project id or name, when the file holds more than one item"),
+      index: z.number().int().optional().describe("Project index, when the file holds more than one item"),
+      changes: z
+        .object({})
+        .passthrough()
+        .describe(
+          "Groups to change: colour, colourPlus, process, watermark, audio, dashboard. " +
+            "E.g. {\"colour\":{\"colorAdjustExposure\":40},\"audio\":{\"currentVolume\":75}}",
+        ),
+      dryRun: z.boolean().optional().describe("Report exactly what would change and write nothing (default false)"),
+      allowNew: z.boolean().optional().describe("Permit fields the clip does not carry (default false)"),
+      force: z.boolean().optional().describe("Override the layout-mismatch and Studio-running gates (default false)"),
+      backup: z.boolean().optional().describe("Keep a `.bak` copy of the original (default true)"),
+    },
+  },
+  async ({ file, media, name, projectId, index, changes = {}, dryRun = false, allowNew = false, force = false, backup = true }) => {
+    if (!file && !media && !name) return { ok: false, note: "pass `file`, or `media`/`name` to look the project up" };
+    const res = writeMediaProject({
+      file,
+      media,
+      name,
+      projectId,
+      index,
+      changes,
+      dryRun,
+      allowNew,
+      force,
+      backup,
+    });
+    if (res.refused) {
+      return {
+        ok: false,
+        file: res.file,
+        refused: res.refused,
+        note: `${res.note}. Each entry names the field and the rule it broke; the writable groups are ${Object.keys(WRITABLE).join(", ")}.`,
+      };
+    }
+    const lines = [];
+    if (res.dryRun) lines.push("dry run: nothing was written.");
+    else if (res.ok)
+      lines.push(
+        `written: ${res.changed.length} field(s) changed, ${res.unchanged} left as they were${res.backup ? `; the original is kept at ${res.backup}` : ""}.`,
+      );
+    return { ...res, note: [res.note, ...lines].filter(Boolean).join(" ") || undefined };
   },
 );
 

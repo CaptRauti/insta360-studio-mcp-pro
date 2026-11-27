@@ -7,7 +7,8 @@
   "media-project-json.insprj": {
    "source": "D:/Dokumente/Insta360/Studio/FootageProject/52434dd0f4c7a158e8e34a1b96a1db57/footage_project.insprj",
    "sourceBytes": 13291,
-   "fixtureBytes": 6398,
+   "fixtureBytes": 13291,
+   "layout": "Studio's own (4-space indent, empty containers exploded, trailing newline)",
    "trimmed": "projects[] reduced to the first item",
    "mediaId": "F:/X6/Camera01/VID_20261116_221835_00_089.mp4",
    "dirHash": "52434dd0f4c7a158e8e34a1b96a1db57",

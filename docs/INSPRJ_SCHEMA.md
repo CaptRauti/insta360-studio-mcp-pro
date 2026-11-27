@@ -197,33 +197,78 @@ names and states the measured differences in `translationNotes`:
 | `preference.optimization.stitching` / `calibration` | `stitching_optimization` / `stitching_setting` | position matches, names differ |
 | `scheme@dashboard_setting` | `dashboard_setting` | the **one** name that agrees |
 
+## Writing: Studio's own layout, reproduced
+
+The writer (`studio_media_write`, `src/insprj-write.mjs`) rewrites the whole file, as Studio does — so
+the one thing it must not do is *re-render* it. Measured over all 920 Studio-6 files on this machine
+(`research/insprj_format.mjs`):
+
+| Property | Value | Note |
+|---|---|---|
+| indent | **4 spaces** | 2-space and tab reproduce **zero** files |
+| `JSON.stringify` round trip | **0/920** | no indent value reproduces a single file — indentation is not the difference |
+| empty array / object | **exploded** | Studio writes `"a": [\n    ]`, never `[]`; this alone accounted for the whole delta on the first specimen |
+| exponent | **two digits** | `8.149072527885437e-09` on disk, `…e-9` from JS — this was the last file of the 920 to fall in line |
+| trailing newline | yes | |
+| line endings | LF | no CRLF in the corpus |
+
+`serialiseStudioJson` in `src/insprj-serialise.mjs` encodes exactly those rules and is a **byte-identity
+on 920/920**. That is what makes the write surgical: changing `colorAdjustExposure` 23 → 40 moves
+**one line** of a 327-line file (verified live, `research/media_write_probe.mjs`), the way a hand edit
+would.
+
+The writer's rules, each because the alternative is a lie about what happened:
+
+- **Refuse, do not clamp.** A value outside the field's own `…Min`/`…Max` is an error naming the
+  bounds. Silently clamping is how a caller's intent becomes a different edit.
+- **A support flag that says no is Studio's own answer.** Enabling `enableLut` where `supportLut` is
+  `false` (or `enableMixing`/`supportMixing`) is refused with that reason rather than written.
+- **Mutate existing keys only.** A key this clip does not carry is refused unless `allowNew`, because
+  there is no specimen for "Studio reads a key we invented".
+- **One refusal refuses the whole request** — nothing is written, so a typo cannot half-apply an edit.
+- **XML-era files are refused by name.** Their element names and scales do not map onto these fields,
+  so a write there would be invention.
+- **A layout that is not the measured one is refused unless `force`**, because rewriting it would
+  reformat every field. The gate is `detectStudioFormat`, not an assumption.
+- **Studio running ⇒ refuse unless `force`.** Studio keeps the file in memory and rewrites it on exit;
+  verified live (the guard answered with the running pid, `research/media_write_probe.mjs`).
+- A `.bak` copy is kept beside the file, and the reply reports `changed` against `unchanged`.
+
+Still **not** writable, and named as such in `NOT_WRITABLE`: the speed (TimeShift) track and the
+trims — see the open questions.
+
 ## What this reader is not
 
-- **There is no writer yet.** `studio_media_read` changes nothing. A writer must rewrite the whole
-  file (Studio does) and therefore preserve every field it does not intend to change — including the
-  many `support…` flags and the per-file identifiers.
-- **No frame arithmetic.** `sourceFrames`/`source_total_frames` and the play-rate timebase are
-  unverified; see the two open questions below.
 - **The XML side is reported, not translated.** Treating those numbers as JSON values is a bug.
+- **No frame arithmetic.** `sourceFrames`/`source_total_frames` and the play-rate timebase are
+  unverified; see the two open questions below — which is why the writer refuses those fields rather
+  than guessing at them.
 
 ### Open questions (do not implement around them, measure them)
 
 1. `play_rate_model_list[].endTime` — what timebase? (`end` 8184 vs `sourceFrames` 2046 at rate 4.)
+   This is the one measurement standing between a caller and the speed effect.
 2. XML-era directory hash — md5 of what, for the 90 % of files where neither tested string fits?
 3. `dashboardStyle` — only 2 distinct values here (empty and one template); the inner schema is
    unpacked enough to read `enableItems`/`measureUnit`/`positions` but not enough to author a template.
 4. `currentTracksDelay` INT32_MIN — confirm the sentinel by setting a delay in the UI and re-reading.
+5. Trims — no trimmed clip exists in the corpus (all 0), so a trim write has no specimen; it also
+   moves the frame arithmetic every later read depends on.
 
 ## Re-measuring and testing
 
 ```bash
 node research/insprj_lookup.mjs       # the md5 lookup rule, with match counts
 node research/insprj_inventory.mjs    # the field inventory behind the tables above
+node research/insprj_format.mjs       # the writing format: indent, empty containers, exponents, byte-identity per file
 npm run fixtures:insprj               # rebuild the fixtures from this machine's real files
-node --test tests/insprj.test.mjs     # 14 tests
-node tests/media-read-probe.mjs       # live: starts the MCP server and calls the tool
+node --test tests/insprj.test.mjs     # 14 tests, the reader
+node --test tests/insprj-write.test.mjs   # 24 tests, the writer
+node tests/media-read-probe.mjs       # live: starts the MCP server and calls the reader
+node research/media_write_probe.mjs   # live: dry run, the Studio-running gate, a real write, then the restore
 ```
 
-The fixtures (`tests/fixtures/media-project-*.insprj`) are Studio's own files, trimmed to one item,
-with provenance and the md5 pairing in `tests/fixtures/insprj-fixtures.json`. A parser test therefore
-fails when the app's format changes, not when a hand-written sample drifts.
+The fixtures (`tests/fixtures/media-project-*.insprj`) are Studio's own files, trimmed to one item and
+written back in **Studio's own layout** (`serialiseStudioJson`, not a pretty-print of our choosing) —
+which is what lets the writer's round-trip test assert a byte-identity rather than a resemblance. A
+parser test therefore fails when the app's format changes, not when a hand-written sample drifts.

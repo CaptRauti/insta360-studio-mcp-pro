@@ -8,6 +8,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { mediaPathHash, detectEncoding } from "../src/insprj.mjs";
+import { serialiseStudioJson } from "../src/insprj-serialise.mjs";
 
 const INI = path.join(process.env.LOCALAPPDATA, "Insta360", "Insta360 Studio", "startup.ini");
 const prefs = {};
@@ -95,11 +96,15 @@ function writeJsonFixture(pick, outName) {
     projects: pick.o.projects.slice(0, 1),
   };
   const out = `${dir}/${outName}`;
-  fs.writeFileSync(out, JSON.stringify(trimmed, null, 1));
+  // Written in Studio's own layout (`serialiseStudioJson`), not a pretty-print of our choosing: a
+  // fixture in the app's layout is what lets the writer's round-trip test assert a byte-identity.
+  const text = serialiseStudioJson(trimmed);
+  fs.writeFileSync(out, text);
   provenance.fixtures[outName] = {
     source: pick.file,
     sourceBytes: pick.raw.length,
-    fixtureBytes: JSON.stringify(trimmed).length,
+    fixtureBytes: text.length,
+    layout: "Studio's own (4-space indent, empty containers exploded, trailing newline)",
     trimmed: "projects[] reduced to the first item",
     mediaId: pick.o.id,
     dirHash: path.basename(path.dirname(pick.file)),

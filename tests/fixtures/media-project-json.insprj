@@ -1,320 +1,326 @@
 {
- "id": "F:/X6/Camera01/VID_20261116_221835_00_089.mp4",
- "selectedId": "48a97769-9b08-48f4-b022-8d12e5834ec6",
- "projects": [
-  {
-   "clip": {
-    "aspect_ratio_info": {
-     "currentAspectRatio": "8",
-     "current_aspect_ratio": 8,
-     "supportAspectRatios": null,
-     "support_aspect_ratios": [
-      1,
-      3,
-      8,
-      6,
-      7,
-      5
-     ]
-    },
-    "asteroidPitchOffset": 0,
-    "audio_setting": {
-     "audioDetached": false,
-     "currentDenoiseType": 0,
-     "currentFadeIn": 0,
-     "currentFadeOut": 0,
-     "currentMixingWeight": 50,
-     "currentTracksDelay": -2147483648,
-     "currentVolume": 100,
-     "defaultTracksDelay": 0,
-     "enableDenoise": false,
-     "enableMixing": false,
-     "maxFadeIn": 300,
-     "maxFadeOut": 300,
-     "preDetachVolume": 100,
-     "supportAudio": false,
-     "supportDenoise": false,
-     "supportDenoiseTypes": [],
-     "supportMixing": false
-    },
-    "baseViewAutoApplied": true,
-    "camera_movement": {
-     "bottom_by_category": [],
-     "camera_movement_models": [],
-     "distance": 0.6,
-     "fov": 1.3089969389957472,
-     "pitch_offset": 0,
-     "roll_offset": 0,
-     "view_category_filter": 1,
-     "yaw_offset": 0
-    },
-    "camera_transform": {
-     "distance": 0.8991405367851257,
-     "eulers": {
-      "pitch": {
-       "type": 1,
-       "value": 13.914037905421436
-      },
-      "roll": {
-       "type": 1,
-       "value": 5
-      },
-      "yaw": {
-       "type": 1,
-       "value": -68.81981811470041
-      }
-     },
-     "fov": {
-      "type": 0,
-      "value": 0.951222108571883
-     }
-    },
-    "dashboard_setting": {
-     "dashboardDataId": "",
-     "dashboardDataType": 0,
-     "dashboardSourceType": "TypeNoneData",
-     "dashboardStyle": "",
-     "enableDashboard": true,
-     "supportDashboard": true
-    },
-    "deep_track": {
-     "cache_path": "",
-     "deep_track_list": [],
-     "original_clip_id": "",
-     "save_path": "D:/Dokumente/Insta360/Studio/FootageProject/52434dd0f4c7a158e8e34a1b96a1db57/ce3da4e0-9b9b-444a-917d-d295367a8e13"
-    },
-    "default_factor": 1,
-    "dewarp_setting": {
-     "aspectRatio": 0,
-     "fov_distance_range": {
-      "is_max_x": false,
-      "is_min_x": false,
-      "max_distance": 1,
-      "max_fov": 137.01504516601562,
-      "min_distance": 0,
-      "min_fov": 1
-     },
-     "removeDistortion": false
-    },
-    "effect_filter": {
-     "externfilterId": "",
-     "externfilterName": "",
-     "externfilterOpacity": 70,
-     "externfilterResourcePath": ""
-    },
-    "enable_user_keyframe": true,
-    "flat_logo_watermark": {
-     "clipAspectRatio": 8,
-     "enableFlatLogoWatermark": false,
-     "flatLogoWatermarkTransparency": 100,
-     "logoWatermarkLocationType": 0,
-     "selectedLogoWatermarkPath": "D:/Dokumente/Insta360/Studio/Download/watermark/app/active/69/resource/insta360-X6.png"
-    },
-    "fps": 30,
-    "has_set_play_rate_manually": false,
-    "hdrPreviewEnabled": false,
-    "hdrPreviewUserToggled": false,
-    "head_track": {
-     "distance": 0.4,
-     "fov": 0.9952148917524772,
-     "head_track_list": [],
-     "pitch_offset": 0,
-     "roll_offset": 0,
-     "yaw_offset": 0
-    },
-    "highlight_data": false,
-    "id": "ce3da4e0-9b9b-444a-917d-d295367a8e13",
-    "inAsteroidMode": false,
-    "key_frame_track": {},
-    "lastTrimEditTime": 0,
-    "leftTrim": 0,
-    "legacy_camera_movement": false,
-    "logo_watermark": {
-     "enableLogoWatermark": false,
-     "logoWatermarkCornerRadius": 0,
-     "logoWatermarkFeather": 0,
-     "logoWatermarkLocationType": 0,
-     "logoWatermarkRotate": 0,
-     "logoWatermarkSize": 30,
-     "selectedLogoWatermarkPath": ":resource/default_logo_0.png"
-    },
-    "media_process": {
-     "colorAdjustAutoadjust": 0,
-     "colorAdjustBlackpoint": 0,
-     "colorAdjustBrightness": 0,
-     "colorAdjustBrilliance": 0,
-     "colorAdjustCommonMax": 100,
-     "colorAdjustCommonMin": -100,
-     "colorAdjustContrast": -48,
-     "colorAdjustDefinition": 0,
-     "colorAdjustDefinitionMin": 0,
-     "colorAdjustExposure": 23,
-     "colorAdjustHighlights": 0,
-     "colorAdjustSaturation": 0,
-     "colorAdjustShadows": 0,
-     "colorAdjustTint": 0,
-     "colorAdjustVibrance": 0,
-     "colorAdjustWarmth": 0,
-     "colorPlusStrength": 30,
-     "colorPlusStrengthMax": 100,
-     "colorPlusStrengthMin": 0,
-     "enableAe": false,
-     "enableBeautyMode": false,
-     "enableColorAdjust": true,
-     "enableColorPlus": true,
-     "enableHorizontalCorrect": false,
-     "enableLocalToneMapping": false,
-     "enableLut": false,
-     "enableMotionBlur": true,
-     "enableMultiFrameDenoise": false,
-     "enablePureShot": false,
-     "enableSingleDenoise": false,
-     "enableTimeLogo": false,
-     "enableUnderWaterCorrect": false,
-     "horizontalCorrectAngle": 0,
-     "horizontalCorrectDefaultAngle": 0,
-     "localToneMappingStrength": 30,
-     "localToneMappingStrengthMax": 100,
-     "localToneMappingStrengthMin": 0,
-     "motionBlurEdited": false,
-     "motionBlurStrength": 50,
-     "motionBlurThreshold": 85,
-     "supportAe": false,
-     "supportColorAdjust": true,
-     "supportColorPlus": true,
-     "supportHorizontalCorrect": false,
-     "supportLocalToneMapping": true,
-     "supportLut": false,
-     "supportMotionBlur": true,
-     "supportPureShot": false,
-     "supportSingleDenoise": false,
-     "supportUnderWaterCorrect": true,
-     "timeLogoFormat": 0,
-     "timeLogoTransparency": 100,
-     "underWaterStrength": 100,
-     "underWaterStrengthMax": 100,
-     "underWaterStrengthMin": 0,
-     "underWaterStyle": 0
-    },
-    "name": "VID_089.mp4",
-    "online": false,
-    "original_camera_transform": {
-     "distance": 0.95,
-     "eulers": {
-      "pitch": {
-       "type": 0,
-       "value": 0
-      },
-      "roll": {
-       "type": 0,
-       "value": 0
-      },
-      "yaw": {
-       "type": 0,
-       "value": 0
-      }
-     },
-     "fov": {
-      "type": 0,
-      "value": 0.881984960780334
-     }
-    },
-    "panoAnimationPresetId": -1,
-    "play_rate_track": {
-     "play_rate_model_list": [
-      {
-       "endTime": 8184,
-       "maxPlayRate": 4,
-       "minPlayRate": 4,
-       "name": "dd4154a0-6784-441e-8c9f-8c0ffe2116e5",
-       "startTime": 0
-      }
-     ]
-    },
-    "popupApplyDefaultCameraTransformTips": true,
-    "ratio": 8,
-    "resourceId": "",
-    "rightTrim": 0,
-    "roughTrimmed": false,
-    "sourceFrames": 2046,
-    "source_left_trim": 0,
-    "source_right_trim": 0,
-    "source_total_frames": 8184,
-    "srcId": "",
-    "stab_setting": {
-     "enableDirectionalLock": false,
-     "enableFpv": false,
-     "enableImmerrsionStab": false,
-     "enablePanoFpv": false,
-     "enableStab": false,
-     "modifiable": true,
-     "stabLevel": 0,
-     "supportBoostStabLevel": false,
-     "supportDirectionalLock": false,
-     "supportFpv": false,
-     "supportHighStabLevel": false,
-     "supportPanoFpv": false,
-     "supportStab": false
-    },
-    "startFrame": 0,
-    "state": 0,
-    "stitching_optimization": {
-     "enableAIStitching": false,
-     "enableDynamicStitching": false,
-     "enableImageFusionStitching": false,
-     "enableOpticalFlowStitching": false,
-     "ignoreDynamicStitching": false,
-     "ignoreImageFusionStitching": false,
-     "ignoreOpticalFlowStitching": false,
-     "optimizedOffset": "",
-     "supportAIStitching": false,
-     "supportDynamicStitching": false,
-     "supportImageFusionStitching": false,
-     "supportOpticalFlowStitching": false
-    },
-    "stitching_setting": {
-     "cameraAccessory": 0,
-     "customStitchingValue": 0,
-     "customStitchingValueMax": 0,
-     "enableColdShoe": false,
-     "enableCoolingShell": false,
-     "propellerGuardStatus": 0,
-     "supportCameraAccessory": [
-      0,
-      42,
-      43,
-      40,
-      11,
-      12
-     ],
-     "supportColdShoe": false,
-     "supportCoolingShell": false,
-     "supportCustomStitching": false,
-     "supportPropellerGuard": false,
-     "supportStitching": false
-    },
-    "subtype": 1,
-    "supplementFrameType": "SupplementFrameTypeNormal",
-    "supplement_frame_type": 0,
-    "time_watermark": {
-     "enableTimeWatermark": false,
-     "timeWatermarkFormat": 2,
-     "timeWatermarkTransparency": 100
-    },
-    "type": 1,
-    "url": "F:/X6/Camera01/VID_20261116_221835_00_089.mp4",
-    "userRotateDegree": 0,
-    "viewType": 0
-   },
-   "createTime": "2026.11.21 16:34:06",
-   "id": "48a97769-9b08-48f4-b022-8d12e5834ec6",
-   "modifiedTime": "2026.11.21 17:01:34",
-   "name": "Projekt1",
-   "roughcut": {
-    "leftTrim": 0,
-    "rightTrim": 0,
-    "totalFrames": 2046
-   }
-  }
- ]
+    "id": "F:/X6/Camera01/VID_20261116_221835_00_089.mp4",
+    "selectedId": "48a97769-9b08-48f4-b022-8d12e5834ec6",
+    "projects": [
+        {
+            "clip": {
+                "aspect_ratio_info": {
+                    "currentAspectRatio": "8",
+                    "current_aspect_ratio": 8,
+                    "supportAspectRatios": null,
+                    "support_aspect_ratios": [
+                        1,
+                        3,
+                        8,
+                        6,
+                        7,
+                        5
+                    ]
+                },
+                "asteroidPitchOffset": 0,
+                "audio_setting": {
+                    "audioDetached": false,
+                    "currentDenoiseType": 0,
+                    "currentFadeIn": 0,
+                    "currentFadeOut": 0,
+                    "currentMixingWeight": 50,
+                    "currentTracksDelay": -2147483648,
+                    "currentVolume": 100,
+                    "defaultTracksDelay": 0,
+                    "enableDenoise": false,
+                    "enableMixing": false,
+                    "maxFadeIn": 300,
+                    "maxFadeOut": 300,
+                    "preDetachVolume": 100,
+                    "supportAudio": false,
+                    "supportDenoise": false,
+                    "supportDenoiseTypes": [
+                    ],
+                    "supportMixing": false
+                },
+                "baseViewAutoApplied": true,
+                "camera_movement": {
+                    "bottom_by_category": [
+                    ],
+                    "camera_movement_models": [
+                    ],
+                    "distance": 0.6,
+                    "fov": 1.3089969389957472,
+                    "pitch_offset": 0,
+                    "roll_offset": 0,
+                    "view_category_filter": 1,
+                    "yaw_offset": 0
+                },
+                "camera_transform": {
+                    "distance": 0.8991405367851257,
+                    "eulers": {
+                        "pitch": {
+                            "type": 1,
+                            "value": 13.914037905421436
+                        },
+                        "roll": {
+                            "type": 1,
+                            "value": 5
+                        },
+                        "yaw": {
+                            "type": 1,
+                            "value": -68.81981811470041
+                        }
+                    },
+                    "fov": {
+                        "type": 0,
+                        "value": 0.951222108571883
+                    }
+                },
+                "dashboard_setting": {
+                    "dashboardDataId": "",
+                    "dashboardDataType": 0,
+                    "dashboardSourceType": "TypeNoneData",
+                    "dashboardStyle": "",
+                    "enableDashboard": true,
+                    "supportDashboard": true
+                },
+                "deep_track": {
+                    "cache_path": "",
+                    "deep_track_list": [
+                    ],
+                    "original_clip_id": "",
+                    "save_path": "D:/Dokumente/Insta360/Studio/FootageProject/52434dd0f4c7a158e8e34a1b96a1db57/ce3da4e0-9b9b-444a-917d-d295367a8e13"
+                },
+                "default_factor": 1,
+                "dewarp_setting": {
+                    "aspectRatio": 0,
+                    "fov_distance_range": {
+                        "is_max_x": false,
+                        "is_min_x": false,
+                        "max_distance": 1,
+                        "max_fov": 137.01504516601562,
+                        "min_distance": 0,
+                        "min_fov": 1
+                    },
+                    "removeDistortion": false
+                },
+                "effect_filter": {
+                    "externfilterId": "",
+                    "externfilterName": "",
+                    "externfilterOpacity": 70,
+                    "externfilterResourcePath": ""
+                },
+                "enable_user_keyframe": true,
+                "flat_logo_watermark": {
+                    "clipAspectRatio": 8,
+                    "enableFlatLogoWatermark": false,
+                    "flatLogoWatermarkTransparency": 100,
+                    "logoWatermarkLocationType": 0,
+                    "selectedLogoWatermarkPath": "D:/Dokumente/Insta360/Studio/Download/watermark/app/active/69/resource/insta360-X6.png"
+                },
+                "fps": 30,
+                "has_set_play_rate_manually": false,
+                "hdrPreviewEnabled": false,
+                "hdrPreviewUserToggled": false,
+                "head_track": {
+                    "distance": 0.4,
+                    "fov": 0.9952148917524772,
+                    "head_track_list": [
+                    ],
+                    "pitch_offset": 0,
+                    "roll_offset": 0,
+                    "yaw_offset": 0
+                },
+                "highlight_data": false,
+                "id": "ce3da4e0-9b9b-444a-917d-d295367a8e13",
+                "inAsteroidMode": false,
+                "key_frame_track": {
+                },
+                "lastTrimEditTime": 0,
+                "leftTrim": 0,
+                "legacy_camera_movement": false,
+                "logo_watermark": {
+                    "enableLogoWatermark": false,
+                    "logoWatermarkCornerRadius": 0,
+                    "logoWatermarkFeather": 0,
+                    "logoWatermarkLocationType": 0,
+                    "logoWatermarkRotate": 0,
+                    "logoWatermarkSize": 30,
+                    "selectedLogoWatermarkPath": ":resource/default_logo_0.png"
+                },
+                "media_process": {
+                    "colorAdjustAutoadjust": 0,
+                    "colorAdjustBlackpoint": 0,
+                    "colorAdjustBrightness": 0,
+                    "colorAdjustBrilliance": 0,
+                    "colorAdjustCommonMax": 100,
+                    "colorAdjustCommonMin": -100,
+                    "colorAdjustContrast": -48,
+                    "colorAdjustDefinition": 0,
+                    "colorAdjustDefinitionMin": 0,
+                    "colorAdjustExposure": 23,
+                    "colorAdjustHighlights": 0,
+                    "colorAdjustSaturation": 0,
+                    "colorAdjustShadows": 0,
+                    "colorAdjustTint": 0,
+                    "colorAdjustVibrance": 0,
+                    "colorAdjustWarmth": 0,
+                    "colorPlusStrength": 30,
+                    "colorPlusStrengthMax": 100,
+                    "colorPlusStrengthMin": 0,
+                    "enableAe": false,
+                    "enableBeautyMode": false,
+                    "enableColorAdjust": true,
+                    "enableColorPlus": true,
+                    "enableHorizontalCorrect": false,
+                    "enableLocalToneMapping": false,
+                    "enableLut": false,
+                    "enableMotionBlur": true,
+                    "enableMultiFrameDenoise": false,
+                    "enablePureShot": false,
+                    "enableSingleDenoise": false,
+                    "enableTimeLogo": false,
+                    "enableUnderWaterCorrect": false,
+                    "horizontalCorrectAngle": 0,
+                    "horizontalCorrectDefaultAngle": 0,
+                    "localToneMappingStrength": 30,
+                    "localToneMappingStrengthMax": 100,
+                    "localToneMappingStrengthMin": 0,
+                    "motionBlurEdited": false,
+                    "motionBlurStrength": 50,
+                    "motionBlurThreshold": 85,
+                    "supportAe": false,
+                    "supportColorAdjust": true,
+                    "supportColorPlus": true,
+                    "supportHorizontalCorrect": false,
+                    "supportLocalToneMapping": true,
+                    "supportLut": false,
+                    "supportMotionBlur": true,
+                    "supportPureShot": false,
+                    "supportSingleDenoise": false,
+                    "supportUnderWaterCorrect": true,
+                    "timeLogoFormat": 0,
+                    "timeLogoTransparency": 100,
+                    "underWaterStrength": 100,
+                    "underWaterStrengthMax": 100,
+                    "underWaterStrengthMin": 0,
+                    "underWaterStyle": 0
+                },
+                "name": "VID_089.mp4",
+                "online": false,
+                "original_camera_transform": {
+                    "distance": 0.95,
+                    "eulers": {
+                        "pitch": {
+                            "type": 0,
+                            "value": 0
+                        },
+                        "roll": {
+                            "type": 0,
+                            "value": 0
+                        },
+                        "yaw": {
+                            "type": 0,
+                            "value": 0
+                        }
+                    },
+                    "fov": {
+                        "type": 0,
+                        "value": 0.881984960780334
+                    }
+                },
+                "panoAnimationPresetId": -1,
+                "play_rate_track": {
+                    "play_rate_model_list": [
+                        {
+                            "endTime": 8184,
+                            "maxPlayRate": 4,
+                            "minPlayRate": 4,
+                            "name": "dd4154a0-6784-441e-8c9f-8c0ffe2116e5",
+                            "startTime": 0
+                        }
+                    ]
+                },
+                "popupApplyDefaultCameraTransformTips": true,
+                "ratio": 8,
+                "resourceId": "",
+                "rightTrim": 0,
+                "roughTrimmed": false,
+                "sourceFrames": 2046,
+                "source_left_trim": 0,
+                "source_right_trim": 0,
+                "source_total_frames": 8184,
+                "srcId": "",
+                "stab_setting": {
+                    "enableDirectionalLock": false,
+                    "enableFpv": false,
+                    "enableImmerrsionStab": false,
+                    "enablePanoFpv": false,
+                    "enableStab": false,
+                    "modifiable": true,
+                    "stabLevel": 0,
+                    "supportBoostStabLevel": false,
+                    "supportDirectionalLock": false,
+                    "supportFpv": false,
+                    "supportHighStabLevel": false,
+                    "supportPanoFpv": false,
+                    "supportStab": false
+                },
+                "startFrame": 0,
+                "state": 0,
+                "stitching_optimization": {
+                    "enableAIStitching": false,
+                    "enableDynamicStitching": false,
+                    "enableImageFusionStitching": false,
+                    "enableOpticalFlowStitching": false,
+                    "ignoreDynamicStitching": false,
+                    "ignoreImageFusionStitching": false,
+                    "ignoreOpticalFlowStitching": false,
+                    "optimizedOffset": "",
+                    "supportAIStitching": false,
+                    "supportDynamicStitching": false,
+                    "supportImageFusionStitching": false,
+                    "supportOpticalFlowStitching": false
+                },
+                "stitching_setting": {
+                    "cameraAccessory": 0,
+                    "customStitchingValue": 0,
+                    "customStitchingValueMax": 0,
+                    "enableColdShoe": false,
+                    "enableCoolingShell": false,
+                    "propellerGuardStatus": 0,
+                    "supportCameraAccessory": [
+                        0,
+                        42,
+                        43,
+                        40,
+                        11,
+                        12
+                    ],
+                    "supportColdShoe": false,
+                    "supportCoolingShell": false,
+                    "supportCustomStitching": false,
+                    "supportPropellerGuard": false,
+                    "supportStitching": false
+                },
+                "subtype": 1,
+                "supplementFrameType": "SupplementFrameTypeNormal",
+                "supplement_frame_type": 0,
+                "time_watermark": {
+                    "enableTimeWatermark": false,
+                    "timeWatermarkFormat": 2,
+                    "timeWatermarkTransparency": 100
+                },
+                "type": 1,
+                "url": "F:/X6/Camera01/VID_20261116_221835_00_089.mp4",
+                "userRotateDegree": 0,
+                "viewType": 0
+            },
+            "createTime": "2026.11.21 16:34:06",
+            "id": "48a97769-9b08-48f4-b022-8d12e5834ec6",
+            "modifiedTime": "2026.11.21 17:01:34",
+            "name": "Projekt1",
+            "roughcut": {
+                "leftTrim": 0,
+                "rightTrim": 0,
+                "totalFrames": 2046
+            }
+        }
+    ]
 }

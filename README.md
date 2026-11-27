@@ -87,6 +87,7 @@ anything the UI or an `.insproj` hands it.
 | Tool | What it does |
 |---|---|
 | `studio_media_read` | Read the Media page's project file for a media file: per-clip colour, denoise/motion blur, watermark, the Stats/Dashboard template, audio, stitching, and the speed (TimeShift) track. Pass `file`, or `media`/`name` and it looks the project up first (the parent directory is `md5(media path)` for Studio 6 files). Reports which encoding it found (`json` = 6.x, `xml` = 5.x) and, for XML, its own field names under `legacy` with the measured name/unit differences. Read-only — see `docs/INSPRJ_SCHEMA.md` |
+| `studio_media_write` | Write those settings back: `changes` keyed by group (`colour`, `colourPlus`, `process`, `watermark`, `audio`, `dashboard`). **Surgical** — Studio's own JSON layout is reproduced as a byte-identity on all 920 Studio-6 files here (4-space indent, empty containers exploded, exponents padded to two digits), so one slider edit moves one line, not the whole file. A `.bak` is kept and the reply reports `changed` vs `unchanged`. It **refuses rather than guesses**: a value outside the field's own bounds, enabling a feature whose `support…` flag Studio wrote as `false`, a key this clip does not carry (unless `allowNew`), XML-era files, a file whose layout is not the measured one (unless `force`), and a write while Studio is running (unless `force` — Studio holds the file in memory). One refusal refuses the whole request. `dryRun` shows the change first. The speed track and the trims are refused until their open questions are measured |
 
 ### gRPC services
 
@@ -568,7 +569,7 @@ All of these were run and the outputs checked with `ffprobe` / `file` — the si
 ## Tests
 
 ```bash
-npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, export queue, thumbnail payloads, log/dump reader, keyframe track, colour filters, transitions, preflight — 239 tests, plus the clip-metadata and pref checks (clip metadata skips when its F: fixtures are absent)
+npm test                # wire format, .insproj, camera matrix, OCR, export request, dialog OCR, export queue, thumbnail payloads, log/dump reader, keyframe track, colour filters, transitions, preflight, the Media-page reader and writer — 277 tests, plus the clip-metadata and pref checks (clip metadata skips when its F: fixtures are absent)
 npm run check           # syntax-check every module
 npm run test:nvap       # NVAP extractor self-test (hybrid headers, 44/44 containers)
 npm run probe           # live MCP handshake, tool list, gRPC port discovery
@@ -640,7 +641,7 @@ The probe scripts that got us there are in `research/grpc-probes/`.
 | File | What it holds |
 |---|---|
 | `docs/FEATURE_SURVEY.md` | Studio's documented feature set, per-page manual URLs, per-model applicability — the source list for what can be automated at all |
-| `docs/DEVELOPMENT_BACKLOG.md` | Manual-vs-server coverage audit: what Studio documents, what these 46 tools cover, and the ranked list of functions still to build |
+| `docs/DEVELOPMENT_BACKLOG.md` | Manual-vs-server coverage audit: what Studio documents, what these 50 tools cover, and the ranked list of functions still to build |
 | `docs/INSPROJ_SCHEMA.md` | The measured `.insproj` schema, including the frame arithmetic `len(c) = source_total_frames − leftTrim − rightTrim` |
 | `docs/ASSET_CATALOG.md` | Asset library and unpacked NVAP contents |
 

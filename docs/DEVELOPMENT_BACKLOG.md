@@ -107,9 +107,9 @@ the GUI — 178,569,151 bytes, H.264 1920×1080, 1652 frames / 27.53 s + AAC. §
 | 9 | Speed: TimeShift, ramping, motion blur, interpolation | ✗ | ✗ |
 | 10 | Audio: BGM, volume, fade, denoise, mute (`audio-settings`) | ✗ | ✗ — `bgm_clip[]` + `audioSettings` |
 | 11 | HDR / colour space / I-Log / PureShot / Dolby (`dolby`) | ◐ `Farbraum` readable/settable in the export dialog | I-Log / PureShot toggles ✗; Dolby Vision → **drop** (macOS M-series only) |
-| 12 | Watermark (`watermark`) | ◐ via GUI copy/paste flow | as a written parameter ✗ |
+| 12 | Watermark (`watermark`) | ◐ via GUI copy/paste flow; **as a written parameter ✓** for the flat logo — `studio_media_write {changes:{watermark:{…}}}` | the parameterised `studio_media_watermark` wrapper (resource catalogue, location semantics) ✗ |
 | 13 | Export: settings, batch, VR (`file-export-instructions`, `instructions-for-vr-panoramic-video-editing-and-export`) | ◐ `studio_ui_export_settings` / `_set` for `Kodierung`/`Farbraum`; **all** settings readable | measurement of `Auflösung`/`Rahmen`/`Bitrate`/`Voreinstellung` ✗, batch/queue ✗, VR platform presets ✗, AI stitching ✗ |
-| 14 | Project management (`project-page-introduction`) | ✓ read/list/sources + build; project opens, attaches media and exports (§0 closed); `studio_project_open` registers unlisted projects | clip create/copy/delete ✗, Media-page projects (`.insprj`): **read ✓** (`studio_media_read`, B1), write ✗ |
+| 14 | Project management (`project-page-introduction`) | ✓ read/list/sources + build; project opens, attaches media and exports (§0 closed); `studio_project_open` registers unlisted projects | clip create/copy/delete ✗, Media-page projects (`.insprj`): **read ✓ + write ✓** (`studio_media_read` / `studio_media_write`, B1) |
 | 15 | Stats / Dashboard (`dashboard-function`) | ✗ | ✗ — template, units, GPS source, GPX/FIT import |
 | 16 | Plug-ins (Premiere, QuickLook, LUT, FCPX) | — | **out of scope** |
 | 17 | Automation surface | — | our product; Insta360 documents none |
@@ -134,26 +134,32 @@ Effort: **S** ≤ half a day · **M** ~1–3 days · **L** > 3 days (or needs a 
 | A7 | `studio_project_sticker` | Stickers + animation | M | lowest value of group A; `Resources/stickeranimation/` is catalogued |
 | A8 | clip create / copy / delete | Several edit schemes per media file, switchable | M | Manual: `file-management/clip-management` — the page that also carries the §0 lead |
 
-### B. Media page (`.insprj`) — the format is now read, not yet written
+### B. Media page (`.insprj`) — read **and** written
 
 The Media page is where a *single* file gets edited, and it keeps its own project file (`.insprj`, "Media-page project
 file"; `.json` = media libraries; `.insproj` = Project page — `clip-management` FAQ 3). Watermark, per-media FOV,
 Stats, Remove Grain and the batch operations all live there.
 
-**Format documented and the read side shipped (`docs/INSPRJ_SCHEMA.md`, `src/insprj.mjs`)** — the settings B2–B5 need
-are all in that file: colour, denoise, watermark, the Stats template (`dashboardStyle` is a JSON document inside a
-string), audio and the speed track. Two encodings, one extension: **JSON from Studio 6.x** (`id` = the media path; the
-parent directory is `md5(id)` — 920/920 measured) and **XML before that** (`<schemes><scheme><preference>…`; its
-directory is only *sometimes* that md5 — 10/371 by `cloud_media_id`, 46/406 by folder + name — so those resolve by
-file name or path-in-file, and each match says how). The XML element names differ from the JSON ones (audio `volume`
-0.5 vs `currentVolume` 100, `trim_start/_end` in ms vs frames), so the reader reports that side under `legacy` with its
-own names and a `translationNotes` list; it claims no equivalence. Read-only; a writer has to preserve everything it
-does not change, which is why the field inventory was measured first (`research/insprj_inventory.mjs`).
+**Format documented, read side and write side shipped (`docs/INSPRJ_SCHEMA.md`, `src/insprj.mjs`,
+`src/insprj-write.mjs`)** — the settings B2–B5 need are all in that file: colour, denoise, watermark, the Stats
+template (`dashboardStyle` is a JSON document inside a string), audio and the speed track. Two encodings, one
+extension: **JSON from Studio 6.x** (`id` = the media path; the parent directory is `md5(id)` — 920/920 measured) and
+**XML before that** (`<schemes><scheme><preference>…`; its directory is only *sometimes* that md5 — 10/371 by
+`cloud_media_id`, 46/406 by folder + name — so those resolve by file name or path-in-file, and each match says how).
+The XML element names differ from the JSON ones (audio `volume` 0.5 vs `currentVolume` 100, `trim_start/_end` in ms vs
+frames), so the reader reports that side under `legacy` with its own names and a `translationNotes` list; it claims no
+equivalence. The writer refuses XML by name for the same reason.
+
+**The write side is surgical, and that was a measurement, not a choice.** Studio's own layout had to be reproduced
+before a writer could exist: over all 920 JSON files, `JSON.parse` → `JSON.stringify` reproduces **zero** of them at
+any indent — studio explodes empty containers (`"a": [\n    ]`, never `[]`) and pads an exponent to two digits
+(`…e-09`). `serialiseStudioJson` encodes the measured rules and is a **byte-identity on 920/920**, so one slider edit
+moves one line instead of reformatting ~55 clip keys (`research/insprj_format.mjs`).
 
 | # | Function | Effort | Notes |
 |---|---|---|---|
-| B1 | `studio_media_read` / `studio_media_write` for `.insprj` | M | **read done 2026-11-27**: `studio_media_read` (`src/insprj.mjs`), 14 unit tests on trimmed real files, `tests/media-read-probe.mjs` drives it through the live server. Lookup, both encodings, normalised groups, `summariseMediaProject` without raw trees. **Writer open** — and it is the prerequisite for B2–B5 |
-| B2 | `studio_media_watermark` (parameterised) | M | Manual: `edit-function/watermark` — Media page only; batch via copy/paste (6.0) or Batch Settings (5.x); only for original camera media, not exported/re-encoded files. **Specimens exist**: `clip.flat_logo_watermark.enableFlatLogoWatermark` is both false *and* true here, with `selectedLogoWatermarkPath` (`""`, a `D:/…/Download/watermark/…/insta360-X6.png`, `:resource/default_logo_0`), `flatLogoWatermarkTransparency` (100/26), `logoWatermarkLocationType` (0/1). Trap: the path is configured while the toggle is off, and it points into Studio's download folder |
+| B1 | `studio_media_read` / `studio_media_write` for `.insprj` | M | **both done 2026-11-27**: `studio_media_read` (`src/insprj.mjs`, 14 tests, `tests/media-read-probe.mjs`) and `studio_media_write` (`src/insprj-write.mjs` + `src/insprj-serialise.mjs`, 24 tests, `research/media_write_probe.mjs` drives dry run → the Studio-running gate → a real write → the restore). Lookup, both encodings, normalised groups, `summariseMediaProject`. The writer covers colour/colourPlus/process/watermark/audio/dashboard fields with per-field bounds and support-flag gates, all-or-nothing refusal, `.bak`, and refuses the speed track and the trims until their open questions are measured. **B2–B5 are now parameterisable through it**; what remains for them is their own convenience surface, not the file work |
+| B2 | `studio_media_watermark` (parameterised) | S | Manual: `edit-function/watermark` — Media page only; batch via copy/paste (6.0) or Batch Settings (5.x); only for original camera media, not exported/re-encoded files. **Specimens exist**: `clip.flat_logo_watermark.enableFlatLogoWatermark` is both false *and* true here, with `selectedLogoWatermarkPath` (`""`, a `D:/…/Download/watermark/…/insta360-X6.png`, `:resource/default_logo_0`), `flatLogoWatermarkTransparency` (100/26), `logoWatermarkLocationType` (0/1). Trap: the path is configured while the toggle is off, and it points into Studio's download folder. **Downgraded M→S**: `studio_media_write {changes:{watermark:{…}}}` already writes the whole group; only a friendlier wrapper (catalog of resources, "put this PNG here" semantics) is missing |
 | B3 | `studio_media_dashboard` (Stats) | M | Manual: `dashboard-function` — GPS source (remote / app / GPX-FIT import), template, metric-imperial; **flat video only** (not 360 export), not for Timelapse/Starlapse/TimeShift/Slow Motion/Bullet Time; some labels are English-only inside German UI. **Now readable**: 300/920 clips carry `dashboard_setting` (`enableDashboard` true whenever present, `dashboardSourceType` `TypeNoneData`/`TypeMeta`), and `dashboardStyle` is a JSON document in a string — the reader parses it into `styleParsed`. The *inner* template schema is only partly unpacked (`enableItems`, `measureUnit`, `positions`) |
 | B4 | `studio_media_denoise` | S | Manual: `file-management/ai-processing-image-noise-reduction` — auto for new X-series/GO/Ace media, toggle only for already-exported media. **Flags measured**: `enableSingleDenoise` + `supportSingleDenoise` have both values here, `enableMultiFrameDenoise` both, `enablePureShot`/`supportPureShot` only false |
 | B5 | `studio_media_gpx_import` | S | GPX/FIT files for Stats; "Dashboard Disabled by Default" is a preference (see E). `dashboardDataType` (0/1) and `dashboardDataId` (a media path when set) are the fields to read |
@@ -252,6 +258,6 @@ check` and the scan (`research/preflight_scan.mjs`) report that rather than pass
 2. ~~**§0 investigation**~~ — **closed 2026-11-25**: the album (`project_album_info.data`, all four parts) is what makes a built clip attach, and a built project now exports (178 MB, H.264 1652 frames). See the top of §0.
 3. ~~**A1, A2, A3** (keyframes, colour, transitions)~~ — **done**: A1 keyframes, A2 filters (`color_adjust_setting` was the wrong target; `effect_filter` is the real one), A3 transitions (the container is the **track**, and Studio's acceptance of a hand-written entry is measured).
 4. ~~**G1–G8** (preflight)~~ — **done 2026-11-26**: `studio_project_check` / `src/preflight.mjs`, 19 rules + 30 tests. Running it over all 13 projects on this machine rewrote three of the rules and found three real defects (a stale Deep Track path in two projects, an export marker that drops the tail of `StefanTest` and `mcpKey`, and the clip framing in our own clones).
-5. **C1, C3, C4** (finish the export matrix) + **B1/B2** (Media page + watermark) — **B1's read half is done 2026-11-27** (`studio_media_read`, `docs/INSPRJ_SCHEMA.md`), which also handed B2–B5 their field lists and corrected A2 (manual colour *does* have specimens, in `.insprj`). Next: **B1's writer**, which B2–B5 all build on.
+5. **C1, C3, C4** (finish the export matrix) + **B2–B5** (Media-page surfaces) — **B1 is fully done 2026-11-27** (`studio_media_read` + `studio_media_write`, `docs/INSPRJ_SCHEMA.md`, 38 tests), which handed B2–B5 their field lists, corrected A2 (manual colour *does* have specimens, in `.insprj`), and downgraded B2 to S. Next: the remaining export-matrix cells (C1/C3/C4) and the B2–B5 convenience tools on top of the generic writer.
 6. **A4–A8, B3–B5, E2** (E1, E3, E4 are done — `studio_prefs`).
 7. **F1–F4** — one at a time, each is a project in its own right.
