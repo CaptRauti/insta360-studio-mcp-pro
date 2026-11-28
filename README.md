@@ -699,3 +699,11 @@ The probe scripts that got us there are in `research/grpc-probes/`.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+---
+
+## Support
+
+This project is free and stays free. If it saved you some work, you can buy me a coffee:
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-captrauti-FFDD00?logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/captrauti)
